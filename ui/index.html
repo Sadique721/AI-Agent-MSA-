@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MSA AI Agent - Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #fff; margin: 0; padding: 20px; text-align: center; }
+        .container { max-width: 600px; margin: auto; background: #1e1e1e; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        h1 { color: #bb86fc; }
+        input[type="text"] { width: 80%; padding: 10px; margin: 10px 0; border: none; border-radius: 5px; outline: none; }
+        button { background-color: #bb86fc; color: #000; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 5px; }
+        button:hover { background-color: #9b61e4; }
+        #response-box { margin-top: 20px; padding: 15px; background: #2c2c2c; border-radius: 5px; min-height: 50px; text-align: left; }
+        .controls { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>MSA Local Agent</h1>
+    <p>Connected via local Wi-Fi.</p>
+    
+    <input type="text" id="cmd-input" placeholder="Type a command (e.g., 'open notepad')">
+    <button onclick="sendCommand()">Send</button>
+    
+    <div class="controls">
+        <button onclick="quickAction('open', 'calculator')">Calc</button>
+        <button onclick="quickAction('open', 'browser')">Browser</button>
+        <button onclick="quickAction('capture', '')">Camera</button>
+        <button onclick="sendLocation()">Update GPS</button>
+    </div>
+
+    <div id="response-box">Awaiting command...</div>
+</div>
+
+<script>
+    async function sendCommand(cmd=null, target=null) {
+        let commandText = cmd || document.getElementById('cmd-input').value;
+        if(!commandText) return;
+        
+        let payload = { command: commandText };
+        if(target) payload.target = target;
+
+        document.getElementById('response-box').innerText = "Processing...";
+        try {
+            let res = await fetch('/api/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            let data = await res.json();
+            document.getElementById('response-box').innerText = "Agent: " + data.response;
+        } catch (e) {
+            document.getElementById('response-box').innerText = "Error: " + e;
+        }
+    }
+
+    function quickAction(cmd, target) {
+        sendCommand(cmd, target);
+    }
+
+    function sendLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                let payload = {
+                    latitude: pos.coords.latitude,
+                    longitude: pos.coords.longitude,
+                    notes: "Mobile GPS Update"
+                };
+                try {
+                    let res = await fetch('/api/location', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    let data = await res.json();
+                    document.getElementById('response-box').innerText = data.message;
+                } catch (e) {
+                    document.getElementById('response-box').innerText = "GPS Error: " + e;
+                }
+            });
+        } else {
+            document.getElementById('response-box').innerText = "Geolocation is not supported by this browser.";
+        }
+    }
+</script>
+
+</body>
+</html>

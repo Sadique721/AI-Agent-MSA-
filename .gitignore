@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+.venv/
+ENV/
+
+# Database
+*.db
+*.sqlite3
+
+# Keys and Config
+encryption_key
+user_profile.json
+mobile_ip.txt
+
+# Logs
+logs/
+*.log
+
+# Models (Ignore Large Binary Files)
+models/vosk/*
+models/whisper.cpp/*
+models/llm/*.gguf
+models/llm/*.bin
+models/speaker/*.npy
+models/speaker/*.ckpt
+*.pt
+*.pth
+
+# Visual Studio Code
+.vscode/
+
+# Keep empty model folders
+!models/vosk/.keep
+!models/whisper.cpp/.keep
+!models/llm/.keep
+!models/speaker/.keep
+!models/cv/.keep
