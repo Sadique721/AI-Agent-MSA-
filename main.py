@@ -1,20 +1,67 @@
+"""
+main.py
+=======
+MSA AI Agent — Primary Entry Point (thin launcher).
+
+This file starts:
+  1. A background daemon thread for future background workers
+     (voice, memory sync, etc.)
+  2. The Flask-SocketIO web server
+
+FIX: start_server() previously called with (host, port) args but the old
+     server.py signature accepted none.  Both are now aligned — server.py
+     start_server() accepts optional host/port with sensible defaults.
+"""
+
+import logging
 import threading
 import time
+
 from backend.server import start_server
 
-def run_background_workers():
-    print("[MSA] Starting background agents...")
-    # Will integrate voice, memory, and vision modules here
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] [%(levelname)s] %(name)s — %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("msa.main")
+
+
+# ---------------------------------------------------------------------------
+# Background worker (placeholder — extend as needed)
+# ---------------------------------------------------------------------------
+def run_background_workers() -> None:
+    """
+    Daemon thread for background tasks:
+      - Future: periodic memory sync
+      - Future: ambient voice/wake-word monitoring
+      - Future: health-check pings
+    """
+    logger.info("Background worker thread started.")
     while True:
-        time.sleep(1)
+        # Intentionally idle — wake-word loop lives in scripts/run.py
+        time.sleep(5)
 
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    print("[MSA] Initializing MSA AI Agent...")
-    
-    # Thread for background AI processes
-    bg_thread = threading.Thread(target=run_background_workers, daemon=True)
-    bg_thread.start()
+    logger.info("MSA AI Agent initialising …")
 
-    print("[MSA] Starting Wi-Fi server on port 8000...")
-    # Start the fastAPI UI/Networking server
-    start_server(host="0.0.0.0", port=8000)
+    # Start background daemon
+    bg_thread = threading.Thread(
+        target=run_background_workers,
+        name="msa-background",
+        daemon=True,
+    )
+    bg_thread.start()
+    logger.info("Background worker started (daemon).")
+
+    # Start the web server (blocks until Ctrl+C)
+    # FIX: host/port now passed correctly; server.py accepts these args.
+    logger.info("Starting Wi-Fi server on port 5000 …")
+    start_server(host="0.0.0.0", port=5000)

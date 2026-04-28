@@ -1,25 +1,58 @@
+# MSA AI Agent — Python Dependencies
+# =====================================
+
+# Core
 numpy
 pandas
-opencv-python
-pyttsx3
-vosk
-openai-whisper
-sounddevice
-soundfile
-torch
-torchvision
-transformers
-sentencepiece
-llama-cpp-python
+
+# Web Server (primary)
 flask
 flask-socketio
 python-socketio
+
+# HTTP / Web search
 requests
+beautifulsoup4
+
+# Speech Recognition (offline, Vosk)
+vosk
+
+# Text-to-Speech
+pyttsx3
+
+# Audio I/O
+sounddevice
+soundfile
+
+# Computer Vision
+opencv-python
+
+# Encryption / Security
+cryptography
+
+# System Monitoring [NEW]
+psutil
+
+# Deep Learning (optional — Speaker Verification)
+torch
+torchaudio
+transformers
+sentencepiece
+speechbrain
+
+# Whisper STT (optional, heavy)
+# openai-whisper
+
+# Local LLM via GGUF (optional — needs model file)
+# llama-cpp-python
+
+# Android Device Control (optional)
 adb-shell
 pure-python-adb
-pycryptodome
+
+# System Automation (optional)
 pyautogui
 pynput
-speechbrain
-beautifulsoup4
+
+# Web scraping (optional)
 selenium

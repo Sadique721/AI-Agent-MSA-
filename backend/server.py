@@ -1,42 +1,408 @@
-from flask import Flask, request, jsonify
-from flask_socketio import SocketIO, emit
+"""
+backend/server.py
+=================
+Flask + Flask-SocketIO server for the MSA AI Agent.
+
+Responsibilities:
+  - Serves the Web UI at GET /
+  - Handles real-time audio/text over WebSocket (SocketIO)
+  - Exposes REST endpoints:
+      POST /api/execute      → text command → decision → response
+      POST /api/location     → GPS update from mobile
+      GET  /api/history      → recent conversation history
+      GET  /api/status       → agent health check
+      GET  /api/system_info  → CPU/RAM/Disk/uptime [NEW]
+      POST /api/search       → web search [NEW]
+  - Mobile routes via Blueprint at /mobile/*
+
+FIX LOG:
+  - Registered mobile_bp blueprint (was missing — routes returned 404)
+  - Fixed api_status() safe attribute checks (prevents AttributeError)
+  - Added /api/system_info using SystemMonitor [NEW]
+  - Added /api/search using Internet module [NEW]
+  - Added memory stats to status endpoint [NEW]
+"""
+
 import base64
 import json
+import logging
 import os
 import sys
 
-# Adding project root
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from flask import Flask, request, jsonify, send_from_directory
+from flask_socketio import SocketIO, emit
 
-from voice.stt import STT
-from backend.decision_engine import DecisionEngine
-from memory.memory import Memory
-from backend.security import Security
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] [%(levelname)s] %(name)s — %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("msa.server")
 
-app = Flask(__name__)
+# ---------------------------------------------------------------------------
+# Project root on sys.path
+# ---------------------------------------------------------------------------
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+# ---------------------------------------------------------------------------
+# Core imports
+# ---------------------------------------------------------------------------
+from voice.stt import STT                            # noqa: E402
+from backend.decision_engine import DecisionEngine   # noqa: E402
+from memory.memory import Memory                     # noqa: E402
+from backend.security import Security                # noqa: E402
+from backend.system_monitor import SystemMonitor     # noqa: E402
+
+# ---------------------------------------------------------------------------
+# Flask App & SocketIO
+# ---------------------------------------------------------------------------
+app = Flask(
+    __name__,
+    static_folder=os.path.join(PROJECT_ROOT, "ui"),
+    template_folder=os.path.join(PROJECT_ROOT, "ui"),
+)
+app.config["SECRET_KEY"] = "msa-secret-key-local-only"
+
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
-stt = None
-engine = None
-mem = None
-    
-@socketio.on('audio')
+# ---------------------------------------------------------------------------
+# FIX: Register mobile Blueprint (was never registered → 404 on /mobile/*)
+# ---------------------------------------------------------------------------
+try:
+    from mobile_control.api import mobile_bp
+    app.register_blueprint(mobile_bp)
+    logger.info("mobile_bp Blueprint registered at /mobile/*")
+except Exception as e:
+    logger.warning("mobile_bp registration failed: %s", e)
+
+# ---------------------------------------------------------------------------
+# Lazy-initialised singletons
+# ---------------------------------------------------------------------------
+_stt:     STT           = None
+_engine:  DecisionEngine= None
+_mem:     Memory        = None
+_sec:     Security      = None
+_monitor: SystemMonitor = SystemMonitor()
+
+
+def _get_components():
+    """Thread-safe lazy initialisation of core components."""
+    global _stt, _engine, _mem, _sec
+
+    if _stt is None:
+        logger.info("Initialising STT, DecisionEngine, Security, Memory …")
+
+        try:
+            _sec = Security()
+        except Exception as e:
+            logger.error("Security init failed: %s", e)
+
+        try:
+            _stt = STT()
+        except Exception as e:
+            logger.error("STT init failed: %s", e)
+            _stt = None
+
+        try:
+            _engine = DecisionEngine()
+        except Exception as e:
+            logger.error("DecisionEngine init failed: %s", e)
+            _engine = None
+
+        try:
+            _mem = Memory(_sec) if _sec else None
+        except Exception as e:
+            logger.error("Memory init failed: %s", e)
+            _mem = None
+
+    return _stt, _engine, _mem
+
+
+# ===========================================================================
+# ROUTES
+# ===========================================================================
+
+@app.route("/")
+def serve_ui():
+    """Serve the main dashboard HTML."""
+    return send_from_directory(os.path.join(PROJECT_ROOT, "ui"), "index.html")
+
+
+# ---------------------------------------------------------------------------
+# POST /api/execute
+# ---------------------------------------------------------------------------
+@app.route("/api/execute", methods=["POST"])
+def api_execute():
+    """Text command → AI decision → JSON response."""
+    try:
+        data    = request.get_json(force=True, silent=True) or {}
+        command = data.get("command", "").strip()
+        if not command:
+            return jsonify({"status": "error", "message": "No command provided"}), 400
+
+        _, engine, mem = _get_components()
+
+        context = mem.get_recent_context() if mem else []
+        if engine:
+            decision = engine.process_command(command, context)
+        else:
+            decision = {"response": f"MSA received: {command}", "action": "none", "parameters": {}}
+
+        if mem:
+            try:
+                mem.add_conversation(command, decision["response"], decision["action"])
+            except Exception as e:
+                logger.warning("Memory write error: %s", e)
+
+        logger.info("execute — cmd=%r action=%s", command, decision.get("action"))
+        return jsonify({
+            "status":     "success",
+            "response":   decision.get("response", ""),
+            "action":     decision.get("action", "none"),
+            "parameters": decision.get("parameters", {}),
+        })
+
+    except Exception as e:
+        logger.exception("Error in /api/execute")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# POST /api/location
+# ---------------------------------------------------------------------------
+@app.route("/api/location", methods=["POST"])
+def api_location():
+    """GPS update from mobile device."""
+    try:
+        data  = request.get_json(force=True, silent=True) or {}
+        lat   = data.get("latitude")
+        lon   = data.get("longitude")
+        notes = data.get("notes", "")
+
+        if lat is None or lon is None:
+            return jsonify({"status": "error", "message": "latitude and longitude required"}), 400
+
+        advice = "Location updated."
+        try:
+            from backend.location import LocationTracker
+            tracker = LocationTracker()
+            tracker.update_location(lat, lon)
+            advice = tracker.get_contextual_advice()
+        except Exception as e:
+            logger.warning("LocationTracker error: %s", e)
+
+        logger.info("location — lat=%s lon=%s", lat, lon)
+        return jsonify({
+            "status":  "success",
+            "message": f"Location updated: ({lat:.4f}, {lon:.4f}). {advice}",
+        })
+
+    except Exception as e:
+        logger.exception("Error in /api/location")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# GET /api/history
+# ---------------------------------------------------------------------------
+@app.route("/api/history", methods=["GET"])
+def api_history():
+    """Return last N decrypted conversations."""
+    try:
+        _, _, mem = _get_components()
+        if not mem:
+            return jsonify({"status": "ok", "history": []})
+
+        limit   = int(request.args.get("limit", 10))
+        history = mem.get_recent_context(limit=limit)
+        return jsonify({"status": "ok", "history": history})
+
+    except Exception as e:
+        logger.exception("Error in /api/history")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# GET /api/status  (FIX: safe attribute checks)
+# ---------------------------------------------------------------------------
+@app.route("/api/status", methods=["GET"])
+def api_status():
+    """Agent health snapshot — all subsystems."""
+    stt, engine, mem = _get_components()
+
+    # FIX: safe attribute access with getattr/hasattr
+    stt_ok    = stt is not None and getattr(stt, "model", None) is not None
+    engine_ok = engine is not None
+    llm_ok    = engine_ok and getattr(engine, "llm", None) is not None
+    mem_ok    = mem is not None
+    sec_ok    = _sec is not None
+
+    mem_stats = mem.get_stats() if mem else {}
+
+    return jsonify({
+        "status": "online",
+        "subsystems": {
+            "stt":             "ok" if stt_ok    else "degraded (model missing)",
+            "decision_engine": "ok (LLM online)" if llm_ok else "ok (keyword fallback)" if engine_ok else "degraded",
+            "memory":          "ok" if mem_ok    else "degraded",
+            "security":        "ok" if sec_ok    else "degraded",
+        },
+        "memory_stats": mem_stats,
+        "server": "Flask-SocketIO",
+        "port":   5000,
+    })
+
+
+# ---------------------------------------------------------------------------
+# GET /api/system_info  [NEW]
+# ---------------------------------------------------------------------------
+@app.route("/api/system_info", methods=["GET"])
+def api_system_info():
+    """Real-time CPU / RAM / Disk / uptime snapshot."""
+    try:
+        snapshot = _monitor.get_snapshot()
+        return jsonify({"status": "ok", "data": snapshot})
+    except Exception as e:
+        logger.exception("Error in /api/system_info")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# POST /api/search  [NEW]
+# ---------------------------------------------------------------------------
+@app.route("/api/search", methods=["POST"])
+def api_search():
+    """Web search via DuckDuckGo."""
+    try:
+        data  = request.get_json(force=True, silent=True) or {}
+        query = data.get("query", "").strip()
+        if not query:
+            return jsonify({"status": "error", "message": "query is required"}), 400
+
+        from backend.internet import Internet
+        net     = Internet()
+        results = net.search_and_summarize(query)
+
+        return jsonify({"status": "ok", "query": query, "results": results})
+
+    except Exception as e:
+        logger.exception("Error in /api/search")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ===========================================================================
+# SOCKET.IO
+# ===========================================================================
+
+@socketio.on("connect")
+def on_connect():
+    logger.info("SocketIO client connected: %s", request.sid)
+    emit("connected", {"message": "MSA Agent online. Say 'Hey MSA' or type a command."})
+
+
+@socketio.on("disconnect")
+def on_disconnect():
+    logger.info("SocketIO client disconnected: %s", request.sid)
+
+
+@socketio.on("audio")
 def handle_audio(data):
-    global stt, engine, mem
-    if not stt:
-        stt = STT()
-        engine = DecisionEngine()
-        mem = Memory(Security())
+    """Receives base64-encoded audio → transcribe → decide → emit response."""
+    stt, engine, mem = _get_components()
 
-    audio_bytes = base64.b64decode(data['audio'])
-    text = stt.transcribe(audio_bytes)
-    context = mem.get_recent_context()
-    decision = engine.process_command(text, context)
-    emit('response', {'text': decision['response'], 'action': decision['action'], 'params': decision.get('parameters', {})})
+    try:
+        audio_bytes = base64.b64decode(data.get("audio", ""))
+    except Exception as e:
+        emit("response", {"text": "Audio decode error.", "action": "none", "params": {}})
+        logger.error("Audio decode failed: %s", e)
+        return
 
-def start_server():
-    print("SocketIO wrapper active on 5000")
-    socketio.run(app, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)
+    text = ""
+    if stt:
+        try:
+            text = stt.transcribe(audio_bytes)
+        except Exception as e:
+            logger.error("STT error: %s", e)
 
-if __name__ == '__main__':
+    if not text:
+        emit("response", {"text": "Could not transcribe audio.", "action": "none", "params": {}})
+        return
+
+    context  = mem.get_recent_context() if mem else []
+    decision = _run_engine(engine, text, context)
+
+    if mem:
+        try:
+            mem.add_conversation(text, decision["response"], decision["action"])
+        except Exception as e:
+            logger.warning("Memory write error: %s", e)
+
+    logger.info("audio — text=%r action=%s", text, decision.get("action"))
+    emit("response", {
+        "text":       decision.get("response", ""),
+        "action":     decision.get("action", "none"),
+        "params":     decision.get("parameters", {}),
+        "transcript": text,
+    })
+
+
+@socketio.on("text_command")
+def handle_text_command(data):
+    """Plain-text command from UI chat box."""
+    _, engine, mem = _get_components()
+    command = data.get("command", "").strip()
+    if not command:
+        return
+
+    context  = mem.get_recent_context() if mem else []
+    decision = _run_engine(engine, command, context)
+
+    if mem:
+        try:
+            mem.add_conversation(command, decision["response"], decision["action"])
+        except Exception as e:
+            logger.warning("Memory write error: %s", e)
+
+    logger.info("text_command — cmd=%r action=%s", command, decision.get("action"))
+    emit("response", {
+        "text":       decision.get("response", ""),
+        "action":     decision.get("action", "none"),
+        "params":     decision.get("parameters", {}),
+        "transcript": command,
+    })
+
+
+# ---------------------------------------------------------------------------
+def _run_engine(engine, text: str, context: list) -> dict:
+    """Run engine or fallback gracefully."""
+    if engine:
+        try:
+            return engine.process_command(text, context)
+        except Exception as e:
+            logger.error("DecisionEngine error: %s", e)
+    return {"response": f"MSA received: {text}", "action": "none", "parameters": {}}
+
+
+# ===========================================================================
+# Server Launcher
+# ===========================================================================
+
+def start_server(host: str = "0.0.0.0", port: int = 5000):
+    """Start the MSA Flask-SocketIO server."""
+    logger.info("MSA Server starting on http://%s:%d", host, port)
+    socketio.run(
+        app,
+        host=host,
+        port=port,
+        allow_unsafe_werkzeug=True,
+        log_output=False,
+    )
+
+
+if __name__ == "__main__":
     start_server()

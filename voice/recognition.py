@@ -40,4 +40,6 @@ class VoiceRecognition:
         
         return " ".join(results)
 
-vr = VoiceRecognition()
+
+if __name__ == "__main__":
+    vr = VoiceRecognition()
