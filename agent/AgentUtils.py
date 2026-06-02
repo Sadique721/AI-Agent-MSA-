@@ -56,6 +56,8 @@ _INTENT_MAP: Dict[str, List[str]] = {
     "internet_search":   ["search", "find", "lookup", "google", "browse", "what is", "who is", "how to"],
     "shutdown":          ["shutdown", "shut down", "power off", "turn off"],
     "restart":           ["restart", "reboot", "reset"],
+    "get_profile":       ["my profile", "who am i", "about me", "my details", "my info"],
+    "get_time":          ["what time", "current time", "what's the time", "time now"],
     "mobile_make_call":  ["call", "dial", "ring", "phone"],
     "mobile_set_alarm":  ["alarm", "remind", "reminder", "wake me"],
     "mobile_open_app":   ["mobile open", "phone open", "android open"],

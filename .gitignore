@@ -57,3 +57,4 @@ models/speaker/*.ckpt
 !models/llm/.keep
 !models/speaker/.keep
 !models/cv/.keep
+.codebuddy

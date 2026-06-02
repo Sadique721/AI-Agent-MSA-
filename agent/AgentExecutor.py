@@ -65,6 +65,8 @@ class AgentExecutor:
             "automation":       self._automation,
             "vision":           self._vision_capture,
             "location":         self._get_location,
+            "get_profile":      self._get_profile,
+            "get_time":         self._get_time,
             "mobile_open_app":  self._mobile_open_app,
             "mobile_make_call": self._mobile_call,
             "mobile_set_alarm": self._mobile_alarm,
@@ -94,7 +96,7 @@ class AgentExecutor:
         cmd = app_map.get(app, f"start {app}")
         try:
             if self._system == "Windows":
-                os.system(cmd)
+                subprocess.Popen(cmd, shell=True)
             elif self._system == "Darwin":
                 subprocess.Popen(["open", "-a", app])
             else:
@@ -184,7 +186,27 @@ class AgentExecutor:
     def _get_location(self, params: Dict) -> str:
         return "Location updates are pushed by the mobile app via /api/location endpoint."
 
-    # ── Mobile ─────────────────────────────────────────────────────────────
+    # ── Profile ────────────────────────────────────────────────────────────
+    def _get_profile(self, params: Dict) -> str:
+        try:
+            from config import USER_PROFILE
+            p = USER_PROFILE
+            skills = ", ".join(p.get("skills", []))
+            return (
+                f"Name: {p.get('name')} | Role: {p.get('role')} | "
+                f"Study: {p.get('current_study')} | "
+                f"Skills: {skills} | Project: {p.get('project')}"
+            )
+        except Exception as e:
+            return f"Profile unavailable: {e}"
+
+    # ── Time ───────────────────────────────────────────────────────────────
+    def _get_time(self, params: Dict) -> str:
+        from datetime import datetime
+        now = datetime.now()
+        return f"Current time is {now.strftime('%I:%M %p')} on {now.strftime('%A, %d %B %Y')}."
+
+
     def _mobile_open_app(self, params: Dict) -> str:
         if not self._mobile:
             return "No Android device connected. Set IP in mobile_ip.txt."

@@ -4,367 +4,374 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MSA Agent — Command Center</title>
+<meta name="description" content="MSA AI Agent Command Center — Your personal offline AI assistant. System control, mobile integration, and intelligence in one dashboard.">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+tailwind.config={darkMode:'class',theme:{extend:{colors:{brand:'#6366f1',brand2:'#8b5cf6',surface:'#0d1220',card:'#111827',border:'#1e2d45'},fontFamily:{sans:['Inter','sans-serif']}}}}
+</script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --bg:#080c14;--surface:#0d1220;--card:#111827;--border:#1e2d45;
-  --accent:#6366f1;--accent2:#8b5cf6;--green:#10b981;--red:#ef4444;
-  --yellow:#f59e0b;--text:#e2e8f0;--muted:#64748b;--chat-user:#6366f1;--chat-ai:#1e2d45;
-}
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
-
-/* Layout */
-.layout{display:grid;grid-template-columns:260px 1fr 280px;grid-template-rows:60px 1fr;height:100vh;gap:0}
-.topbar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:var(--surface);border-bottom:1px solid var(--border);z-index:10}
-.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
-.main{display:flex;flex-direction:column;overflow:hidden}
-.rightbar{background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;padding:16px}
-
-/* Topbar */
-.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.1rem}
-.logo-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
-.status-badge{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--green)}
-.status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
-.time-display{font-size:.85rem;color:var(--muted)}
-
-/* Sidebar */
-.sidebar-section{padding:16px}
-.sidebar-title{font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
-.quick-btn{width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:8px;cursor:pointer;font-size:.85rem;font-family:inherit;text-align:left;transition:all .2s;margin-bottom:6px;display:flex;align-items:center;gap:8px}
-.quick-btn:hover{background:var(--border);border-color:var(--accent)}
-.quick-btn .icon{font-size:1rem}
-
-/* History */
-.history-list{flex:1;overflow-y:auto;padding:0 16px}
-.history-item{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;font-size:.78rem;cursor:pointer;transition:border-color .2s}
-.history-item:hover{border-color:var(--accent)}
-.history-item .hi-user{color:var(--accent);font-weight:500;margin-bottom:3px}
-.history-item .hi-ai{color:var(--muted)}
-
-/* Main Chat */
-.chat-area{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px}
-.msg{max-width:75%;padding:12px 16px;border-radius:12px;font-size:.9rem;line-height:1.5;animation:fadeIn .3s ease}
+body{background:#080c14;font-family:'Inter',sans-serif}
+.logo-dot{width:10px;height:10px;border-radius:50%;background:#6366f1;box-shadow:0 0 10px #6366f1;animation:pulse2 2s infinite}
+@keyframes pulse2{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
+.msg{max-width:78%;padding:12px 16px;border-radius:12px;font-size:.9rem;line-height:1.5;animation:fadeIn .3s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.msg-user{background:var(--chat-user);align-self:flex-end;border-bottom-right-radius:3px}
-.msg-ai{background:var(--chat-ai);border:1px solid var(--border);align-self:flex-start;border-bottom-left-radius:3px}
-.msg-time{font-size:.7rem;color:var(--muted);margin-top:4px}
-.msg-action{display:inline-block;background:rgba(99,102,241,.15);border:1px solid var(--accent);border-radius:4px;padding:2px 8px;font-size:.72rem;color:var(--accent);margin-top:6px}
-.typing{display:flex;gap:4px;align-items:center;padding:12px 16px;background:var(--chat-ai);border:1px solid var(--border);border-radius:12px;border-bottom-left-radius:3px;align-self:flex-start;width:60px}
-.typing span{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:bounce .9s infinite}
-.typing span:nth-child(2){animation-delay:.15s}
-.typing span:nth-child(3){animation-delay:.3s}
+.msg-user{background:#6366f1;align-self:flex-end;border-bottom-right-radius:3px}
+.msg-ai{background:#1e2d45;border:1px solid #1e2d45;align-self:flex-start;border-bottom-left-radius:3px;color:#e2e8f0}
+.msg-time{font-size:.7rem;color:#64748b;margin-top:4px}
+.msg-action{display:inline-block;background:rgba(99,102,241,.15);border:1px solid #6366f1;border-radius:4px;padding:2px 8px;font-size:.72rem;color:#6366f1;margin-top:6px}
+.typing{display:flex;gap:4px;align-items:center;padding:12px 16px;background:#1e2d45;border:1px solid #1e2d45;border-radius:12px;border-bottom-left-radius:3px;align-self:flex-start;width:60px}
+.typing span{width:6px;height:6px;border-radius:50%;background:#64748b;animation:bounce .9s infinite}
+.typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
 @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-
-/* Input */
-.input-area{padding:16px;border-top:1px solid var(--border);background:var(--surface)}
-.input-row{display:flex;gap:10px;align-items:center}
-#cmd-input{flex:1;background:var(--card);border:1px solid var(--border);color:var(--text);padding:12px 16px;border-radius:10px;font-size:.9rem;font-family:inherit;outline:none;transition:border-color .2s}
-#cmd-input:focus{border-color:var(--accent)}
-.send-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;padding:12px 20px;border-radius:10px;cursor:pointer;font-size:.9rem;font-weight:600;transition:opacity .2s;white-space:nowrap}
-.send-btn:hover{opacity:.85}
-.mic-btn{background:var(--card);border:1px solid var(--border);color:var(--text);padding:12px;border-radius:10px;cursor:pointer;font-size:1.1rem;transition:all .2s}
-.mic-btn:hover{border-color:var(--red)}
-.mic-btn.active{background:var(--red);border-color:var(--red);animation:pulse 1s infinite}
-
-/* Right Panel */
-.panel-title{font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
-.subsystem{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--card);border-radius:6px;margin-bottom:6px;font-size:.8rem}
-.sub-name{color:var(--text)}
-.sub-badge{padding:2px 8px;border-radius:4px;font-size:.72rem;font-weight:500}
-.badge-ok{background:rgba(16,185,129,.15);color:var(--green)}
-.badge-deg{background:rgba(245,158,11,.15);color:var(--yellow)}
-.badge-err{background:rgba(239,68,68,.15);color:var(--red)}
-
-/* Gauges */
-.gauge-section{margin-top:16px}
-.gauge-item{margin-bottom:12px}
-.gauge-label{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-bottom:4px}
-.gauge-bar{height:6px;background:var(--card);border-radius:3px;overflow:hidden}
+.gauge-bar{height:6px;background:#111827;border-radius:3px;overflow:hidden}
 .gauge-fill{height:100%;border-radius:3px;transition:width .8s ease}
-.gauge-fill.cpu{background:linear-gradient(90deg,#6366f1,#8b5cf6)}
-.gauge-fill.ram{background:linear-gradient(90deg,#10b981,#34d399)}
-.gauge-fill.disk{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
-
-.divider{height:1px;background:var(--border);margin:14px 0}
-.info-row{display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:6px}
-.info-label{color:var(--muted)}
-.info-val{color:var(--text);font-weight:500}
-
-/* Scrollbar */
-::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-
-/* Search result */
-.search-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:8px;font-size:.82rem}
-.search-card a{color:var(--accent);text-decoration:none}
+.gauge-cpu{background:linear-gradient(90deg,#6366f1,#8b5cf6)}
+.gauge-ram{background:linear-gradient(90deg,#10b981,#34d399)}
+.gauge-disk{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+.quick-btn{width:100%;background:#111827;border:1px solid #1e2d45;color:#e2e8f0;padding:10px 14px;border-radius:8px;cursor:pointer;font-size:.85rem;text-align:left;transition:all .2s;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.quick-btn:hover{background:#1e2d45;border-color:#6366f1}
+.hist-item{background:#111827;border:1px solid #1e2d45;border-radius:8px;padding:10px;margin-bottom:8px;font-size:.78rem;cursor:pointer;transition:border-color .2s}
+.hist-item:hover{border-color:#6366f1}
+.sub-badge{padding:2px 8px;border-radius:4px;font-size:.72rem;font-weight:500}
+.badge-ok{background:rgba(16,185,129,.15);color:#10b981}
+.badge-deg{background:rgba(245,158,11,.15);color:#f59e0b}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#1e2d45;border-radius:2px}
+#sidebar{transition:transform .3s ease}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:30}
+.overlay.show{display:block}
 </style>
 </head>
-<body>
-<div class="layout">
+<body class="text-slate-200 min-h-screen overflow-x-hidden">
 
-<!-- Topbar -->
-<header class="topbar">
-  <div class="logo">
-    <div class="logo-dot"></div>
-    MSA Agent <span style="color:var(--muted);font-weight:300;margin-left:4px">Command Center</span>
+<!-- Mobile overlay -->
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- TOP BAR -->
+<header class="flex items-center justify-between px-4 py-3 bg-[#0d1220] border-b border-[#1e2d45] sticky top-0 z-20 h-14">
+  <div class="flex items-center gap-3">
+    <button id="hamburger" class="lg:hidden p-2 rounded-lg bg-[#111827] border border-[#1e2d45] text-slate-400 hover:text-white" onclick="toggleSidebar()">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <div class="flex items-center gap-2 font-bold text-base">
+      <div class="logo-dot"></div>
+      MSA Agent <span class="text-slate-500 font-light ml-1 hidden sm:inline">Command Center</span>
+    </div>
   </div>
-  <div class="status-badge">
-    <div class="status-dot" id="online-dot"></div>
-    <span id="online-label">Connecting…</span>
+  <div class="flex items-center gap-4">
+    <div class="flex items-center gap-2 text-xs text-green-400" id="status-badge">
+      <div class="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_6px_#10b981]" id="online-dot"></div>
+      <span id="online-label" class="hidden sm:inline">Connecting…</span>
+    </div>
+    <div class="text-xs text-slate-500 hidden md:block" id="clock"></div>
   </div>
-  <div class="time-display" id="clock"></div>
 </header>
 
-<!-- Sidebar -->
-<aside class="sidebar">
-  <div class="sidebar-section">
-    <div class="sidebar-title">Quick Actions</div>
-    <button class="quick-btn" onclick="send('open notepad')"><span class="icon">📝</span>Open Notepad</button>
-    <button class="quick-btn" onclick="send('open calculator')"><span class="icon">🔢</span>Calculator</button>
-    <button class="quick-btn" onclick="send('open browser')"><span class="icon">🌐</span>Browser</button>
-    <button class="quick-btn" onclick="send('open cmd')"><span class="icon">💻</span>Terminal</button>
-    <button class="quick-btn" onclick="send('open settings')"><span class="icon">⚙️</span>Settings</button>
-  </div>
-  <div class="sidebar-section" style="border-top:1px solid var(--border)">
-    <div class="sidebar-title">System</div>
-    <button class="quick-btn" onclick="sendLocation()"><span class="icon">📍</span>Share GPS</button>
-    <button class="quick-btn" onclick="refreshStatus()"><span class="icon">🔄</span>Refresh Status</button>
-    <button class="quick-btn" onclick="loadHistory()"><span class="icon">🕐</span>Load History</button>
-  </div>
-  <div class="sidebar-section" style="border-top:1px solid var(--border);flex:1;overflow:hidden;display:flex;flex-direction:column">
-    <div class="sidebar-title">Conversation History</div>
-    <div class="history-list" id="history-list" style="flex:1;overflow-y:auto"></div>
-  </div>
-</aside>
+<!-- MAIN LAYOUT -->
+<div class="flex h-[calc(100vh-56px)] overflow-hidden">
 
-<!-- Main Chat -->
-<main class="main">
-  <div class="chat-area" id="chat-area">
-    <div class="msg msg-ai">
-      👋 Hello! I'm <strong>MSA Agent</strong>. Type a command below or use the quick actions.
-      Try: <em>"open notepad"</em>, <em>"search python tutorials"</em>, <em>"what time is it"</em>
-      <div class="msg-time" id="welcome-time"></div>
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="fixed lg:relative z-40 lg:z-auto w-72 lg:w-64 h-full bg-[#0d1220] border-r border-[#1e2d45] flex flex-col overflow-hidden -translate-x-full lg:translate-x-0 flex-shrink-0">
+    <!-- Profile Card -->
+    <div class="p-4 border-b border-[#1e2d45]">
+      <div class="bg-[#111827] border border-[#1e2d45] rounded-xl p-3">
+        <div class="flex items-center gap-3 mb-2">
+          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-sm flex-shrink-0">MS</div>
+          <div class="min-w-0">
+            <div class="font-semibold text-sm truncate">Md Sadique Amin</div>
+            <div class="text-xs text-slate-400 truncate">Software Engineer</div>
+          </div>
+        </div>
+        <div class="text-xs text-slate-500 space-y-1">
+          <div>🎓 B.Tech CSE — GEC Patan</div>
+          <div class="text-[10px] text-indigo-400 flex flex-wrap gap-1 mt-1">
+            <span class="bg-indigo-950 px-1.5 py-0.5 rounded">Java</span>
+            <span class="bg-indigo-950 px-1.5 py-0.5 rounded">Python</span>
+            <span class="bg-indigo-950 px-1.5 py-0.5 rounded">AI/ML</span>
+            <span class="bg-indigo-950 px-1.5 py-0.5 rounded">Spring Boot</span>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-  <div class="input-area">
-    <div class="input-row">
-      <button class="mic-btn" id="mic-btn" title="Voice input (coming soon)">🎤</button>
-      <input type="text" id="cmd-input" placeholder="Type a command… (e.g. 'search latest AI news')" autocomplete="off">
-      <button class="send-btn" onclick="send()">Send ➤</button>
+
+    <!-- Quick Actions -->
+    <div class="p-3 border-b border-[#1e2d45]">
+      <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-2">Quick Actions</div>
+      <button class="quick-btn" onclick="send('open notepad')">📝 Open Notepad</button>
+      <button class="quick-btn" onclick="send('open calculator')">🔢 Calculator</button>
+      <button class="quick-btn" onclick="send('open browser')">🌐 Browser</button>
+      <button class="quick-btn" onclick="send('open cmd')">💻 Terminal</button>
     </div>
-  </div>
-</main>
 
-<!-- Right Panel -->
-<aside class="rightbar">
-  <div class="panel-title">Subsystems</div>
-  <div id="subsystem-list">
-    <div class="subsystem"><span class="sub-name">STT</span><span class="sub-badge badge-deg" id="sub-stt">…</span></div>
-    <div class="subsystem"><span class="sub-name">Decision Engine</span><span class="sub-badge badge-deg" id="sub-engine">…</span></div>
-    <div class="subsystem"><span class="sub-name">Memory</span><span class="sub-badge badge-deg" id="sub-mem">…</span></div>
-    <div class="subsystem"><span class="sub-name">Security</span><span class="sub-badge badge-deg" id="sub-sec">…</span></div>
-  </div>
-
-  <div class="divider"></div>
-  <div class="panel-title">System Resources</div>
-  <div class="gauge-section">
-    <div class="gauge-item">
-      <div class="gauge-label"><span>CPU</span><span id="cpu-val">—</span></div>
-      <div class="gauge-bar"><div class="gauge-fill cpu" id="cpu-bar" style="width:0%"></div></div>
+    <!-- System -->
+    <div class="p-3 border-b border-[#1e2d45]">
+      <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-2">System</div>
+      <button class="quick-btn" onclick="sendLocation()">📍 Share GPS</button>
+      <button class="quick-btn" onclick="refreshStatus()">🔄 Refresh Status</button>
+      <button class="quick-btn" onclick="loadHistory()">🕐 Load History</button>
     </div>
-    <div class="gauge-item">
-      <div class="gauge-label"><span>RAM</span><span id="ram-val">—</span></div>
-      <div class="gauge-bar"><div class="gauge-fill ram" id="ram-bar" style="width:0%"></div></div>
+
+    <!-- History -->
+    <div class="p-3 flex-1 overflow-hidden flex flex-col">
+      <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-2">History</div>
+      <div class="flex-1 overflow-y-auto space-y-1" id="history-list"></div>
     </div>
-    <div class="gauge-item">
-      <div class="gauge-label"><span>Disk</span><span id="disk-val">—</span></div>
-      <div class="gauge-bar"><div class="gauge-fill disk" id="disk-bar" style="width:0%"></div></div>
+  </aside>
+
+  <!-- CHAT MAIN -->
+  <main class="flex-1 flex flex-col overflow-hidden">
+    <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-3" id="chat-area">
+      <div class="msg msg-ai">
+        👋 Hello! I'm <strong>MSA Agent</strong>. Type a command or use quick actions.<br>
+        Try: <em>"open notepad"</em>, <em>"search AI news"</em>, <em>"what time is it"</em>
+        <div class="msg-time" id="welcome-time"></div>
+      </div>
     </div>
+    <!-- Input -->
+    <div class="p-3 border-t border-[#1e2d45] bg-[#0d1220]">
+      <div class="flex gap-2 items-center">
+        <button id="mic-btn" onclick="startVoice()" title="Voice input" class="flex-shrink-0 bg-[#111827] border border-[#1e2d45] text-slate-300 p-3 rounded-xl hover:border-red-500 transition-all text-lg">🎤</button>
+        <input type="text" id="cmd-input" placeholder="Type a command…" autocomplete="off"
+          class="flex-1 bg-[#111827] border border-[#1e2d45] text-slate-200 px-4 py-3 rounded-xl text-sm outline-none focus:border-indigo-500 transition-colors placeholder-slate-600 min-w-0">
+        <button id="send-btn" onclick="send()" class="flex-shrink-0 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-3 rounded-xl font-semibold text-sm hover:opacity-85 transition-opacity">Send ➤</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- RIGHT PANEL (hidden on mobile/tablet, shown on xl) -->
+  <aside class="hidden xl:flex w-72 flex-shrink-0 flex-col bg-[#0d1220] border-l border-[#1e2d45] p-4 overflow-y-auto">
+    <!-- Subsystems -->
+    <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-3">Subsystems</div>
+    <div class="space-y-1.5 mb-4">
+      <div class="flex justify-between items-center bg-[#111827] px-3 py-2 rounded-lg text-sm"><span>STT</span><span class="sub-badge badge-deg" id="sub-stt">…</span></div>
+      <div class="flex justify-between items-center bg-[#111827] px-3 py-2 rounded-lg text-sm"><span>Decision Engine</span><span class="sub-badge badge-deg" id="sub-engine">…</span></div>
+      <div class="flex justify-between items-center bg-[#111827] px-3 py-2 rounded-lg text-sm"><span>Memory</span><span class="sub-badge badge-deg" id="sub-mem">…</span></div>
+      <div class="flex justify-between items-center bg-[#111827] px-3 py-2 rounded-lg text-sm"><span>Security</span><span class="sub-badge badge-deg" id="sub-sec">…</span></div>
+    </div>
+
+    <div class="border-t border-[#1e2d45] my-2"></div>
+    <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-3">System Resources</div>
+    <div class="space-y-3 mb-4">
+      <div>
+        <div class="flex justify-between text-xs text-slate-500 mb-1"><span>CPU</span><span id="cpu-val">—</span></div>
+        <div class="gauge-bar"><div class="gauge-fill gauge-cpu" id="cpu-bar" style="width:0%"></div></div>
+      </div>
+      <div>
+        <div class="flex justify-between text-xs text-slate-500 mb-1"><span>RAM</span><span id="ram-val">—</span></div>
+        <div class="gauge-bar"><div class="gauge-fill gauge-ram" id="ram-bar" style="width:0%"></div></div>
+      </div>
+      <div>
+        <div class="flex justify-between text-xs text-slate-500 mb-1"><span>Disk</span><span id="disk-val">—</span></div>
+        <div class="gauge-bar"><div class="gauge-fill gauge-disk" id="disk-bar" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="border-t border-[#1e2d45] my-2"></div>
+    <div class="space-y-2 text-xs">
+      <div class="flex justify-between"><span class="text-slate-500">Platform</span><span id="inf-platform">—</span></div>
+      <div class="flex justify-between"><span class="text-slate-500">Uptime</span><span id="inf-uptime">—</span></div>
+      <div class="flex justify-between"><span class="text-slate-500">Host</span><span id="inf-host">—</span></div>
+      <div class="flex justify-between"><span class="text-slate-500">Total Chats</span><span id="inf-chats">0</span></div>
+    </div>
+
+    <div class="border-t border-[#1e2d45] my-2"></div>
+    <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-2">Memory Stats</div>
+    <div class="space-y-2 text-xs">
+      <div class="flex justify-between"><span class="text-slate-500">Conversations</span><span id="mem-total">—</span></div>
+      <div class="flex justify-between"><span class="text-slate-500">Last Active</span><span id="mem-last" class="text-right" style="font-size:.68rem">—</span></div>
+    </div>
+  </aside>
+</div>
+
+<!-- Floating Stats button (mobile/tablet only) -->
+<button onclick="toggleStats()" class="xl:hidden fixed bottom-20 right-4 z-30 bg-[#111827] border border-[#1e2d45] text-slate-300 p-3 rounded-full shadow-lg hover:border-indigo-500 transition-all">📊</button>
+
+<!-- Stats drawer (mobile) -->
+<div id="stats-drawer" class="xl:hidden hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0d1220] border-t border-[#1e2d45] p-4 max-h-80 overflow-y-auto">
+  <div class="flex justify-between items-center mb-3">
+    <span class="font-semibold text-sm">System Stats</span>
+    <button onclick="toggleStats()" class="text-slate-500 hover:text-white">✕</button>
   </div>
-
-  <div class="divider"></div>
-  <div class="info-row"><span class="info-label">Platform</span><span class="info-val" id="inf-platform">—</span></div>
-  <div class="info-row"><span class="info-label">Uptime</span><span class="info-val" id="inf-uptime">—</span></div>
-  <div class="info-row"><span class="info-label">Host</span><span class="info-val" id="inf-host">—</span></div>
-  <div class="info-row"><span class="info-label">Total Chats</span><span class="info-val" id="inf-chats">—</span></div>
-
-  <div class="divider"></div>
-  <div class="panel-title">Memory Stats</div>
-  <div class="info-row"><span class="info-label">Conversations</span><span class="info-val" id="mem-total">—</span></div>
-  <div class="info-row"><span class="info-label">Last Interaction</span><span class="info-val" id="mem-last" style="font-size:.72rem">—</span></div>
-</aside>
-
+  <div class="grid grid-cols-2 gap-3 text-xs mb-3">
+    <div class="flex justify-between col-span-2"><span class="text-slate-500">STT</span><span id="m-stt" class="sub-badge badge-deg">…</span></div>
+    <div class="flex justify-between col-span-2"><span class="text-slate-500">Engine</span><span id="m-engine" class="sub-badge badge-deg">…</span></div>
+  </div>
+  <div class="space-y-2">
+    <div><div class="flex justify-between text-xs text-slate-500 mb-1"><span>CPU</span><span id="m-cpu-val">—</span></div><div class="gauge-bar"><div class="gauge-fill gauge-cpu" id="m-cpu-bar" style="width:0%"></div></div></div>
+    <div><div class="flex justify-between text-xs text-slate-500 mb-1"><span>RAM</span><span id="m-ram-val">—</span></div><div class="gauge-bar"><div class="gauge-fill gauge-ram" id="m-ram-bar" style="width:0%"></div></div></div>
+    <div><div class="flex justify-between text-xs text-slate-500 mb-1"><span>Disk</span><span id="m-disk-val">—</span></div><div class="gauge-bar"><div class="gauge-fill gauge-disk" id="m-disk-bar" style="width:0%"></div></div></div>
+  </div>
 </div>
 
 <script>
-// ── Clock ──────────────────────────────────────────────────────────────────
-function updateClock(){
-  const now=new Date();
-  document.getElementById('clock').textContent=now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-}
-setInterval(updateClock,1000); updateClock();
+// Clock
+function updateClock(){document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+setInterval(updateClock,1000);updateClock();
 document.getElementById('welcome-time').textContent=new Date().toLocaleTimeString();
 
-// ── SocketIO ───────────────────────────────────────────────────────────────
+// Sidebar toggle (mobile)
+function toggleSidebar(){
+  const s=document.getElementById('sidebar');
+  const o=document.getElementById('overlay');
+  const open=s.classList.contains('translate-x-0');
+  s.classList.toggle('translate-x-0',!open);
+  s.classList.toggle('-translate-x-full',open);
+  o.classList.toggle('show',!open);
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.add('-translate-x-full');
+  document.getElementById('sidebar').classList.remove('translate-x-0');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+// Stats drawer toggle (mobile)
+function toggleStats(){document.getElementById('stats-drawer').classList.toggle('hidden');}
+
+// SocketIO
 const socket=io();
-socket.on('connect',()=>{
-  setOnline(true);
-});
+socket.on('connect',()=>setOnline(true));
 socket.on('disconnect',()=>setOnline(false));
 socket.on('connected',d=>addMsg(d.message,'ai'));
+let chatCount=0;
 socket.on('response',d=>{
   removeTyping();
   const action=d.action&&d.action!=='none'?d.action:null;
-  addMsg(d.text,'ai',action,d.transcript);
+  addMsg(d.text,'ai',action);
   chatCount++;
   document.getElementById('inf-chats').textContent=chatCount;
 });
 
-let chatCount=0;
-
 function setOnline(ok){
-  const dot=document.getElementById('online-dot');
-  const lbl=document.getElementById('online-label');
-  dot.style.background=ok?'var(--green)':'var(--red)';
-  dot.style.boxShadow=ok?'0 0 6px var(--green)':'0 0 6px var(--red)';
-  lbl.textContent=ok?'Agent Online':'Disconnected';
+  document.getElementById('online-dot').style.background=ok?'#10b981':'#ef4444';
+  document.getElementById('online-dot').style.boxShadow=ok?'0 0 6px #10b981':'0 0 6px #ef4444';
+  document.getElementById('online-label').textContent=ok?'Agent Online':'Disconnected';
 }
 
-// ── Chat ───────────────────────────────────────────────────────────────────
-function addMsg(text,role,action,transcript){
+// Chat
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function addMsg(text,role,action){
   const area=document.getElementById('chat-area');
   const div=document.createElement('div');
   div.className='msg msg-'+role;
   let html=escHtml(text);
-  if(action) html+=`<br><span class="msg-action">⚡ ${action}</span>`;
+  if(action)html+=`<br><span class="msg-action">⚡ ${action}</span>`;
   html+=`<div class="msg-time">${new Date().toLocaleTimeString()}</div>`;
   div.innerHTML=html;
   area.appendChild(div);
   area.scrollTop=area.scrollHeight;
 }
-
 function showTyping(){
   const area=document.getElementById('chat-area');
   const t=document.createElement('div');
   t.className='typing';t.id='typing-indicator';
   t.innerHTML='<span></span><span></span><span></span>';
-  area.appendChild(t);
-  area.scrollTop=area.scrollHeight;
+  area.appendChild(t);area.scrollTop=area.scrollHeight;
 }
+function removeTyping(){const t=document.getElementById('typing-indicator');if(t)t.remove();}
 
-function removeTyping(){
-  const t=document.getElementById('typing-indicator');
-  if(t) t.remove();
-}
-
-function escHtml(s){
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-// ── Send command ───────────────────────────────────────────────────────────
 function send(cmd){
   const inp=document.getElementById('cmd-input');
   const command=cmd||inp.value.trim();
-  if(!command) return;
+  if(!command)return;
   addMsg(command,'user');
   inp.value='';
   showTyping();
-
-  // Use SocketIO text_command event
   socket.emit('text_command',{command});
+  closeSidebar();
+}
+document.getElementById('cmd-input').addEventListener('keydown',e=>{if(e.key==='Enter')send();});
+
+// Voice (Web Speech API)
+function startVoice(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){addMsg('Voice not supported in this browser. Use Chrome.','ai');return;}
+  const r=new SR();
+  r.lang='en-US';r.interimResults=false;
+  const btn=document.getElementById('mic-btn');
+  btn.textContent='🔴';btn.style.borderColor='#ef4444';
+  r.start();
+  r.onresult=e=>{const t=e.results[0][0].transcript;send(t);};
+  r.onend=()=>{btn.textContent='🎤';btn.style.borderColor='';};
+  r.onerror=()=>{btn.textContent='🎤';btn.style.borderColor='';addMsg('Mic error. Check browser permissions.','ai');};
 }
 
-document.getElementById('cmd-input').addEventListener('keydown',e=>{
-  if(e.key==='Enter') send();
-});
-
-// ── Status ─────────────────────────────────────────────────────────────────
+// Status
 async function refreshStatus(){
   try{
-    const r=await fetch('/api/status');
-    const d=await r.json();
+    const d=await fetch('/api/status').then(r=>r.json());
     const s=d.subsystems||{};
-    setBadge('sub-stt',s.stt||'—');
-    setBadge('sub-engine',s.decision_engine||'—');
-    setBadge('sub-mem',s.memory||'—');
-    setBadge('sub-sec',s.security||'—');
+    setBadge('sub-stt',s.stt||'—');setBadge('sub-engine',s.decision_engine||'—');
+    setBadge('sub-mem',s.memory||'—');setBadge('sub-sec',s.security||'—');
+    setBadge('m-stt',s.stt||'—');setBadge('m-engine',s.decision_engine||'—');
     const ms=d.memory_stats||{};
     document.getElementById('mem-total').textContent=ms.total_conversations??'—';
-    const last=ms.last_interaction;
-    document.getElementById('mem-last').textContent=last?new Date(last).toLocaleString():'—';
-  }catch(e){console.warn('status error',e);}
+    document.getElementById('mem-last').textContent=ms.last_interaction?new Date(ms.last_interaction).toLocaleString():'—';
+  }catch(e){}
 }
-
 function setBadge(id,text){
-  const el=document.getElementById(id);
+  const el=document.getElementById(id);if(!el)return;
   el.textContent=text;
-  el.className='sub-badge '+(text.startsWith('ok')?'badge-ok':text.includes('degraded')?'badge-deg':'badge-err');
+  el.className='sub-badge '+(text.startsWith('ok')?'badge-ok':'badge-deg');
 }
 
-// ── System Info ────────────────────────────────────────────────────────────
+// System Info
 async function refreshSysInfo(){
   try{
-    const r=await fetch('/api/system_info');
-    const d=await r.json();
-    if(d.status!=='ok') return;
-    const info=d.data;
-    setGauge('cpu',info.cpu_percent,'cpu-val',info.cpu_percent.toFixed(1)+'%');
-    setGauge('ram',info.ram_percent,'ram-val',`${info.ram_used_gb}/${info.ram_total_gb} GB`);
-    setGauge('disk',info.disk_percent,'disk-val',`${info.disk_used_gb}/${info.disk_total_gb} GB`);
-    document.getElementById('inf-platform').textContent=info.platform||'—';
-    document.getElementById('inf-uptime').textContent=info.uptime_human||'—';
-    document.getElementById('inf-host').textContent=info.hostname||'—';
-  }catch(e){console.warn('sysinfo error',e);}
+    const d=await fetch('/api/system_info').then(r=>r.json());
+    if(d.status!=='ok')return;
+    const i=d.data;
+    setGauge('cpu',i.cpu_percent,'cpu-val',i.cpu_percent.toFixed(1)+'%');
+    setGauge('ram',i.ram_percent,'ram-val',`${i.ram_used_gb}/${i.ram_total_gb} GB`);
+    setGauge('disk',i.disk_percent,'disk-val',`${i.disk_used_gb}/${i.disk_total_gb} GB`);
+    setGauge('m-cpu',i.cpu_percent,'m-cpu-val',i.cpu_percent.toFixed(1)+'%');
+    setGauge('m-ram',i.ram_percent,'m-ram-val',`${i.ram_used_gb}/${i.ram_total_gb} GB`);
+    setGauge('m-disk',i.disk_percent,'m-disk-val',`${i.disk_used_gb}/${i.disk_total_gb} GB`);
+    document.getElementById('inf-platform').textContent=i.platform||'—';
+    document.getElementById('inf-uptime').textContent=i.uptime_human||'—';
+    document.getElementById('inf-host').textContent=i.hostname||'—';
+  }catch(e){}
 }
-
 function setGauge(type,pct,valId,label){
-  document.getElementById(type+'-bar').style.width=Math.min(pct,100)+'%';
-  document.getElementById(valId).textContent=label;
+  const bar=document.getElementById(type+'-bar');
+  const val=document.getElementById(valId);
+  if(bar)bar.style.width=Math.min(pct,100)+'%';
+  if(val)val.textContent=label;
 }
 
-// ── History ────────────────────────────────────────────────────────────────
+// History
 async function loadHistory(){
   try{
-    const r=await fetch('/api/history?limit=15');
-    const d=await r.json();
+    const d=await fetch('/api/history?limit=15').then(r=>r.json());
     const list=document.getElementById('history-list');
     list.innerHTML='';
     (d.history||[]).forEach(h=>{
       const item=document.createElement('div');
-      item.className='history-item';
-      item.innerHTML=`<div class="hi-user">You: ${escHtml((h.user||'').substring(0,50))}</div>
-                      <div class="hi-ai">MSA: ${escHtml((h.assistant||'').substring(0,60))}</div>`;
-      item.onclick=()=>{ document.getElementById('cmd-input').value=h.user; };
+      item.className='hist-item';
+      item.innerHTML=`<div class="text-indigo-400 text-xs font-medium mb-1">You: ${escHtml((h.user||'').substring(0,45))}</div>
+                      <div class="text-slate-500 text-xs">MSA: ${escHtml((h.assistant||'').substring(0,55))}</div>`;
+      item.onclick=()=>{document.getElementById('cmd-input').value=h.user;closeSidebar();};
       list.appendChild(item);
     });
-    if(!d.history||!d.history.length) list.innerHTML='<div style="color:var(--muted);font-size:.8rem;padding:8px">No history yet.</div>';
-  }catch(e){console.warn('history error',e);}
+    if(!d.history?.length)list.innerHTML='<div class="text-slate-600 text-xs p-2">No history yet.</div>';
+  }catch(e){}
 }
 
-// ── GPS ────────────────────────────────────────────────────────────────────
+// GPS
 function sendLocation(){
-  if(!navigator.geolocation){ addMsg('Geolocation not supported.','ai'); return; }
+  if(!navigator.geolocation){addMsg('Geolocation not supported.','ai');return;}
   navigator.geolocation.getCurrentPosition(async pos=>{
     try{
-      const r=await fetch('/api/location',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({latitude:pos.coords.latitude,longitude:pos.coords.longitude,notes:'Dashboard GPS'})});
-      const d=await r.json();
+      const d=await fetch('/api/location',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({latitude:pos.coords.latitude,longitude:pos.coords.longitude,notes:'Dashboard GPS'})}).then(r=>r.json());
       addMsg(d.message||'Location updated.','ai');
-    }catch(e){ addMsg('GPS error: '+e,'ai'); }
+    }catch(e){addMsg('GPS error: '+e,'ai');}
   });
 }
 
-// ── Init ───────────────────────────────────────────────────────────────────
-refreshStatus();
-refreshSysInfo();
-loadHistory();
-setInterval(refreshSysInfo, 5000);
-setInterval(refreshStatus,  15000);
-setInterval(loadHistory,    30000);
+// Init
+refreshStatus();refreshSysInfo();loadHistory();
+setInterval(refreshSysInfo,5000);setInterval(refreshStatus,15000);setInterval(loadHistory,30000);
 </script>
 </body>
 </html>

@@ -18,6 +18,7 @@ import threading
 import time
 
 from backend.server import start_server
+from voice.msa_voice import start_msa_voice
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -61,7 +62,13 @@ if __name__ == "__main__":
     bg_thread.start()
     logger.info("Background worker started (daemon).")
 
+    # Start MSA voice assistant (daemon thread — wakes on 'hey msa')
+    try:
+        start_msa_voice()
+        logger.info("MSA voice assistant started.")
+    except Exception as e:
+        logger.warning("MSA voice not available: %s", e)
+
     # Start the web server (blocks until Ctrl+C)
-    # FIX: host/port now passed correctly; server.py accepts these args.
     logger.info("Starting Wi-Fi server on port 5000 …")
     start_server(host="0.0.0.0", port=5000)

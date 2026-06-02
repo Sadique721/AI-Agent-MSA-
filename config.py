@@ -41,3 +41,22 @@ MOBILE_ADB_PORT  = 5555
 # ── Agent ────────────────────────────────────────────────────────────────────
 CONTEXT_WINDOW   = 5    # How many past turns to include in context
 MAX_KEYWORDS     = 8
+
+# ── Security ─────────────────────────────────────────────────────────────────
+API_KEY          = "MSA_SECURE_123"   # Change this in production!
+
+# ── User Profile (safe internal storage — never sent to external APIs) ────────
+USER_PROFILE = {
+    "name":            "Md Sadique Amin",
+    "role":            "Software Engineer",
+    "email":           "mdsadiqueamin721786@gmail.com",
+    "phone":           "9318302850",
+    "education":       "Diploma - MANUU Bangalore",
+    "current_study":   "B.Tech CSE (8th Semester) - GEC Patan",
+    "skills": [
+        "Java", "Spring Boot", "Servlet", "JSP",
+        "MySQL", "JDBC", "JavaScript",
+        "Python", "AI/ML", "Data Science"
+    ],
+    "project": "MSA AI Agent - Offline Multi Device AI Assistant"
+}

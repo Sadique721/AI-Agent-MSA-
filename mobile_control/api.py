@@ -45,25 +45,41 @@ def _get_location_tracker():
 
 @mobile_bp.route("/execute", methods=["POST"])
 def execute_command():
-    """Execute a text command from mobile UI."""
-    data = request.get_json(force=True, silent=True) or {}
+    """Execute a text command from mobile UI via the full AgentService pipeline."""
+    data    = request.get_json(force=True, silent=True) or {}
     command = data.get("command", "").strip()
-    target  = data.get("target", "")
 
     if not command:
         return jsonify({"status": "error", "message": "No command provided"}), 400
 
+    # ── Prefer AgentService (full AI pipeline) ──────────────────────────────
+    try:
+        from backend.server import _get_components
+        _get_components()
+        from backend.server import _agent_service        # lazy import — avoids circular dep
+        if _agent_service is not None:
+            result = _agent_service.process_input(command)
+            logger.info("mobile/execute (AgentService) — cmd=%r action=%s", command, result.get("action"))
+            return jsonify({
+                "status":           "success",
+                "response":         result.get("response", ""),
+                "action":           result.get("action", "none"),
+                "execution_result": result.get("execution_result", ""),
+            })
+    except Exception as e:
+        logger.warning("AgentService unavailable for mobile/execute, using fallback: %s", e)
+
+    # ── Simple fallback ─────────────────────────────────────────────────────
     response_text = ""
     cmd = command.lower()
-
     try:
         if "open" in cmd:
-            app_name = target if target else cmd.replace("open", "").strip()
+            app_name      = cmd.replace("open", "").strip() or "notepad"
             response_text = _open_app_via_scripts(app_name)
         else:
-            response_text = f"MSA received command: {cmd}"
+            response_text = f"MSA received: {cmd}"
     except Exception as e:
-        logger.error("execute_command error: %s", e)
+        logger.error("mobile/execute fallback error: %s", e)
         response_text = f"Error: {e}"
 
     return jsonify({"status": "success", "response": response_text})
@@ -103,3 +119,13 @@ def update_location():
 def get_history():
     """Retrieve recent command history (stub — delegates to main memory)."""
     return jsonify({"status": "ok", "history": []})
+
+
+# ---------------------------------------------------------------------------
+# GET /mobile/status
+# ---------------------------------------------------------------------------
+
+@mobile_bp.route("/status", methods=["GET"])
+def mobile_status():
+    """Mobile subsystem health check."""
+    return jsonify({"status": "online", "mobile_control": "active", "version": "2.0"})

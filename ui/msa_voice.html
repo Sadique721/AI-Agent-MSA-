@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MSA — Voice Assistant</title>
+<meta name="description" content="MSA Voice Command Interface — A high-fidelity, local, voice-controlled UI with animated rings and real-time response.">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#000;--ring1:#00d4ff;--ring2:#0080ff;--ring3:#4400ff;
+  --text:#e0f7ff;--muted:#4a7a8a;--card:rgba(0,60,80,.3);
+  --glow:0 0 20px rgba(0,212,255,.4);
+}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;
+     display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;
+     background:radial-gradient(ellipse at center,#001a2e 0%,#000 70%)}
+
+/* ── Particle Stars ── */
+.stars{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.star{position:absolute;width:2px;height:2px;background:#fff;border-radius:50%;opacity:.3;animation:twinkle 3s infinite}
+@keyframes twinkle{0%,100%{opacity:.3}50%{opacity:1}}
+
+/* ── Main UI ── */
+.container{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:32px;width:100%;max-width:700px;padding:24px}
+
+/* ── MSA Core (animated rings) ── */
+.core-wrap{position:relative;width:240px;height:240px}
+.ring{position:absolute;inset:0;border-radius:50%;border:2px solid transparent;animation:spin 4s linear infinite}
+.ring-1{border-top-color:var(--ring1);border-right-color:var(--ring1);animation-duration:3s}
+.ring-2{inset:16px;border-bottom-color:var(--ring2);border-left-color:var(--ring2);animation-duration:5s;animation-direction:reverse}
+.ring-3{inset:32px;border-top-color:var(--ring3);border-right-color:var(--ring3);animation-duration:7s}
+@keyframes spin{to{transform:rotate(360deg)}}
+.core-inner{position:absolute;inset:48px;border-radius:50%;background:radial-gradient(circle,#003d5c,#001a2e);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  box-shadow:var(--glow),inset 0 0 30px rgba(0,212,255,.1)}
+.core-icon{font-size:2.5rem;line-height:1}
+.core-label{font-family:'Orbitron',monospace;font-size:.55rem;color:var(--ring1);letter-spacing:.2em;margin-top:4px}
+
+/* Listening pulse */
+.core-wrap.listening .ring-1{border-color:var(--ring1);box-shadow:0 0 15px var(--ring1)}
+.core-wrap.listening .ring-2{border-color:var(--ring2);box-shadow:0 0 15px var(--ring2)}
+.core-wrap.listening .core-inner{box-shadow:0 0 40px rgba(0,212,255,.7),inset 0 0 30px rgba(0,212,255,.3)}
+
+/* ── Title ── */
+.title{font-family:'Orbitron',monospace;font-size:2rem;font-weight:900;letter-spacing:.15em;
+  background:linear-gradient(135deg,var(--ring1),var(--ring2));-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;text-shadow:none}
+.subtitle{font-size:.8rem;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-top:-20px}
+
+/* ── Status ── */
+.status-bar{display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--muted)}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--ring1);box-shadow:0 0 8px var(--ring1);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── Output Display ── */
+.display{width:100%;background:var(--card);border:1px solid rgba(0,212,255,.2);border-radius:16px;
+  padding:20px;min-height:100px;backdrop-filter:blur(10px)}
+.display-label{font-family:'Orbitron',monospace;font-size:.6rem;color:var(--ring1);letter-spacing:.2em;margin-bottom:10px}
+.display-text{font-size:.95rem;line-height:1.6;color:var(--text)}
+.display-text.user{color:#7dd3fc}
+.display-text.agent{color:#a7f3d0}
+
+/* ── Transcript ── */
+#transcript{font-size:.8rem;color:var(--muted);font-style:italic;min-height:20px;text-align:center}
+
+/* ── Buttons ── */
+.btn-row{display:flex;gap:16px}
+.btn{border:none;border-radius:50px;cursor:pointer;font-family:'Orbitron',monospace;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;transition:all .3s;padding:14px 32px;font-size:.75rem}
+.btn-main{background:linear-gradient(135deg,var(--ring1),var(--ring2));color:#000;
+  box-shadow:0 0 20px rgba(0,212,255,.4)}
+.btn-main:hover{box-shadow:0 0 35px rgba(0,212,255,.7);transform:scale(1.05)}
+.btn-main.active{background:linear-gradient(135deg,#ff4444,#ff0080);box-shadow:0 0 30px rgba(255,68,68,.5)}
+.btn-secondary{background:transparent;border:1px solid rgba(0,212,255,.3);color:var(--ring1)}
+.btn-secondary:hover{border-color:var(--ring1);box-shadow:0 0 15px rgba(0,212,255,.3)}
+
+/* ── Text input ── */
+.text-row{display:flex;gap:10px;width:100%}
+#text-input{flex:1;background:rgba(0,60,80,.3);border:1px solid rgba(0,212,255,.2);
+  color:var(--text);padding:12px 18px;border-radius:10px;font-family:'Inter',sans-serif;
+  font-size:.9rem;outline:none;transition:border-color .2s}
+#text-input:focus{border-color:var(--ring1);box-shadow:0 0 10px rgba(0,212,255,.2)}
+.btn-send{background:linear-gradient(135deg,var(--ring1),var(--ring2));border:none;
+  color:#000;padding:12px 20px;border-radius:10px;cursor:pointer;font-weight:700;font-size:.9rem;transition:opacity .2s}
+.btn-send:hover{opacity:.8}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--muted);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- Stars -->
+<div class="stars" id="stars"></div>
+
+<div class="container">
+
+  <!-- Title -->
+  <div style="text-align:center">
+    <div class="title">M.S.A</div>
+    <div class="subtitle">MSA AI — Voice Command Interface</div>
+  </div>
+
+  <!-- Core Animation -->
+  <div class="core-wrap" id="core">
+    <div class="ring ring-1"></div>
+    <div class="ring ring-2"></div>
+    <div class="ring ring-3"></div>
+    <div class="core-inner">
+      <div class="core-icon">🤖</div>
+      <div class="core-label">MSA ONLINE</div>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-bar">
+    <div class="status-dot" id="status-dot"></div>
+    <span id="status-text">Standby — say a command or click Activate</span>
+  </div>
+
+  <!-- Transcript -->
+  <div id="transcript">Waiting for input…</div>
+
+  <!-- Display -->
+  <div class="display">
+    <div class="display-label">⬡ OUTPUT FEED</div>
+    <div class="display-text" id="display-text">Hello Sadique. MSA UI is online. Activate voice or type a command.</div>
+  </div>
+
+  <!-- Buttons -->
+  <div class="btn-row">
+    <button class="btn btn-main" id="mic-btn" onclick="toggleVoice()">🎤 Activate Voice</button>
+    <button class="btn btn-secondary" onclick="sendProfileCommand()">👤 My Profile</button>
+    <button class="btn btn-secondary" onclick="sendTimeCommand()">🕐 Time</button>
+  </div>
+
+  <!-- Text Input -->
+  <div class="text-row">
+    <input type="text" id="text-input" placeholder="Type a command… (e.g. 'open notepad')" autocomplete="off">
+    <button class="btn-send" onclick="sendTextCommand()">Send ➤</button>
+  </div>
+
+</div>
+
+<script>
+// ── Stars ──────────────────────────────────────────────────────────────────
+const starsEl = document.getElementById('stars');
+for(let i=0; i<80; i++){
+  const s = document.createElement('div');
+  s.className = 'star';
+  s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;
+    animation-delay:${Math.random()*3}s;animation-duration:${2+Math.random()*3}s;
+    width:${Math.random()>0.8?3:2}px;height:${Math.random()>0.8?3:2}px`;
+  starsEl.appendChild(s);
+}
+
+// ── Speech API ──────────────────────────────────────────────────────────────
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+let isListening = false;
+
+if(SpeechRec){
+  recognition = new SpeechRec();
+  recognition.continuous = false;
+  recognition.lang = 'en-US';
+  recognition.interimResults = false;
+
+  recognition.onresult = e => {
+    const text = e.results[0][0].transcript;
+    document.getElementById('transcript').textContent = 'You said: "' + text + '"';
+    setStatus('Processing: ' + text);
+    sendToAgent(text);
+  };
+
+  recognition.onend = () => {
+    if(isListening){
+      isListening = false;
+      setListeningUI(false);
+    }
+  };
+
+  recognition.onerror = e => {
+    setStatus('Voice error: ' + e.error + ' — try text input instead');
+    setListeningUI(false);
+    isListening = false;
+  };
+}
+
+function toggleVoice(){
+  if(!recognition){
+    setDisplay('Voice recognition not supported in this browser. Use Chrome.');
+    return;
+  }
+  if(isListening){
+    recognition.stop();
+    isListening = false;
+    setListeningUI(false);
+  } else {
+    recognition.start();
+    isListening = true;
+    setListeningUI(true);
+    setStatus('Listening… speak now');
+  }
+}
+
+function setListeningUI(on){
+  const btn  = document.getElementById('mic-btn');
+  const core = document.getElementById('core');
+  btn.textContent  = on ? '⏹ Stop' : '🎤 Activate Voice';
+  btn.classList.toggle('active', on);
+  core.classList.toggle('listening', on);
+}
+
+// ── TTS ────────────────────────────────────────────────────────────────────
+function speak(text){
+  if('speechSynthesis' in window){
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang   = 'en-US';
+    u.rate   = 1;
+    u.pitch  = 0.9;
+    // Try to pick a male voice
+    const voices = window.speechSynthesis.getVoices();
+    const male = voices.find(v => v.name.includes('Male') || v.name.includes('David') || v.name.includes('Google UK'));
+    if(male) u.voice = male;
+    window.speechSynthesis.speak(u);
+  }
+}
+
+// ── Send to Agent ──────────────────────────────────────────────────────────
+async function sendToAgent(command){
+  setDisplay('Processing…', 'agent');
+  try{
+    const r = await fetch('/api/execute', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'x-api-key': 'MSA_SECURE_123'},
+      body: JSON.stringify({command})
+    });
+    const d = await r.json();
+    const reply = d.response || 'No response.';
+    setDisplay(reply, 'agent');
+    speak(reply);
+    setStatus('Ready — command executed: ' + d.action);
+  } catch(e){
+    setDisplay('Connection error: ' + e, 'agent');
+    setStatus('Error — check server');
+  }
+}
+
+function sendTextCommand(){
+  const inp = document.getElementById('text-input');
+  const cmd = inp.value.trim();
+  if(!cmd) return;
+  document.getElementById('transcript').textContent = 'Text: "' + cmd + '"';
+  inp.value = '';
+  sendToAgent(cmd);
+}
+
+function sendProfileCommand(){ sendToAgent('my profile'); }
+function sendTimeCommand(){ sendToAgent('what time is it'); }
+
+document.getElementById('text-input').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') sendTextCommand();
+});
+
+// ── UI Helpers ─────────────────────────────────────────────────────────────
+function setDisplay(text, cls=''){
+  const el = document.getElementById('display-text');
+  el.textContent = text;
+  el.className = 'display-text ' + cls;
+}
+
+// ── Status ─────────────────────────────────────────────────────────────
+function setStatus(text){
+  document.getElementById('status-text').textContent = text;
+}
+
+// ── Init Greet ─────────────────────────────────────────────────────────────
+window.addEventListener('load', ()=>{
+  window.speechSynthesis.onvoiceschanged = () => {};  // preload voices
+  setTimeout(()=>{
+    setDisplay('Hello Sadique! MSA is online. Activate voice or type a command below.', 'agent');
+    speak('Hello Sadique, MSA is online and ready.');
+  }, 800);
+});
+</script>
+</body>
+</html>

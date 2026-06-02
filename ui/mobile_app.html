@@ -1,0 +1,2090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#050b18">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MSA Agent">
+<meta name="description" content="MSA AI Agent — Your personal offline AI assistant by Md Sadique Amin. Voice-controlled, multi-device, intelligent.">
+<title>MSA Agent — AI Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   RESET & ROOT TOKENS
+═══════════════════════════════════════════════════════════════ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+:root {
+  --bg:        #050b18;
+  --bg2:       #080f20;
+  --surface:   rgba(10,20,45,0.85);
+  --card:      rgba(12,24,52,0.75);
+  --border:    rgba(0,212,255,0.12);
+  --border2:   rgba(124,58,237,0.18);
+  --cyan:      #00d4ff;
+  --cyan2:     #00b8e0;
+  --purple:    #7c3aed;
+  --purple2:   #9f6ef5;
+  --green:     #10b981;
+  --amber:     #f59e0b;
+  --red:       #ef4444;
+  --text:      #e2eeff;
+  --text2:     #94a3c8;
+  --text3:     #4a6080;
+  --radius:    16px;
+  --radius-sm: 10px;
+  --nav-h:     68px;
+  --glow-c:    0 0 24px rgba(0,212,255,0.35);
+  --glow-p:    0 0 24px rgba(124,58,237,0.35);
+  --transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BASE
+═══════════════════════════════════════════════════════════════ */
+html, body { height: 100%; overflow: hidden; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PARTICLE CANVAS
+═══════════════════════════════════════════════════════════════ */
+#particle-canvas {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  opacity: 0.6;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   APP SHELL
+═══════════════════════════════════════════════════════════════ */
+.app-shell {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column;
+  z-index: 1;
+  max-width: 100%;
+}
+
+/* ── TOP BAR ── */
+.topbar {
+  height: 60px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px;
+  background: rgba(5,11,24,0.95);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(20px);
+  z-index: 100;
+}
+.topbar-brand {
+  display: flex; align-items: center; gap: 10px;
+}
+.topbar-orb {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, var(--cyan), var(--purple));
+  box-shadow: 0 0 14px rgba(0,212,255,0.5);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; animation: orb-pulse 2.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes orb-pulse {
+  0%,100% { box-shadow: 0 0 14px rgba(0,212,255,0.5); }
+  50%      { box-shadow: 0 0 28px rgba(0,212,255,0.8), 0 0 50px rgba(124,58,237,0.3); }
+}
+.topbar-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 1rem; font-weight: 700;
+  background: linear-gradient(135deg, var(--cyan), var(--purple2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  letter-spacing: 0.08em;
+}
+.topbar-subtitle {
+  font-size: 0.62rem; color: var(--text3);
+  letter-spacing: 0.12em; text-transform: uppercase;
+  display: none;
+}
+@media(min-width:480px){ .topbar-subtitle { display: block; } }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.online-pill {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25);
+  border-radius: 20px; padding: 4px 10px;
+  font-size: 0.7rem; color: var(--green);
+  transition: var(--transition);
+}
+.online-pill.offline { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.25); color: var(--red); }
+.online-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.online-dot.pulsing { animation: dot-blink 1.2s ease-in-out infinite; }
+@keyframes dot-blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+#clock-display {
+  font-size: 0.72rem; color: var(--text3);
+  font-family: 'Orbitron', monospace; letter-spacing: 0.05em;
+  display: none;
+}
+@media(min-width:560px){ #clock-display { display: block; } }
+
+/* ── PAGE CONTAINER ── */
+.page-container {
+  flex: 1; overflow: hidden; position: relative;
+}
+.page {
+  position: absolute; inset: 0;
+  overflow-y: auto; overflow-x: hidden;
+  display: none;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(var(--nav-h) + 12px);
+}
+.page.active { display: flex; flex-direction: column; }
+
+/* ── BOTTOM NAV ── */
+.bottom-nav {
+  height: var(--nav-h); flex-shrink: 0;
+  display: flex; align-items: stretch;
+  background: rgba(5,11,24,0.97);
+  border-top: 1px solid var(--border);
+  backdrop-filter: blur(24px);
+  z-index: 100;
+}
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px;
+  background: none; border: none; cursor: pointer;
+  color: var(--text3); font-size: 0.6rem;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  transition: var(--transition); padding: 8px 4px;
+  -webkit-tap-highlight-color: transparent;
+}
+.nav-btn svg { width: 22px; height: 22px; transition: var(--transition); }
+.nav-btn.active { color: var(--cyan); }
+.nav-btn.active svg { filter: drop-shadow(0 0 6px var(--cyan)); }
+.nav-btn:active { transform: scale(0.93); }
+
+/* ═══════════════════════════════════════════════════════════════
+   PAGE 1 — CHAT / VOICE
+═══════════════════════════════════════════════════════════════ */
+#page-chat { gap: 0; }
+
+/* MSA Core animation (compact) */
+.chat-hero {
+  flex-shrink: 0; display: flex; flex-direction: column; align-items: center;
+  padding: 16px 16px 0;
+  gap: 8px;
+}
+.core-ring-wrap { position: relative; width: 120px; height: 120px; }
+.c-ring {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 2px solid transparent; animation: spin 4s linear infinite;
+}
+.c-ring-1 { border-top-color: var(--cyan); border-right-color: var(--cyan); animation-duration: 3s; }
+.c-ring-2 { inset: 10px; border-bottom-color: var(--purple); border-left-color: var(--purple); animation-duration: 5s; animation-direction: reverse; }
+.c-ring-3 { inset: 20px; border-top-color: rgba(0,212,255,0.4); animation-duration: 7s; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.c-core {
+  position: absolute; inset: 28px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(0,212,255,0.25), rgba(5,11,24,0.9));
+  border: 1px solid rgba(0,212,255,0.2);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-size: 1.4rem;
+  box-shadow: inset 0 0 20px rgba(0,212,255,0.1), 0 0 20px rgba(0,212,255,0.2);
+  transition: var(--transition);
+}
+.core-ring-wrap.listening .c-ring-1 { box-shadow: 0 0 12px var(--cyan); }
+.core-ring-wrap.listening .c-ring-2 { box-shadow: 0 0 12px var(--purple); }
+.core-ring-wrap.listening .c-core {
+  background: radial-gradient(circle at 35% 35%, rgba(0,212,255,0.45), rgba(5,11,24,0.7));
+  box-shadow: inset 0 0 30px rgba(0,212,255,0.3), 0 0 40px rgba(0,212,255,0.5);
+}
+.c-status-text {
+  font-family: 'Orbitron', monospace; font-size: 0.6rem; color: var(--cyan);
+  letter-spacing: 0.2em; text-transform: uppercase; text-align: center;
+}
+@media(min-width:768px){
+  .chat-hero { flex-direction: row; justify-content: center; gap: 24px; padding: 20px; }
+  .core-ring-wrap { width: 140px; height: 140px; }
+  .c-core { font-size: 1.6rem; }
+}
+
+/* Chat messages */
+.chat-messages {
+  flex: 1; overflow-y: auto; padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 10px;
+  -webkit-overflow-scrolling: touch;
+}
+.chat-msg { display: flex; flex-direction: column; max-width: 82%; animation: msg-in 0.3s ease; }
+@keyframes msg-in { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform: translateY(0); } }
+.chat-msg.user { align-self: flex-end; align-items: flex-end; }
+.chat-msg.agent { align-self: flex-start; align-items: flex-start; }
+.msg-bubble {
+  padding: 11px 15px; border-radius: 16px; font-size: 0.88rem;
+  line-height: 1.55; word-break: break-word;
+}
+.chat-msg.user .msg-bubble {
+  background: linear-gradient(135deg, var(--purple), #5b21b6);
+  border-bottom-right-radius: 4px;
+  box-shadow: 0 4px 16px rgba(124,58,237,0.3);
+}
+.chat-msg.agent .msg-bubble {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+  backdrop-filter: blur(12px);
+}
+.msg-action-badge {
+  display: inline-block; margin-top: 6px; padding: 2px 10px;
+  background: rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.3);
+  border-radius: 20px; font-size: 0.68rem; color: var(--cyan);
+  letter-spacing: 0.06em;
+}
+.msg-time {
+  font-size: 0.65rem; color: var(--text3); margin-top: 4px; padding: 0 4px;
+}
+.typing-indicator {
+  align-self: flex-start;
+  background: var(--card); border: 1px solid var(--border);
+  padding: 12px 16px; border-radius: 16px; border-bottom-left-radius: 4px;
+  display: flex; gap: 5px; align-items: center;
+}
+.typing-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text3); animation: typing 1s infinite; }
+.typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.typing-dot:nth-child(3) { animation-delay: 0.3s; }
+@keyframes typing { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+
+/* Transcript bar */
+.transcript-bar {
+  text-align: center; font-size: 0.75rem; color: var(--cyan);
+  padding: 6px 16px; min-height: 28px; font-style: italic;
+  transition: var(--transition);
+}
+
+/* Chat input row */
+.chat-input-wrap {
+  flex-shrink: 0; padding: 10px 12px;
+  background: rgba(5,11,24,0.92); border-top: 1px solid var(--border);
+  backdrop-filter: blur(16px);
+}
+.chat-input-row { display: flex; gap: 8px; align-items: center; }
+.mic-btn {
+  flex-shrink: 0; width: 46px; height: 46px; border-radius: 50%;
+  background: var(--card); border: 1px solid var(--border);
+  color: var(--text2); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; transition: var(--transition);
+}
+.mic-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+.mic-btn.recording {
+  background: rgba(239,68,68,0.15); border-color: var(--red); color: var(--red);
+  animation: mic-pulse 0.8s ease-in-out infinite;
+}
+@keyframes mic-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.4)} 50%{box-shadow:0 0 0 10px rgba(239,68,68,0)} }
+.chat-text-input {
+  flex: 1; background: var(--card); border: 1px solid var(--border);
+  color: var(--text); padding: 12px 16px; border-radius: 14px;
+  font-family: 'Inter', sans-serif; font-size: 0.9rem; outline: none;
+  transition: var(--transition); min-width: 0;
+}
+.chat-text-input::placeholder { color: var(--text3); }
+.chat-text-input:focus { border-color: rgba(0,212,255,0.4); box-shadow: 0 0 0 2px rgba(0,212,255,0.08); }
+.send-btn {
+  flex-shrink: 0; width: 46px; height: 46px; border-radius: 14px;
+  background: linear-gradient(135deg, var(--cyan), var(--purple));
+  border: none; color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; transition: var(--transition);
+  box-shadow: 0 4px 14px rgba(0,212,255,0.3);
+}
+.send-btn:hover { opacity: 0.85; transform: scale(1.05); }
+.send-btn:active { transform: scale(0.95); }
+
+/* ═══════════════════════════════════════════════════════════════
+   PAGE 2 — STATUS / SYSTEM
+═══════════════════════════════════════════════════════════════ */
+#page-status { padding: 14px; gap: 12px; }
+
+.section-label {
+  font-family: 'Orbitron', monospace; font-size: 0.6rem;
+  color: var(--text3); letter-spacing: 0.2em; text-transform: uppercase;
+  margin-bottom: 8px; display: flex; align-items: center; gap: 8px;
+}
+.section-label::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* Glass card */
+.glass-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+}
+
+/* Status hero */
+.status-hero {
+  display: flex; align-items: center; gap: 14px;
+  padding: 18px;
+}
+.status-hero-icon {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(16,185,129,0.4), rgba(5,11,24,0.9));
+  border: 2px solid var(--green);
+  display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
+  box-shadow: 0 0 20px rgba(16,185,129,0.3);
+  flex-shrink: 0;
+}
+.status-hero-info h3 {
+  font-family: 'Orbitron', monospace; font-size: 0.9rem; color: var(--green);
+  letter-spacing: 0.08em; margin-bottom: 4px;
+}
+.status-hero-info p { font-size: 0.78rem; color: var(--text2); }
+.status-hero-info .agent-version {
+  display: inline-block; margin-top: 6px;
+  background: rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.2);
+  border-radius: 20px; padding: 2px 10px; font-size: 0.65rem; color: var(--cyan);
+  letter-spacing: 0.1em;
+}
+
+/* Subsystem badges */
+.subsystem-grid { display: flex; flex-direction: column; gap: 8px; }
+.subsystem-row {
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(5,11,24,0.5); border-radius: var(--radius-sm);
+  padding: 10px 14px;
+}
+.subsystem-name { font-size: 0.82rem; color: var(--text2); }
+.badge {
+  padding: 3px 10px; border-radius: 20px; font-size: 0.68rem; font-weight: 600;
+  letter-spacing: 0.06em;
+}
+.badge.ok { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+.badge.warn { background: rgba(245,158,11,0.15); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+.badge.err { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+.badge.load { color: var(--text3); border: 1px solid var(--border); }
+
+/* Gauge */
+.gauge-wrap { margin-bottom: 14px; }
+.gauge-label { display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 6px; }
+.gauge-label span:first-child { color: var(--text2); }
+.gauge-label span:last-child { color: var(--text); font-weight: 500; }
+.gauge-track { height: 7px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; }
+.gauge-fill { height: 100%; border-radius: 4px; transition: width 0.9s cubic-bezier(0.4,0,0.2,1); }
+.gauge-fill.cpu { background: linear-gradient(90deg, var(--cyan), var(--purple)); }
+.gauge-fill.ram { background: linear-gradient(90deg, var(--green), #34d399); }
+.gauge-fill.disk { background: linear-gradient(90deg, var(--amber), #fbbf24); }
+
+/* Info grid */
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.info-item {
+  background: rgba(5,11,24,0.5); border-radius: var(--radius-sm);
+  padding: 12px; display: flex; flex-direction: column; gap: 4px;
+}
+.info-item-label { font-size: 0.65rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; }
+.info-item-val { font-size: 0.88rem; color: var(--text); font-weight: 500; }
+
+/* Refresh btn */
+.refresh-btn {
+  width: 100%; padding: 12px; border-radius: var(--radius-sm);
+  background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.2);
+  color: var(--cyan); font-family: 'Orbitron', monospace; font-size: 0.7rem;
+  letter-spacing: 0.1em; cursor: pointer; transition: var(--transition);
+  text-transform: uppercase;
+}
+.refresh-btn:hover { background: rgba(0,212,255,0.15); box-shadow: 0 0 16px rgba(0,212,255,0.2); }
+
+/* ═══════════════════════════════════════════════════════════════
+   PAGE 3 — QUICK ACTIONS
+═══════════════════════════════════════════════════════════════ */
+#page-actions { padding: 14px; gap: 14px; }
+
+.action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media(min-width:600px){ .action-grid { grid-template-columns: repeat(3,1fr); } }
+@media(min-width:900px){ .action-grid { grid-template-columns: repeat(4,1fr); } }
+
+.action-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 14px;
+  cursor: pointer; transition: var(--transition);
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  text-align: center; backdrop-filter: blur(12px);
+  min-height: 100px;
+}
+.action-card:hover {
+  border-color: rgba(0,212,255,0.4);
+  box-shadow: 0 0 20px rgba(0,212,255,0.12);
+  transform: translateY(-2px);
+}
+.action-card:active { transform: scale(0.96); }
+.action-icon {
+  font-size: 1.8rem;
+  filter: drop-shadow(0 2px 8px rgba(0,212,255,0.3));
+}
+.action-label { font-size: 0.78rem; color: var(--text2); font-weight: 500; }
+.action-cmd { font-size: 0.62rem; color: var(--text3); margin-top: 2px; }
+
+/* GPS card */
+.gps-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+  display: flex; align-items: center; gap: 14px;
+  cursor: pointer; transition: var(--transition);
+}
+.gps-card:hover { border-color: rgba(16,185,129,0.4); }
+.gps-icon { font-size: 2rem; flex-shrink: 0; }
+.gps-info h4 { font-size: 0.88rem; font-weight: 600; margin-bottom: 3px; }
+.gps-info p { font-size: 0.75rem; color: var(--text2); }
+.gps-coords { font-size: 0.7rem; color: var(--green); margin-top: 4px; font-family: monospace; }
+
+/* ═══════════════════════════════════════════════════════════════
+   PAGE 4 — HISTORY
+═══════════════════════════════════════════════════════════════ */
+#page-history { padding: 14px; gap: 10px; }
+
+.history-item {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px;
+  cursor: pointer; transition: var(--transition);
+  backdrop-filter: blur(12px);
+}
+.history-item:hover { border-color: rgba(124,58,237,0.4); transform: translateX(3px); }
+.history-item:active { transform: scale(0.98); }
+.hist-you { font-size: 0.78rem; color: var(--purple2); margin-bottom: 5px; font-weight: 500; }
+.hist-you span { color: var(--text); font-weight: 400; }
+.hist-msa { font-size: 0.75rem; color: var(--text3); }
+.hist-msa span { color: var(--text2); }
+.hist-time { font-size: 0.65rem; color: var(--text3); margin-top: 6px; }
+.empty-state {
+  text-align: center; padding: 48px 20px;
+  color: var(--text3); font-size: 0.85rem;
+}
+.empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   PAGE 5 — PROFILE
+═══════════════════════════════════════════════════════════════ */
+#page-profile { padding: 14px; gap: 14px; }
+
+.profile-hero {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px;
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; gap: 12px; backdrop-filter: blur(16px);
+  position: relative; overflow: hidden;
+}
+.profile-hero::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--cyan), var(--purple), var(--cyan));
+}
+.profile-avatar {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--cyan), var(--purple));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem; font-weight: 700; color: #fff;
+  box-shadow: 0 0 28px rgba(0,212,255,0.4), 0 0 50px rgba(124,58,237,0.2);
+  font-family: 'Orbitron', monospace; letter-spacing: 0.05em;
+}
+.profile-name { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+.profile-role {
+  font-size: 0.8rem; color: var(--cyan);
+  background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.2);
+  padding: 4px 14px; border-radius: 20px; letter-spacing: 0.06em;
+}
+.profile-edu { font-size: 0.78rem; color: var(--text2); }
+.skills-wrap { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 4px; }
+.skill-tag {
+  background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.25);
+  color: var(--purple2); padding: 4px 12px; border-radius: 20px; font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+.profile-info-list { display: flex; flex-direction: column; gap: 10px; }
+.profile-info-row {
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(5,11,24,0.5); border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+.profile-info-icon { font-size: 1.1rem; flex-shrink: 0; }
+.profile-info-content { min-width: 0; }
+.profile-info-label { font-size: 0.65rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; }
+.profile-info-val { font-size: 0.85rem; color: var(--text); margin-top: 2px; word-break: break-all; }
+.project-card {
+  background: linear-gradient(135deg, rgba(0,212,255,0.06), rgba(124,58,237,0.06));
+  border: 1px solid rgba(0,212,255,0.15);
+  border-radius: var(--radius); padding: 16px;
+}
+.project-card h4 { font-family: 'Orbitron', monospace; font-size: 0.72rem; color: var(--cyan); letter-spacing: 0.1em; margin-bottom: 6px; }
+.project-card p { font-size: 0.82rem; color: var(--text2); line-height: 1.5; }
+
+/* Privacy policy button */
+.privacy-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 14px;
+  background: none; border: 1px dashed rgba(0,212,255,0.2);
+  border-radius: var(--radius); color: var(--text3);
+  font-size: 0.8rem; cursor: pointer; transition: var(--transition);
+}
+.privacy-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+
+/* ═══════════════════════════════════════════════════════════════
+   PRIVACY POLICY MODAL
+═══════════════════════════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 999;
+  background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+  display: none; align-items: flex-end;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; animation: overlay-in 0.2s ease; }
+@keyframes overlay-in { from{opacity:0} to{opacity:1} }
+.modal-sheet {
+  width: 100%; max-width: 700px; max-height: 88vh;
+  background: #080f20; border: 1px solid var(--border);
+  border-radius: 24px 24px 0 0; overflow: hidden;
+  display: flex; flex-direction: column;
+  animation: sheet-up 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+@keyframes sheet-up { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.modal-handle {
+  width: 40px; height: 4px; background: var(--border2);
+  border-radius: 2px; margin: 12px auto 0;
+}
+.modal-header {
+  padding: 14px 20px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.modal-title { font-family: 'Orbitron', monospace; font-size: 0.9rem; color: var(--cyan); letter-spacing: 0.08em; }
+.modal-close-btn {
+  background: var(--card); border: 1px solid var(--border);
+  color: var(--text2); width: 32px; height: 32px; border-radius: 50%;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; transition: var(--transition);
+}
+.modal-close-btn:hover { border-color: var(--red); color: var(--red); }
+.modal-body { padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1; }
+.policy-section { margin-bottom: 22px; }
+.policy-section h3 {
+  font-family: 'Orbitron', monospace; font-size: 0.72rem; color: var(--cyan);
+  letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px;
+  display: flex; align-items: center; gap: 8px;
+}
+.policy-section p, .policy-section li {
+  font-size: 0.82rem; color: var(--text2); line-height: 1.65; margin-bottom: 6px;
+}
+.policy-section ul { padding-left: 18px; }
+.policy-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25);
+  border-radius: 20px; padding: 4px 12px; font-size: 0.7rem; color: var(--green);
+  margin-bottom: 16px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TOAST NOTIFICATIONS
+═══════════════════════════════════════════════════════════════ */
+#toast-container {
+  position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+  z-index: 9999; display: flex; flex-direction: column; gap: 8px;
+  pointer-events: none; width: calc(100% - 32px); max-width: 360px;
+}
+.toast {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 16px;
+  font-size: 0.82rem; color: var(--text);
+  backdrop-filter: blur(16px);
+  animation: toast-in 0.3s ease;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  display: flex; align-items: center; gap: 10px;
+}
+@keyframes toast-in { from{opacity:0;transform:translateY(-12px)} to{opacity:1;transform:translateY(0)} }
+.toast.success { border-color: rgba(16,185,129,0.4); }
+.toast.error   { border-color: rgba(239,68,68,0.4); }
+.toast.info    { border-color: rgba(0,212,255,0.4); }
+
+/* ═══════════════════════════════════════════════════════════════
+   DESKTOP ENHANCEMENTS (>= 1024px)
+═══════════════════════════════════════════════════════════════ */
+@media(min-width:1024px) {
+  .app-shell { max-width: 100%; }
+  .bottom-nav { display: none; }
+  .page { padding-bottom: 0; }
+
+  /* Side nav */
+  #side-nav {
+    display: flex !important;
+    position: fixed; left: 0; top: 60px; bottom: 0;
+    width: 220px; background: rgba(5,11,24,0.97);
+    border-right: 1px solid var(--border);
+    backdrop-filter: blur(24px);
+    flex-direction: column; z-index: 90;
+    padding: 16px 12px;
+    gap: 6px;
+  }
+  .side-nav-btn {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 14px; border-radius: 12px;
+    background: none; border: none; cursor: pointer;
+    color: var(--text3); font-size: 0.85rem;
+    font-family: 'Inter', sans-serif; font-weight: 500;
+    transition: var(--transition); width: 100%;
+    text-align: left; letter-spacing: 0.02em;
+  }
+  .side-nav-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .side-nav-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+  .side-nav-btn.active {
+    background: rgba(0,212,255,0.08); color: var(--cyan);
+    border: 1px solid rgba(0,212,255,0.15);
+  }
+  .side-nav-divider { height: 1px; background: var(--border); margin: 8px 0; }
+  .side-nav-label {
+    font-size: 0.6rem; color: var(--text3); text-transform: uppercase;
+    letter-spacing: 0.15em; padding: 0 14px; margin-bottom: 4px;
+  }
+
+  .page-container { margin-left: 220px; }
+  #page-chat { flex-direction: row; overflow: hidden; }
+  .chat-column {
+    flex: 1; display: flex; flex-direction: column; overflow: hidden;
+    border-right: 1px solid var(--border);
+  }
+  .chat-hero { flex-direction: column; padding: 20px; border-bottom: 1px solid var(--border); }
+  .chat-messages { flex: 1; }
+}
+#side-nav { display: none; }
+
+/* ═══════════════════════════════════════════════════════════════
+   SCROLLBAR
+═══════════════════════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   UTILITY
+═══════════════════════════════════════════════════════════════ */
+.hidden { display: none !important; }
+.spin { animation: spin-single 1s linear infinite; }
+@keyframes spin-single { to { transform: rotate(360deg); } }
+
+/* ═══════════════════════════════════════════════════════════════
+   PAGE 6 — VS CODE DARK CONSOLE
+   Colors match VS Code One Dark Pro exactly
+═══════════════════════════════════════════════════════════════ */
+#page-console {
+  padding: 0;
+  background: #1e1e1e;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: 'Consolas', 'Fira Code', 'JetBrains Mono', 'Courier New', monospace;
+}
+#page-console.active { display: flex; }
+
+/* VS Code title bar */
+.vsc-titlebar {
+  background: #252526;
+  border-bottom: 1px solid #3c3c3c;
+  display: flex;
+  align-items: center;
+  height: 35px;
+  flex-shrink: 0;
+  padding: 0;
+  user-select: none;
+}
+.vsc-tab {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 16px; height: 100%;
+  background: #1e1e1e; border-right: 1px solid #3c3c3c;
+  font-size: 0.78rem; color: #cccccc;
+  border-top: 1px solid #007acc;
+  cursor: default;
+}
+.vsc-tab-dot { width: 6px; height: 6px; border-radius: 50%; background: #4fc1ff; }
+.vsc-tab-inactive {
+  background: #2d2d2d; color: #858585;
+  border-top: 1px solid transparent;
+  cursor: pointer; transition: background 0.15s;
+}
+.vsc-tab-inactive:hover { background: #323232; }
+.vsc-titlebar-spacer { flex: 1; }
+.vsc-titlebar-actions {
+  display: flex; align-items: center; gap: 4px;
+  padding: 0 8px;
+}
+.vsc-action-btn {
+  width: 28px; height: 28px; border-radius: 4px;
+  background: none; border: none; cursor: pointer;
+  color: #858585; display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; transition: background 0.15s, color 0.15s;
+  font-family: 'Consolas', monospace;
+}
+.vsc-action-btn:hover { background: rgba(255,255,255,0.06); color: #cccccc; }
+.vsc-action-btn.danger:hover { background: rgba(239,68,68,0.15); color: #f48771; }
+
+/* Filter bar */
+.vsc-filterbar {
+  background: #252526;
+  border-bottom: 1px solid #3c3c3c;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.vsc-filter-btn {
+  padding: 2px 10px; border-radius: 3px;
+  font-size: 0.68rem; font-family: 'Consolas', monospace;
+  border: 1px solid transparent; cursor: pointer;
+  transition: all 0.15s; color: #858585; background: none;
+  letter-spacing: 0.04em; text-transform: uppercase;
+}
+.vsc-filter-btn:hover { border-color: #555; color: #cccccc; }
+.vsc-filter-btn.active-all   { background: #007acc22; border-color: #007acc; color: #4fc1ff; }
+.vsc-filter-btn.active-info  { background: #9cdcfe22; border-color: #9cdcfe; color: #9cdcfe; }
+.vsc-filter-btn.active-warn  { background: #dcdcaa22; border-color: #dcdcaa; color: #dcdcaa; }
+.vsc-filter-btn.active-error { background: #f4877122; border-color: #f48771; color: #f48771; }
+.vsc-filter-btn.active-debug { background: #6a995522; border-color: #6a9955; color: #6a9955; }
+.vsc-filter-spacer { flex: 1; }
+.vsc-search {
+  background: #3c3c3c; border: 1px solid #555; color: #d4d4d4;
+  padding: 3px 10px; border-radius: 3px; font-size: 0.75rem;
+  font-family: 'Consolas', monospace; outline: none; width: 160px;
+  transition: border-color 0.15s;
+}
+.vsc-search:focus { border-color: #007acc; }
+.vsc-search::placeholder { color: #5a5a5a; }
+.vsc-log-count {
+  font-size: 0.65rem; color: #5a5a5a;
+  font-family: 'Consolas', monospace; white-space: nowrap;
+}
+
+/* Log output area */
+.vsc-output {
+  flex: 1; overflow-y: auto; overflow-x: auto;
+  background: #1e1e1e;
+  padding: 4px 0;
+  -webkit-overflow-scrolling: touch;
+  min-height: 0;
+}
+.vsc-output::-webkit-scrollbar { width: 10px; height: 8px; }
+.vsc-output::-webkit-scrollbar-track { background: #1e1e1e; }
+.vsc-output::-webkit-scrollbar-thumb { background: #424242; border-radius: 0; }
+.vsc-output::-webkit-scrollbar-thumb:hover { background: #555; }
+
+/* Individual log line */
+.vsc-line {
+  display: flex;
+  align-items: flex-start;
+  min-height: 20px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  transition: background 0.08s;
+  border-left: 2px solid transparent;
+}
+.vsc-line:hover { background: #2a2d2e !important; }
+.vsc-line.vsc-line-error { border-left-color: #f48771; }
+.vsc-line.vsc-line-warning { border-left-color: #dcdcaa; }
+.vsc-line.vsc-line-critical { border-left-color: #f44747; background: rgba(244,71,71,0.04); }
+
+/* Line number gutter */
+.vsc-ln {
+  display: inline-block;
+  width: 48px;
+  min-width: 48px;
+  text-align: right;
+  padding-right: 14px;
+  color: #3d3d3d;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  flex-shrink: 0;
+  border-right: 1px solid #2a2a2a;
+  user-select: none;
+  background: #1e1e1e;
+}
+.vsc-line:hover .vsc-ln { color: #858585; }
+
+/* Log text area */
+.vsc-text {
+  flex: 1;
+  padding: 0 8px 0 12px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+/* Level color tokens — VS Code One Dark Pro */
+.vsc-lvl-debug    { color: #6a9955; }  /* comments green */
+.vsc-lvl-info     { color: #9cdcfe; }  /* variable blue  */
+.vsc-lvl-warning  { color: #dcdcaa; }  /* function yellow */
+.vsc-lvl-error    { color: #f48771; }  /* error red-orange */
+.vsc-lvl-critical { color: #f44747; font-weight: bold; }  /* bright red */
+
+.vsc-ts    { color: #4ec9b0; }   /* type teal */
+.vsc-name  { color: #569cd6; }   /* keyword blue */
+.vsc-msg   { color: #d4d4d4; }   /* default text */
+.vsc-str   { color: #ce9178; }   /* string orange */
+.vsc-num   { color: #b5cea8; }   /* number green */
+.vsc-key   { color: #9cdcfe; }   /* key blue */
+.vsc-punct { color: #808080; }   /* brackets gray */
+
+/* Terminal input bar */
+.vsc-terminal-bar {
+  background: #1e1e1e;
+  border-top: 1px solid #3c3c3c;
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.vsc-prompt {
+  color: #569cd6;
+  font-size: 0.8rem;
+  font-family: 'Consolas', monospace;
+  white-space: nowrap;
+  user-select: none;
+  flex-shrink: 0;
+}
+.vsc-cmd-input {
+  flex: 1; background: transparent;
+  border: none; outline: none;
+  color: #d4d4d4;
+  font-family: 'Consolas', monospace;
+  font-size: 0.8rem;
+  caret-color: #aeafad;
+  min-width: 0;
+}
+.vsc-cmd-input::placeholder { color: #3d3d3d; }
+.vsc-run-btn {
+  background: #007acc; border: none;
+  color: #fff; padding: 4px 12px; border-radius: 3px;
+  font-size: 0.72rem; font-family: 'Consolas', monospace;
+  cursor: pointer; transition: background 0.15s; white-space: nowrap;
+}
+.vsc-run-btn:hover { background: #1b8ad0; }
+.vsc-run-btn:active { background: #005fa3; }
+
+/* Status bar VS Code style */
+.vsc-statusbar {
+  background: #007acc;
+  display: flex; align-items: center;
+  height: 22px; padding: 0 8px;
+  gap: 12px;
+  flex-shrink: 0;
+  border-top: none;
+}
+.vsc-sb-item {
+  font-size: 0.62rem; color: rgba(255,255,255,0.9);
+  font-family: 'Consolas', monospace;
+  display: flex; align-items: center; gap: 4px;
+  cursor: default; white-space: nowrap;
+}
+.vsc-sb-item:hover { background: rgba(255,255,255,0.1); padding: 0 4px; }
+.vsc-sb-spacer { flex: 1; }
+.vsc-sb-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.vsc-sb-dot.live { background: #4caf50; animation: dot-blink 1.5s ease-in-out infinite; }
+.vsc-sb-dot.paused { background: #f59e0b; }
+
+/* Highlight match */
+.vsc-highlight { background: #7f7f00; color: #fff; border-radius: 2px; padding: 0 1px; }
+
+/* Empty state */
+.vsc-empty {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  height: 100%;
+  color: #3d3d3d;
+  font-family: 'Consolas', monospace;
+  font-size: 0.78rem;
+}
+.vsc-empty-icon { font-size: 2rem; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<!-- ─── Particle BG ─────────────────────────────────────────────── -->
+<canvas id="particle-canvas"></canvas>
+
+<!-- ─── Toast Container ─────────────────────────────────────────── -->
+<div id="toast-container"></div>
+
+<!-- ─── Desktop Side Nav (hidden on mobile) ─────────────────────── -->
+<nav id="side-nav" aria-label="Main navigation">
+  <div class="side-nav-label">Navigation</div>
+  <button class="side-nav-btn active" id="snav-chat" onclick="showPage('chat')">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+    Chat &amp; Voice
+  </button>
+  <button class="side-nav-btn" id="snav-status" onclick="showPage('status')">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+    System Status
+  </button>
+  <button class="side-nav-btn" id="snav-actions" onclick="showPage('actions')">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+    Quick Actions
+  </button>
+  <button class="side-nav-btn" id="snav-history" onclick="showPage('history')">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    History
+  </button>
+  <button class="side-nav-btn" id="snav-console" onclick="showPage('console')">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+    Console
+  </button>
+  <div class="side-nav-divider"></div>
+  <button class="side-nav-btn" id="snav-profile" onclick="showPage('profile')">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+    Profile
+  </button>
+  <div style="flex:1"></div>
+  <button class="side-nav-btn" onclick="openPrivacy()">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+    Privacy Policy
+  </button>
+</nav>
+
+<!-- ─── App Shell ────────────────────────────────────────────────── -->
+<div class="app-shell">
+
+  <!-- TOP BAR -->
+  <header class="topbar" role="banner">
+    <div class="topbar-brand">
+      <div class="topbar-orb" aria-hidden="true">🤖</div>
+      <div>
+        <div class="topbar-title">M·S·A</div>
+        <div class="topbar-subtitle">AI Agent — Multi-Device</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div id="clock-display" aria-live="polite"></div>
+      <div class="online-pill" id="online-pill">
+        <div class="online-dot" id="online-dot"></div>
+        <span id="online-label">Connecting</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- PAGE CONTAINER -->
+  <main class="page-container" role="main">
+
+    <!-- ── PAGE: CHAT ─────────────────────────────────────────── -->
+    <section class="page active" id="page-chat" aria-label="Chat and Voice">
+
+      <!-- Core animation + status (desktop wraps in .chat-column) -->
+      <div class="chat-column" style="display:contents">
+        <div class="chat-hero">
+          <div class="core-ring-wrap" id="core-rings" aria-hidden="true">
+            <div class="c-ring c-ring-1"></div>
+            <div class="c-ring c-ring-2"></div>
+            <div class="c-ring c-ring-3"></div>
+            <div class="c-core" id="core-icon">🤖</div>
+          </div>
+          <div>
+            <div class="c-status-text" id="c-status">MSA ONLINE</div>
+          </div>
+        </div>
+
+        <div class="transcript-bar" id="transcript-bar" aria-live="assertive">Say a command or type below…</div>
+
+        <div class="chat-messages" id="chat-messages" role="log" aria-live="polite">
+          <div class="chat-msg agent">
+            <div class="msg-bubble">
+              👋 Hello Sadique! I'm <strong>MSA Agent</strong>, your personal AI assistant. I'm online and ready.<br>
+              Try: <em>"open notepad"</em>, <em>"what time is it"</em>, <em>"search AI news"</em>
+            </div>
+            <div class="msg-time" id="welcome-time"></div>
+          </div>
+        </div>
+
+        <div class="transcript-bar" id="transcript-bar-bottom" aria-live="polite" style="display:none"></div>
+
+        <div class="chat-input-wrap" role="form" aria-label="Command input">
+          <div class="chat-input-row">
+            <button class="mic-btn" id="mic-btn" onclick="toggleVoice()" title="Voice input" aria-label="Toggle voice input">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+            </button>
+            <input type="text" id="cmd-input" class="chat-text-input"
+              placeholder="Type a command… (e.g. open notepad)"
+              autocomplete="off" autocorrect="off" spellcheck="false"
+              aria-label="Command input">
+            <button class="send-btn" onclick="sendText()" title="Send" aria-label="Send command">
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── PAGE: STATUS ───────────────────────────────────────── -->
+    <section class="page" id="page-status" aria-label="System Status">
+
+      <!-- Agent health hero -->
+      <div class="glass-card status-hero" style="margin:14px 14px 0">
+        <div class="status-hero-icon" id="status-icon">🟢</div>
+        <div class="status-hero-info">
+          <h3 id="status-main-text">AGENT ONLINE</h3>
+          <p>MSA AI Agent — Flask SocketIO Server</p>
+          <span class="agent-version">v2.0 · Port 5000</span>
+        </div>
+      </div>
+
+      <!-- Subsystems -->
+      <div style="padding:0 14px">
+        <div class="section-label" style="margin-top:14px">Subsystems</div>
+        <div class="glass-card">
+          <div class="subsystem-grid">
+            <div class="subsystem-row"><span class="subsystem-name">🎙 STT (Speech-to-Text)</span><span class="badge load" id="sub-stt">…</span></div>
+            <div class="subsystem-row"><span class="subsystem-name">🧠 Decision Engine</span><span class="badge load" id="sub-engine">…</span></div>
+            <div class="subsystem-row"><span class="subsystem-name">💾 Memory</span><span class="badge load" id="sub-mem">…</span></div>
+            <div class="subsystem-row"><span class="subsystem-name">🔐 Security</span><span class="badge load" id="sub-sec">…</span></div>
+            <div class="subsystem-row"><span class="subsystem-name">📱 Mobile Control</span><span class="badge load" id="sub-mobile">…</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Resources -->
+      <div style="padding:0 14px">
+        <div class="section-label" style="margin-top:14px">System Resources</div>
+        <div class="glass-card">
+          <div class="gauge-wrap">
+            <div class="gauge-label"><span>CPU Usage</span><span id="cpu-val">—</span></div>
+            <div class="gauge-track"><div class="gauge-fill cpu" id="cpu-bar" style="width:0%"></div></div>
+          </div>
+          <div class="gauge-wrap">
+            <div class="gauge-label"><span>RAM Usage</span><span id="ram-val">—</span></div>
+            <div class="gauge-track"><div class="gauge-fill ram" id="ram-bar" style="width:0%"></div></div>
+          </div>
+          <div class="gauge-wrap" style="margin-bottom:0">
+            <div class="gauge-label"><span>Disk Usage</span><span id="disk-val">—</span></div>
+            <div class="gauge-track"><div class="gauge-fill disk" id="disk-bar" style="width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Info -->
+      <div style="padding:0 14px">
+        <div class="section-label" style="margin-top:14px">System Info</div>
+        <div class="glass-card">
+          <div class="info-grid">
+            <div class="info-item">
+              <div class="info-item-label">Platform</div>
+              <div class="info-item-val" id="inf-platform">—</div>
+            </div>
+            <div class="info-item">
+              <div class="info-item-label">Hostname</div>
+              <div class="info-item-val" id="inf-host">—</div>
+            </div>
+            <div class="info-item">
+              <div class="info-item-label">Uptime</div>
+              <div class="info-item-val" id="inf-uptime">—</div>
+            </div>
+            <div class="info-item">
+              <div class="info-item-label">Conversations</div>
+              <div class="info-item-val" id="inf-convs">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Memory Stats -->
+      <div style="padding:0 14px">
+        <div class="section-label" style="margin-top:14px">Memory Stats</div>
+        <div class="glass-card">
+          <div class="subsystem-grid">
+            <div class="subsystem-row"><span class="subsystem-name">Total Conversations</span><span class="badge ok" id="mem-total">—</span></div>
+            <div class="subsystem-row"><span class="subsystem-name">Last Interaction</span><span style="font-size:0.7rem;color:var(--text2)" id="mem-last">—</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:14px">
+        <button class="refresh-btn" onclick="refreshAll()" id="refresh-btn" aria-label="Refresh status">
+          ↻ Refresh All Systems
+        </button>
+      </div>
+    </section>
+
+    <!-- ── PAGE: QUICK ACTIONS ────────────────────────────────── -->
+    <section class="page" id="page-actions" aria-label="Quick Actions">
+
+      <div class="section-label" style="margin:0">System Commands</div>
+      <div class="action-grid">
+        <div class="action-card" onclick="runAction('open notepad')" role="button" tabindex="0" aria-label="Open Notepad">
+          <div class="action-icon">📝</div>
+          <div class="action-label">Notepad</div>
+          <div class="action-cmd">open notepad</div>
+        </div>
+        <div class="action-card" onclick="runAction('open calculator')" role="button" tabindex="0" aria-label="Open Calculator">
+          <div class="action-icon">🔢</div>
+          <div class="action-label">Calculator</div>
+          <div class="action-cmd">open calculator</div>
+        </div>
+        <div class="action-card" onclick="runAction('open browser')" role="button" tabindex="0" aria-label="Open Browser">
+          <div class="action-icon">🌐</div>
+          <div class="action-label">Browser</div>
+          <div class="action-cmd">open browser</div>
+        </div>
+        <div class="action-card" onclick="runAction('open cmd')" role="button" tabindex="0" aria-label="Open Terminal">
+          <div class="action-icon">💻</div>
+          <div class="action-label">Terminal</div>
+          <div class="action-cmd">open cmd</div>
+        </div>
+        <div class="action-card" onclick="runAction('open file explorer')" role="button" tabindex="0" aria-label="Open File Explorer">
+          <div class="action-icon">📁</div>
+          <div class="action-label">Files</div>
+          <div class="action-cmd">open explorer</div>
+        </div>
+        <div class="action-card" onclick="runAction('open settings')" role="button" tabindex="0" aria-label="Open Settings">
+          <div class="action-icon">⚙️</div>
+          <div class="action-label">Settings</div>
+          <div class="action-cmd">open settings</div>
+        </div>
+      </div>
+
+      <div class="section-label" style="margin-top:6px">AI Commands</div>
+      <div class="action-grid">
+        <div class="action-card" onclick="runAction('what time is it')" role="button" tabindex="0">
+          <div class="action-icon">🕐</div>
+          <div class="action-label">Current Time</div>
+          <div class="action-cmd">what time is it</div>
+        </div>
+        <div class="action-card" onclick="runAction('my profile')" role="button" tabindex="0">
+          <div class="action-icon">👤</div>
+          <div class="action-label">My Profile</div>
+          <div class="action-cmd">my profile</div>
+        </div>
+        <div class="action-card" onclick="runAction('search latest AI news')" role="button" tabindex="0">
+          <div class="action-icon">🔍</div>
+          <div class="action-label">AI News</div>
+          <div class="action-cmd">search ai news</div>
+        </div>
+        <div class="action-card" onclick="runAction('take a screenshot')" role="button" tabindex="0">
+          <div class="action-icon">📸</div>
+          <div class="action-label">Screenshot</div>
+          <div class="action-cmd">capture screen</div>
+        </div>
+        <div class="action-card" onclick="runAction('system status')" role="button" tabindex="0">
+          <div class="action-icon">📊</div>
+          <div class="action-label">System Info</div>
+          <div class="action-cmd">system status</div>
+        </div>
+        <div class="action-card" onclick="runAction('hello msa')" role="button" tabindex="0">
+          <div class="action-icon">👋</div>
+          <div class="action-label">Greet MSA</div>
+          <div class="action-cmd">hello msa</div>
+        </div>
+      </div>
+
+      <div class="section-label" style="margin-top:6px">Location</div>
+      <div class="gps-card" id="gps-card" onclick="sendGPS()" role="button" tabindex="0" aria-label="Share GPS Location">
+        <div class="gps-icon">📍</div>
+        <div class="gps-info">
+          <h4>Share My GPS Location</h4>
+          <p>Send your real-time coordinates to MSA Agent</p>
+          <div class="gps-coords" id="gps-coords">Tap to get location</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── PAGE: HISTORY ─────────────────────────────────────── -->
+    <section class="page" id="page-history" aria-label="Conversation History">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
+        <div class="section-label" style="margin:0">Recent Conversations</div>
+        <button style="background:none;border:none;color:var(--text3);font-size:0.75rem;cursor:pointer;padding:4px 8px;border-radius:8px;transition:color 0.2s" onmouseover="this.style.color='var(--cyan)'" onmouseout="this.style.color='var(--text3)'" onclick="loadHistory()" aria-label="Reload history">↻ Reload</button>
+      </div>
+      <div id="history-list"></div>
+    </section>
+
+    <!-- ── PAGE: PROFILE ─────────────────────────────────────── -->
+    <section class="page" id="page-profile" aria-label="Profile">
+
+      <div class="profile-hero glass-card" style="margin-bottom:0">
+        <div class="profile-avatar" aria-label="Profile avatar">MS</div>
+        <div class="profile-name">Md Sadique Amin</div>
+        <div class="profile-role">Software Engineer</div>
+        <div class="profile-edu">🎓 B.Tech CSE (8th Sem) — GEC Patan</div>
+        <div class="skills-wrap" aria-label="Skills">
+          <span class="skill-tag">Java</span>
+          <span class="skill-tag">Spring Boot</span>
+          <span class="skill-tag">Python</span>
+          <span class="skill-tag">AI / ML</span>
+          <span class="skill-tag">JavaScript</span>
+          <span class="skill-tag">MySQL</span>
+          <span class="skill-tag">Data Science</span>
+        </div>
+      </div>
+
+      <div class="section-label" style="margin-top:4px">Contact</div>
+      <div class="profile-info-list glass-card" style="gap:8px">
+        <div class="profile-info-row">
+          <div class="profile-info-icon">📧</div>
+          <div class="profile-info-content">
+            <div class="profile-info-label">Email</div>
+            <div class="profile-info-val">mdsadiqueamin721786@gmail.com</div>
+          </div>
+        </div>
+        <div class="profile-info-row">
+          <div class="profile-info-icon">📞</div>
+          <div class="profile-info-content">
+            <div class="profile-info-label">Phone</div>
+            <div class="profile-info-val">9318302850</div>
+          </div>
+        </div>
+        <div class="profile-info-row">
+          <div class="profile-info-icon">🎓</div>
+          <div class="profile-info-content">
+            <div class="profile-info-label">Education</div>
+            <div class="profile-info-val">Diploma — MANUU Bangalore</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-label" style="margin-top:4px">Project</div>
+      <div class="project-card glass-card">
+        <h4>🤖 Current Project</h4>
+        <p>MSA AI Agent — Offline Multi-Device AI Assistant. A voice-controlled, locally running intelligent agent with memory, decision engine, system control, and mobile integration.</p>
+      </div>
+
+      <button class="privacy-btn" onclick="openPrivacy()" aria-label="View Privacy Policy">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        View Privacy Policy &amp; Terms
+      </button>
+
+    </section>
+
+    <!-- ── PAGE: VS CODE CONSOLE ──────────────────────────────── -->
+    <section class="page" id="page-console" aria-label="Console">
+
+      <!-- VS Code-style title bar with tabs -->
+      <div class="vsc-titlebar">
+        <div class="vsc-tab">
+          <div class="vsc-tab-dot"></div>
+          OUTPUT
+        </div>
+        <div class="vsc-tab vsc-tab-inactive" onclick="showPage('chat')">TERMINAL</div>
+        <div class="vsc-titlebar-spacer"></div>
+        <div class="vsc-titlebar-actions">
+          <button class="vsc-action-btn" onclick="toggleAutoScroll()" title="Toggle auto-scroll" id="autoscroll-btn">⬇</button>
+          <button class="vsc-action-btn" onclick="toggleLogPause()" title="Pause/Resume" id="pause-btn">⏸</button>
+          <button class="vsc-action-btn" onclick="copyLogs()" title="Copy all logs">⎘</button>
+          <button class="vsc-action-btn danger" onclick="clearConsole()" title="Clear console">🗑</button>
+        </div>
+      </div>
+
+      <!-- Filter + search bar -->
+      <div class="vsc-filterbar">
+        <button class="vsc-filter-btn active-all" id="flt-all"   onclick="setFilter('ALL')">All</button>
+        <button class="vsc-filter-btn" id="flt-info"  onclick="setFilter('INFO')">Info</button>
+        <button class="vsc-filter-btn" id="flt-warn"  onclick="setFilter('WARNING')">Warn</button>
+        <button class="vsc-filter-btn" id="flt-error" onclick="setFilter('ERROR')">Error</button>
+        <button class="vsc-filter-btn" id="flt-debug" onclick="setFilter('DEBUG')">Debug</button>
+        <div class="vsc-filter-spacer"></div>
+        <input class="vsc-search" id="vsc-search" type="text" placeholder="Filter logs…" oninput="applyFilters()" autocomplete="off" spellcheck="false">
+        <span class="vsc-log-count" id="vsc-count">0 lines</span>
+      </div>
+
+      <!-- Log output -->
+      <div class="vsc-output" id="vsc-output">
+        <div class="vsc-empty" id="vsc-empty">
+          <div class="vsc-empty-icon">📟</div>
+          Waiting for logs…<br>
+          <span style="color:#2a2a2a;font-size:0.65rem;margin-top:4px">MSA server must be running</span>
+        </div>
+      </div>
+
+      <!-- Terminal-style command input -->
+      <div class="vsc-terminal-bar">
+        <span class="vsc-prompt">msa@agent:~$</span>
+        <input class="vsc-cmd-input" id="vsc-cmd" placeholder="Run command via MSA…" autocomplete="off" spellcheck="false">
+        <button class="vsc-run-btn" onclick="runConsoleCmd()" aria-label="Run">▶ Run</button>
+      </div>
+
+      <!-- VS Code status bar -->
+      <div class="vsc-statusbar">
+        <div class="vsc-sb-item">
+          <div class="vsc-sb-dot live" id="vsc-live-dot"></div>
+          <span id="vsc-live-label">LIVE</span>
+        </div>
+        <div class="vsc-sb-item" id="vsc-err-count">⚠ 0 errors</div>
+        <div class="vsc-sb-spacer"></div>
+        <div class="vsc-sb-item">MSA Agent · Flask-SocketIO</div>
+        <div class="vsc-sb-item">UTF-8</div>
+        <div class="vsc-sb-item">Python</div>
+      </div>
+
+    </section>
+
+  </main><!-- end page-container -->
+
+  <!-- BOTTOM NAV (mobile/tablet) -->
+  <nav class="bottom-nav" role="navigation" aria-label="Main navigation">
+    <button class="nav-btn active" id="bnav-chat" onclick="showPage('chat')" aria-label="Chat">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+      Chat
+    </button>
+    <button class="nav-btn" id="bnav-status" onclick="showPage('status')" aria-label="Status">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+      Status
+    </button>
+    <button class="nav-btn" id="bnav-actions" onclick="showPage('actions')" aria-label="Quick Actions">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      Actions
+    </button>
+    <button class="nav-btn" id="bnav-history" onclick="showPage('history')" aria-label="History">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      History
+    </button>
+    <button class="nav-btn" id="bnav-console" onclick="showPage('console')" aria-label="Console">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      Console
+    </button>
+  </nav>
+
+</div><!-- end app-shell -->
+
+<!-- ─── Privacy Policy Modal ───────────────────────────────────── -->
+<div class="modal-overlay" id="privacy-modal" role="dialog" aria-modal="true" aria-label="Privacy Policy" onclick="if(event.target===this)closePrivacy()">
+  <div class="modal-sheet">
+    <div class="modal-handle" aria-hidden="true"></div>
+    <div class="modal-header">
+      <div class="modal-title">🔐 Privacy Policy &amp; Terms</div>
+      <button class="modal-close-btn" onclick="closePrivacy()" aria-label="Close privacy policy">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="policy-badge">
+        <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+        100% Local · No Cloud · No Tracking
+      </div>
+
+      <div class="policy-section">
+        <h3>📖 Overview</h3>
+        <p>MSA AI Agent is a private, offline-first AI assistant developed by Md Sadique Amin. This application runs entirely on your local network and does not transmit your data to any external server, cloud provider, or third-party service.</p>
+      </div>
+
+      <div class="policy-section">
+        <h3>🔒 Data Collection</h3>
+        <p>MSA Agent collects and stores the following data <strong>locally on your device only</strong>:</p>
+        <ul>
+          <li>Voice commands and text inputs (encrypted in local SQLite database)</li>
+          <li>Agent responses and action history</li>
+          <li>GPS coordinates when you choose to share them via the Location feature</li>
+          <li>System resource metrics (CPU, RAM, Disk) for display purposes only</li>
+        </ul>
+      </div>
+
+      <div class="policy-section">
+        <h3>🛡 Data Security</h3>
+        <ul>
+          <li>All conversation history is encrypted using Fernet symmetric encryption</li>
+          <li>Encryption keys are stored locally in your device's file system</li>
+          <li>API key authentication protects all HTTP endpoints</li>
+          <li>The server only listens on your local network (0.0.0.0:5000)</li>
+          <li>No data is ever sent to external servers</li>
+        </ul>
+      </div>
+
+      <div class="policy-section">
+        <h3>🌐 Internet Usage</h3>
+        <p>MSA Agent may make outbound internet requests only when:</p>
+        <ul>
+          <li>You explicitly request a web search (DuckDuckGo)</li>
+          <li>The UI loads fonts from Google Fonts (one-time)</li>
+          <li>The UI loads Socket.IO library from CDN (one-time)</li>
+        </ul>
+        <p>These requests do not include any personal data.</p>
+      </div>
+
+      <div class="policy-section">
+        <h3>🎙 Voice &amp; Microphone</h3>
+        <p>The voice feature uses your device's microphone only when you activate it by pressing the mic button. Voice data is processed locally using the Vosk speech recognition model. No audio is transmitted externally.</p>
+      </div>
+
+      <div class="policy-section">
+        <h3>📍 Location</h3>
+        <p>Location access is only requested when you explicitly tap "Share GPS Location." Coordinates are sent only to your local MSA Agent server and are not stored persistently or shared.</p>
+      </div>
+
+      <div class="policy-section">
+        <h3>📱 Mobile Control</h3>
+        <p>The ADB (Android Debug Bridge) mobile control feature connects to your Android device on your local network only. No commands are relayed to external services.</p>
+      </div>
+
+      <div class="policy-section">
+        <h3>📜 Terms of Use</h3>
+        <ul>
+          <li>MSA Agent is for personal use only by Md Sadique Amin</li>
+          <li>Do not expose the server port (5000) to the public internet</li>
+          <li>The default API key should be changed in production use</li>
+          <li>MSA Agent is provided as-is with no warranty</li>
+          <li>System control commands (shutdown, restart) execute immediately</li>
+        </ul>
+      </div>
+
+      <div class="policy-section">
+        <h3>📞 Contact</h3>
+        <p>Developer: <strong>Md Sadique Amin</strong><br>
+        Email: mdsadiqueamin721786@gmail.com<br>
+        Project: MSA AI Agent — Offline Multi-Device AI Assistant</p>
+      </div>
+
+      <p style="font-size:0.7rem;color:var(--text3);text-align:center;margin-top:8px">
+        Last updated: June 2026 · Version 2.0
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+// ── PARTICLE CANVAS ──────────────────────────────────────────────
+(function(){
+  const canvas = document.getElementById('particle-canvas');
+  const ctx    = canvas.getContext('2d');
+  let particles = [];
+  const N = window.innerWidth > 768 ? 70 : 40;
+
+  function resize(){
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  for(let i = 0; i < N; i++) particles.push({
+    x: Math.random() * window.innerWidth,
+    y: Math.random() * window.innerHeight,
+    r: Math.random() * 1.5 + 0.5,
+    vx: (Math.random() - 0.5) * 0.3,
+    vy: (Math.random() - 0.5) * 0.3,
+    opacity: Math.random() * 0.5 + 0.1
+  });
+
+  function draw(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(0, 212, 255, ${p.opacity})`;
+      ctx.fill();
+      p.x += p.vx; p.y += p.vy;
+      if(p.x < 0)p.x=canvas.width; if(p.x>canvas.width)p.x=0;
+      if(p.y < 0)p.y=canvas.height; if(p.y>canvas.height)p.y=0;
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ── CLOCK ────────────────────────────────────────────────────────
+document.getElementById('welcome-time').textContent = new Date().toLocaleTimeString('en-IN');
+function updateClock(){
+  const el = document.getElementById('clock-display');
+  if(el) el.textContent = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(updateClock, 1000); updateClock();
+
+// ── PAGE NAVIGATION ─────────────────────────────────────────────
+let currentPage = 'chat';
+function showPage(name){
+  // hide all
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  // deactivate nav btns
+  document.querySelectorAll('.nav-btn, .side-nav-btn').forEach(b => b.classList.remove('active'));
+  // show target
+  document.getElementById('page-' + name).classList.add('active');
+  // activate nav btn
+  const bn = document.getElementById('bnav-' + name);
+  if(bn) bn.classList.add('active');
+  const sn = document.getElementById('snav-' + name);
+  if(sn) sn.classList.add('active');
+  currentPage = name;
+  // lazy load
+  if(name === 'status')  refreshAll();
+  if(name === 'history') loadHistory();
+  if(name === 'console') startConsolePoll();
+  else                   stopConsolePoll();
+  currentPage = name;
+}
+
+// ── TOAST ────────────────────────────────────────────────────────
+function toast(msg, type='info'){
+  const icons = { success:'✅', error:'❌', info:'ℹ️' };
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.innerHTML = `<span>${icons[type]||'💬'}</span><span>${msg}</span>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => { el.style.opacity='0'; el.style.transition='opacity 0.4s'; setTimeout(()=>el.remove(), 400); }, 3200);
+}
+
+// ── SOCKET.IO CONNECTION ─────────────────────────────────────────
+let socket;
+let chatCount = 0;
+
+function initSocket(){
+  try {
+    socket = io({ transports: ['websocket', 'polling'], reconnectionAttempts: 10 });
+    socket.on('connect',    () => setOnline(true));
+    socket.on('disconnect', () => setOnline(false));
+    socket.on('connected',  d  => addMsg(d.message, 'agent'));
+    socket.on('response',   d  => {
+      removeTyping();
+      const action = d.action && d.action !== 'none' ? d.action : null;
+      addMsg(d.text || 'No response.', 'agent', action);
+      if(d.transcript) setTranscript('Heard: "' + d.transcript + '"');
+      tts(d.text || '');
+      chatCount++;
+    });
+    socket.on('connect_error', () => setOnline(false));
+  } catch(e) {
+    setOnline(false);
+    console.warn('SocketIO unavailable, using REST fallback:', e);
+  }
+}
+
+function setOnline(ok){
+  const pill  = document.getElementById('online-pill');
+  const dot   = document.getElementById('online-dot');
+  const label = document.getElementById('online-label');
+  if(ok){
+    pill.classList.remove('offline'); dot.classList.add('pulsing');
+    label.textContent = 'Agent Online';
+  } else {
+    pill.classList.add('offline'); dot.classList.remove('pulsing');
+    label.textContent = 'Disconnected';
+  }
+}
+
+// ── CHAT MESSAGES ────────────────────────────────────────────────
+function addMsg(text, role, action){
+  const area = document.getElementById('chat-messages');
+  const wrap = document.createElement('div');
+  wrap.className = 'chat-msg ' + role;
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.textContent = text;
+
+  if(action){
+    const badge = document.createElement('div');
+    badge.className = 'msg-action-badge';
+    badge.textContent = '⚡ ' + action;
+    bubble.appendChild(badge);
+  }
+
+  const time = document.createElement('div');
+  time.className = 'msg-time';
+  time.textContent = new Date().toLocaleTimeString('en-IN');
+
+  wrap.appendChild(bubble);
+  wrap.appendChild(time);
+  area.appendChild(wrap);
+  area.scrollTop = area.scrollHeight;
+}
+
+function showTyping(){
+  removeTyping();
+  const area = document.getElementById('chat-messages');
+  const t = document.createElement('div');
+  t.className = 'typing-indicator'; t.id = 'typing-ind';
+  t.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+  area.appendChild(t); area.scrollTop = area.scrollHeight;
+}
+function removeTyping(){ const t=document.getElementById('typing-ind'); if(t) t.remove(); }
+
+function setTranscript(txt){
+  const el = document.getElementById('transcript-bar');
+  if(el){ el.textContent = txt; }
+}
+
+// ── SEND COMMAND ─────────────────────────────────────────────────
+const API_KEY = 'MSA_SECURE_123';
+
+async function sendCmd(command){
+  if(!command.trim()) return;
+  addMsg(command, 'user');
+  setTranscript('Processing: "' + command + '"');
+  showTyping();
+
+  if(socket && socket.connected){
+    socket.emit('text_command', { command });
+    return;
+  }
+
+  // REST fallback
+  try {
+    const r = await fetch('/api/execute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+      body: JSON.stringify({ command })
+    });
+    const d = await r.json();
+    removeTyping();
+    addMsg(d.response || 'No response.', 'agent', d.action !== 'none' ? d.action : null);
+    tts(d.response || '');
+    setTranscript('Ready.');
+    chatCount++;
+  } catch(e) {
+    removeTyping();
+    addMsg('Connection error. Is the MSA server running on port 5000?', 'agent');
+    setTranscript('Error — server not reachable.');
+    toast('Server unreachable', 'error');
+  }
+}
+
+function sendText(){
+  const inp = document.getElementById('cmd-input');
+  const cmd = inp.value.trim();
+  if(!cmd) return;
+  inp.value = '';
+  sendCmd(cmd);
+}
+
+function runAction(cmd){
+  showPage('chat');
+  setTimeout(() => sendCmd(cmd), 150);
+}
+
+document.getElementById('cmd-input').addEventListener('keydown', e => {
+  if(e.key === 'Enter') sendText();
+});
+
+// ── VOICE ────────────────────────────────────────────────────────
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+let isListening = false;
+
+if(SpeechRec){
+  recognition = new SpeechRec();
+  recognition.continuous = false;
+  recognition.lang = 'en-US';
+  recognition.interimResults = true;
+
+  recognition.onresult = e => {
+    let interim = ''; let final = '';
+    for(let i = e.resultIndex; i < e.results.length; i++){
+      const t = e.results[i][0].transcript;
+      if(e.results[i].isFinal) final += t;
+      else interim += t;
+    }
+    if(interim) setTranscript('🎤 ' + interim);
+    if(final){
+      setTranscript('You said: "' + final + '"');
+      sendCmd(final);
+    }
+  };
+  recognition.onend = () => { isListening = false; setListeningUI(false); };
+  recognition.onerror = e => {
+    setTranscript('Mic error: ' + e.error);
+    isListening = false; setListeningUI(false);
+    toast('Mic error: ' + e.error, 'error');
+  };
+}
+
+function toggleVoice(){
+  if(!recognition){ toast('Voice not supported. Use Chrome/Edge.', 'error'); return; }
+  if(isListening){ recognition.stop(); isListening=false; setListeningUI(false); }
+  else { recognition.start(); isListening=true; setListeningUI(true); setTranscript('🎤 Listening…'); }
+}
+
+function setListeningUI(on){
+  const btn  = document.getElementById('mic-btn');
+  const core = document.getElementById('core-rings');
+  const icon = document.getElementById('core-icon');
+  const stat = document.getElementById('c-status');
+
+  btn.classList.toggle('recording', on);
+  btn.innerHTML = on
+    ? '<svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>'
+    : '<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>';
+  core.classList.toggle('listening', on);
+  icon.textContent = on ? '👂' : '🤖';
+  stat.textContent = on ? 'LISTENING…' : 'MSA ONLINE';
+  stat.style.color = on ? 'var(--red)' : 'var(--cyan)';
+}
+
+// ── TTS ──────────────────────────────────────────────────────────
+function tts(text){
+  if(!('speechSynthesis' in window) || !text) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang  = 'en-US'; u.rate = 1; u.pitch = 0.9;
+  const voices = window.speechSynthesis.getVoices();
+  const male = voices.find(v => v.name.includes('David') || v.name.includes('Male') || v.name.includes('Google UK'));
+  if(male) u.voice = male;
+  window.speechSynthesis.speak(u);
+}
+window.speechSynthesis && (window.speechSynthesis.onvoiceschanged = () => {});
+
+// ── STATUS & SYSTEM INFO ─────────────────────────────────────────
+async function refreshStatus(){
+  try {
+    const d = await fetch('/api/status').then(r => r.json());
+    const s = d.subsystems || {};
+    function setBadge(id, text){
+      const el = document.getElementById(id); if(!el) return;
+      el.textContent = text;
+      el.className = 'badge ' + (text && text.startsWith('ok') ? 'ok' : 'warn');
+    }
+    setBadge('sub-stt',    s.stt || '—');
+    setBadge('sub-engine', s.decision_engine || '—');
+    setBadge('sub-mem',    s.memory || '—');
+    setBadge('sub-sec',    s.security || '—');
+    setBadge('sub-mobile', 'active');
+    const ms = d.memory_stats || {};
+    const mtEl = document.getElementById('mem-total');
+    const mlEl = document.getElementById('mem-last');
+    if(mtEl) mtEl.textContent = ms.total_conversations ?? '0';
+    if(mlEl) mlEl.textContent = ms.last_interaction ? new Date(ms.last_interaction).toLocaleString('en-IN') : 'N/A';
+    const cnvEl = document.getElementById('inf-convs');
+    if(cnvEl) cnvEl.textContent = ms.total_conversations ?? '0';
+  } catch(e) {
+    ['sub-stt','sub-engine','sub-mem','sub-sec','sub-mobile'].forEach(id => {
+      const el = document.getElementById(id);
+      if(el){ el.textContent = 'offline'; el.className = 'badge err'; }
+    });
+  }
+}
+
+async function refreshSysInfo(){
+  try {
+    const d = await fetch('/api/system_info').then(r => r.json());
+    if(d.status !== 'ok') return;
+    const i = d.data;
+    function setGauge(type, pct, valId, label){
+      const bar = document.getElementById(type + '-bar');
+      const val = document.getElementById(valId);
+      if(bar) bar.style.width = Math.min(pct, 100) + '%';
+      if(val) val.textContent = label;
+    }
+    setGauge('cpu',  i.cpu_percent,  'cpu-val',  i.cpu_percent.toFixed(1) + '%');
+    setGauge('ram',  i.ram_percent,  'ram-val',  `${i.ram_used_gb} / ${i.ram_total_gb} GB`);
+    setGauge('disk', i.disk_percent, 'disk-val', `${i.disk_used_gb} / ${i.disk_total_gb} GB`);
+    const pEl = document.getElementById('inf-platform');
+    const hEl = document.getElementById('inf-host');
+    const uEl = document.getElementById('inf-uptime');
+    if(pEl) pEl.textContent = i.platform || '—';
+    if(hEl) hEl.textContent = i.hostname || '—';
+    if(uEl) uEl.textContent = i.uptime_human || '—';
+  } catch(e) { /* server offline */ }
+}
+
+async function refreshAll(){
+  const btn = document.getElementById('refresh-btn');
+  if(btn){ btn.textContent = '⟳ Refreshing…'; btn.disabled = true; }
+  await Promise.all([refreshStatus(), refreshSysInfo()]);
+  if(btn){ btn.textContent = '↻ Refresh All Systems'; btn.disabled = false; }
+  toast('Systems refreshed', 'success');
+}
+
+// ── HISTORY ──────────────────────────────────────────────────────
+async function loadHistory(){
+  const list = document.getElementById('history-list');
+  if(!list) return;
+  list.innerHTML = '<div class="empty-state"><div class="empty-icon">⏳</div>Loading…</div>';
+  try {
+    const d = await fetch('/api/history?limit=20').then(r => r.json());
+    list.innerHTML = '';
+    const items = d.history || [];
+    if(!items.length){
+      list.innerHTML = '<div class="empty-state"><div class="empty-icon">💬</div>No conversation history yet.<br>Start chatting with MSA!</div>';
+      return;
+    }
+    items.forEach(h => {
+      const item = document.createElement('div');
+      item.className = 'history-item';
+      item.innerHTML = `
+        <div class="hist-you">You: <span>${esc(h.user || '').substring(0,80)}</span></div>
+        <div class="hist-msa">MSA: <span>${esc(h.assistant || '').substring(0,100)}</span></div>
+        <div class="hist-time">${h.timestamp ? new Date(h.timestamp).toLocaleString('en-IN') : ''}</div>
+      `;
+      item.onclick = () => {
+        document.getElementById('cmd-input').value = h.user || '';
+        showPage('chat');
+      };
+      list.appendChild(item);
+    });
+  } catch(e) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div>Could not load history.<br>Check server connection.</div>';
+  }
+}
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── GPS LOCATION ─────────────────────────────────────────────────
+async function sendGPS(){
+  if(!navigator.geolocation){ toast('Geolocation not supported', 'error'); return; }
+  const card = document.getElementById('gps-card');
+  const coords = document.getElementById('gps-coords');
+  if(coords) coords.textContent = 'Getting location…';
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const lat = pos.coords.latitude.toFixed(5);
+    const lon = pos.coords.longitude.toFixed(5);
+    if(coords) coords.textContent = `📍 ${lat}, ${lon}`;
+    try {
+      const d = await fetch('/api/location', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, notes: 'MSA Mobile App' })
+      }).then(r => r.json());
+      toast('GPS shared: ' + lat + ', ' + lon, 'success');
+      if(currentPage === 'actions') {} // stay
+      runAction('what is my current location');
+    } catch(e) { toast('GPS share failed', 'error'); }
+  }, err => {
+    if(coords) coords.textContent = 'Permission denied';
+    toast('GPS error: ' + err.message, 'error');
+  });
+}
+
+// ── PRIVACY MODAL ────────────────────────────────────────────────
+function openPrivacy(){
+  document.getElementById('privacy-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closePrivacy(){
+  document.getElementById('privacy-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ══════════════════════════════════════════════════════════════
+// VS CODE CONSOLE ENGINE
+// ══════════════════════════════════════════════════════════════
+let vscAllLogs     = [];   // raw log objects from server
+let vscFilter      = 'ALL';
+let vscAutoScroll  = true;
+let vscPaused      = false;
+let vscLineCount   = 0;
+let vscErrCount    = 0;
+let vscPollTimer   = null;
+let vscLastTotal   = 0;
+
+// Level → CSS class + display token
+const VSC_LEVEL = {
+  DEBUG:    { cls: 'vsc-lvl-debug',    token: 'DEBUG   ' },
+  INFO:     { cls: 'vsc-lvl-info',     token: 'INFO    ' },
+  WARNING:  { cls: 'vsc-lvl-warning',  token: 'WARNING ' },
+  ERROR:    { cls: 'vsc-lvl-error',    token: 'ERROR   ' },
+  CRITICAL: { cls: 'vsc-lvl-critical', token: 'CRITICAL' },
+};
+
+function buildLogLine(log, lineNum) {
+  const lvl  = (log.level || 'INFO').toUpperCase();
+  const meta = VSC_LEVEL[lvl] || VSC_LEVEL['INFO'];
+  const msg  = log.message || '';
+
+  // Parse [HH:MM:SS] [LEVEL] name — message
+  const tsMatch   = msg.match(/^\[(\d{2}:\d{2}:\d{2})\]/);
+  const lvlMatch  = msg.match(/\[(\w+)\]\s+([\w.]+)\s+—\s+(.*)$/);
+
+  let ts   = tsMatch   ? tsMatch[1]   : new Date(log.time * 1000).toLocaleTimeString('en-IN', {hour12:false});
+  let name = lvlMatch  ? lvlMatch[2]  : (log.name || 'msa');
+  let text = lvlMatch  ? lvlMatch[3]  : msg.replace(/^\[.*?\]\s*/g,'').replace(/\[\w+\]\s*/g,'');
+
+  // Line wrapper
+  const lineDiv = document.createElement('div');
+  lineDiv.className = 'vsc-line' + (lvl === 'ERROR' ? ' vsc-line-error' : lvl === 'WARNING' ? ' vsc-line-warning' : lvl === 'CRITICAL' ? ' vsc-line-critical' : '');
+  lineDiv.dataset.level = lvl;
+  lineDiv.dataset.text  = msg.toLowerCase();
+
+  // Line number
+  const lnSpan = document.createElement('span');
+  lnSpan.className = 'vsc-ln';
+  lnSpan.textContent = lineNum;
+
+  // Text area
+  const textSpan = document.createElement('span');
+  textSpan.className = 'vsc-text';
+  textSpan.innerHTML =
+    `<span class="vsc-ts">[${ts}]</span> ` +
+    `<span class="vsc-punct">[</span><span class="${meta.cls}">${meta.token.trim()}</span><span class="vsc-punct">]</span> ` +
+    `<span class="vsc-name">${esc(name)}</span>` +
+    `<span class="vsc-punct"> — </span>` +
+    `<span class="vsc-msg">${esc(text)}</span>`;
+
+  lineDiv.appendChild(lnSpan);
+  lineDiv.appendChild(textSpan);
+  return lineDiv;
+}
+
+async function fetchLogs() {
+  if(vscPaused) return;
+  try {
+    const d = await fetch('/api/logs?limit=200').then(r => r.json());
+    if(d.status !== 'ok') return;
+
+    if(d.total === vscLastTotal) return;  // no new logs
+    vscLastTotal = d.total;
+    vscAllLogs   = d.logs || [];
+    vscErrCount  = vscAllLogs.filter(l => l.level === 'ERROR' || l.level === 'CRITICAL').length;
+
+    renderLogs();
+    updateVscStatus();
+  } catch(e) {
+    // server offline — update dot
+    const dot = document.getElementById('vsc-live-dot');
+    if(dot) { dot.classList.remove('live'); dot.classList.add('paused'); }
+    const lbl = document.getElementById('vsc-live-label');
+    if(lbl) lbl.textContent = 'OFFLINE';
+  }
+}
+
+function renderLogs() {
+  const output   = document.getElementById('vsc-output');
+  const empty    = document.getElementById('vsc-empty');
+  const search   = (document.getElementById('vsc-search')?.value || '').toLowerCase();
+  const filtered = vscAllLogs.filter(l => {
+    const lvl = (l.level || '').toUpperCase();
+    const matchLevel  = vscFilter === 'ALL' || lvl === vscFilter;
+    const matchSearch = !search || (l.message || '').toLowerCase().includes(search);
+    return matchLevel && matchSearch;
+  });
+
+  if(!filtered.length) {
+    output.innerHTML = '';
+    if(empty) { empty.style.display = 'flex'; output.appendChild(empty); }
+    document.getElementById('vsc-count').textContent = '0 lines';
+    vscLineCount = 0;
+    return;
+  }
+  if(empty) empty.style.display = 'none';
+
+  output.innerHTML = '';
+  filtered.forEach((log, i) => {
+    const lineEl = buildLogLine(log, i + 1);
+    if(search) {
+      // highlight search term in text
+      const textSpan = lineEl.querySelector('.vsc-msg');
+      if(textSpan) {
+        textSpan.innerHTML = textSpan.innerHTML.replace(
+          new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'gi'),
+          m => `<span class="vsc-highlight">${m}</span>`
+        );
+      }
+    }
+    output.appendChild(lineEl);
+  });
+
+  vscLineCount = filtered.length;
+  document.getElementById('vsc-count').textContent = `${vscLineCount} line${vscLineCount !== 1 ? 's' : ''}`;
+
+  if(vscAutoScroll) output.scrollTop = output.scrollHeight;
+}
+
+function applyFilters() { renderLogs(); }
+
+function setFilter(level) {
+  vscFilter = level;
+  // reset buttons
+  ['flt-all','flt-info','flt-warn','flt-error','flt-debug'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.className = 'vsc-filter-btn';
+  });
+  const map = { ALL:'flt-all', INFO:'flt-info', WARNING:'flt-warn', ERROR:'flt-error', DEBUG:'flt-debug' };
+  const activeMap = { ALL:'active-all', INFO:'active-info', WARNING:'active-warn', ERROR:'active-error', DEBUG:'active-debug' };
+  const btn = document.getElementById(map[level]);
+  if(btn) btn.className = 'vsc-filter-btn ' + (activeMap[level] || 'active-all');
+  renderLogs();
+}
+
+function clearConsole() {
+  vscAllLogs   = [];
+  vscLastTotal = -1;
+  vscErrCount  = 0;
+  renderLogs();
+  updateVscStatus();
+  toast('Console cleared', 'info');
+}
+
+function toggleAutoScroll() {
+  vscAutoScroll = !vscAutoScroll;
+  const btn = document.getElementById('autoscroll-btn');
+  if(btn) { btn.style.color = vscAutoScroll ? '#4fc1ff' : '#858585'; }
+  toast(vscAutoScroll ? 'Auto-scroll ON' : 'Auto-scroll OFF', 'info');
+}
+
+function toggleLogPause() {
+  vscPaused = !vscPaused;
+  const btn = document.getElementById('pause-btn');
+  const dot = document.getElementById('vsc-live-dot');
+  const lbl = document.getElementById('vsc-live-label');
+  if(btn) btn.textContent = vscPaused ? '▶' : '⏸';
+  if(dot) { dot.classList.toggle('live', !vscPaused); dot.classList.toggle('paused', vscPaused); }
+  if(lbl) lbl.textContent = vscPaused ? 'PAUSED' : 'LIVE';
+  toast(vscPaused ? 'Log stream paused' : 'Log stream resumed', 'info');
+}
+
+function copyLogs() {
+  const text = vscAllLogs.map(l => l.message || '').join('\n');
+  navigator.clipboard?.writeText(text).then(() => toast('Logs copied to clipboard', 'success'));
+}
+
+function updateVscStatus() {
+  const errEl = document.getElementById('vsc-err-count');
+  if(errEl) errEl.textContent = (vscErrCount > 0 ? '⚠ ' : '✓ ') + vscErrCount + ' error' + (vscErrCount !== 1 ? 's' : '');
+  const dot = document.getElementById('vsc-live-dot');
+  const lbl = document.getElementById('vsc-live-label');
+  if(dot && !vscPaused) { dot.classList.add('live'); }
+  if(lbl && !vscPaused) lbl.textContent = 'LIVE';
+}
+
+function runConsoleCmd() {
+  const inp = document.getElementById('vsc-cmd');
+  const cmd = inp ? inp.value.trim() : '';
+  if(!cmd) return;
+  inp.value = '';
+  // Log it locally as a terminal entry
+  const fakeLog = {
+    level: 'INFO',
+    name: 'user.console',
+    message: `[${new Date().toLocaleTimeString('en-IN',{hour12:false})}] [INFO    ] user.console — > ${cmd}`,
+    time: Date.now() / 1000
+  };
+  vscAllLogs.push(fakeLog);
+  vscLastTotal = vscAllLogs.length;
+  renderLogs();
+  // Also send to agent
+  showPage('chat');
+  setTimeout(() => sendCmd(cmd), 100);
+}
+
+// Console terminal Enter key
+document.addEventListener('DOMContentLoaded', () => {
+  const vscInput = document.getElementById('vsc-cmd');
+  if(vscInput) vscInput.addEventListener('keydown', e => { if(e.key === 'Enter') runConsoleCmd(); });
+});
+
+// Start polling when console page is visible
+function startConsolePoll()  { if(!vscPollTimer) vscPollTimer = setInterval(fetchLogs, 2000); fetchLogs(); }
+function stopConsolePoll()   { if(vscPollTimer) { clearInterval(vscPollTimer); vscPollTimer = null; } }
+
+// ── INIT ─────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  initSocket();
+  refreshStatus();
+  refreshSysInfo();
+
+  // Greet
+  setTimeout(() => {
+    tts('Hello Sadique, MSA is online and ready.');
+  }, 1000);
+
+  // Auto-refresh
+  setInterval(refreshSysInfo,  8000);
+  setInterval(refreshStatus,  20000);
+});
+
+// Handle Enter key on action cards
+document.querySelectorAll('.action-card').forEach(card => {
+  card.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' ') card.click(); });
+});
+</script>
+</body>
+</html>

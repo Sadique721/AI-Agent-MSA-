@@ -64,6 +64,8 @@ _FALLBACK_RESPONSES = {
     "internet_search": lambda kw: (f"Searching for '{' '.join(kw)}' on the web.", {"query": " ".join(kw)}),
     "shutdown":        lambda kw: ("Shutting down the system. Goodbye!", {}),
     "restart":         lambda kw: ("Restarting the system now.", {}),
+    "get_profile":     lambda kw: ("Fetching your profile information.", {}),
+    "get_time":        lambda kw: ("Checking the current time for you.", {}),
     "mobile_make_call":lambda kw: (f"Calling {kw[0] if kw else 'contact'}.", {"number": kw[0] if kw else ""}),
     "mobile_set_alarm":lambda kw: ("Setting alarm as requested.", {"time": " ".join(kw)}),
     "mobile_open_app": lambda kw: (f"Opening {kw[0] if kw else 'app'} on mobile.", {"package": kw[0] if kw else ""}),

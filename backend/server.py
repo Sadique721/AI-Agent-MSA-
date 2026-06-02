@@ -57,6 +57,7 @@ from backend.decision_engine import DecisionEngine   # noqa: E402
 from memory.memory import Memory                     # noqa: E402
 from backend.security import Security                # noqa: E402
 from backend.system_monitor import SystemMonitor     # noqa: E402
+from agent.AgentService import AgentService          # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Flask App & SocketIO
@@ -87,15 +88,16 @@ _stt:     STT           = None
 _engine:  DecisionEngine= None
 _mem:     Memory        = None
 _sec:     Security      = None
+_agent_service: AgentService = None
 _monitor: SystemMonitor = SystemMonitor()
 
 
 def _get_components():
     """Thread-safe lazy initialisation of core components."""
-    global _stt, _engine, _mem, _sec
+    global _stt, _engine, _mem, _sec, _agent_service
 
     if _stt is None:
-        logger.info("Initialising STT, DecisionEngine, Security, Memory …")
+        logger.info("Initialising STT, DecisionEngine, Security, Memory, AgentService …")
 
         try:
             _sec = Security()
@@ -120,6 +122,13 @@ def _get_components():
             logger.error("Memory init failed: %s", e)
             _mem = None
 
+        if _engine and _mem:
+            try:
+                _agent_service = AgentService(_engine, _mem)
+            except Exception as e:
+                logger.error("AgentService init failed: %s", e)
+                _agent_service = None
+
     return _stt, _engine, _mem
 
 
@@ -133,33 +142,89 @@ def serve_ui():
     return send_from_directory(os.path.join(PROJECT_ROOT, "ui"), "index.html")
 
 
+@app.route("/voice")
+@app.route("/msa")
+def serve_voice():
+    """Serve the MSA voice UI."""
+    return send_from_directory(os.path.join(PROJECT_ROOT, "ui"), "msa_voice.html")
+
+
+@app.route("/app")
+@app.route("/mobile")
+def serve_mobile_app():
+    """Serve the MSA Mobile App (responsive, works on phone + laptop)."""
+    return send_from_directory(os.path.join(PROJECT_ROOT, "ui"), "mobile_app.html")
+
+
+# ---------------------------------------------------------------------------
+# GET /api/logs  — last N log lines for the VS Code-style console
+# ---------------------------------------------------------------------------
+import io as _io, collections as _col
+
+_log_buffer: _col.deque = _col.deque(maxlen=500)   # circular in-memory log
+
+class _DequeHandler(logging.Handler):
+    """Push every log record into the in-memory deque."""
+    def emit(self, record):
+        _log_buffer.append({
+            "level":   record.levelname,
+            "name":    record.name,
+            "message": self.format(record),
+            "time":    record.created,
+        })
+
+# Attach to root logger once
+_dq_handler = _DequeHandler()
+_dq_handler.setFormatter(logging.Formatter(
+    "[%(asctime)s] [%(levelname)s] %(name)s — %(message)s",
+    datefmt="%H:%M:%S"
+))
+logging.getLogger().addHandler(_dq_handler)
+
+
+@app.route("/api/logs", methods=["GET"])
+def api_logs():
+    """Return the last N log lines for the VS Code-style in-app console."""
+    try:
+        limit = int(request.args.get("limit", 100))
+        logs  = list(_log_buffer)[-limit:]
+        return jsonify({"status": "ok", "logs": logs, "total": len(_log_buffer)})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 # ---------------------------------------------------------------------------
 # POST /api/execute
 # ---------------------------------------------------------------------------
 @app.route("/api/execute", methods=["POST"])
 def api_execute():
-    """Text command → AI decision → JSON response."""
+    """Text command → AI decision → Action execution → JSON response."""
     try:
         data    = request.get_json(force=True, silent=True) or {}
         command = data.get("command", "").strip()
         if not command:
             return jsonify({"status": "error", "message": "No command provided"}), 400
 
-        _, engine, mem = _get_components()
+        _get_components()
 
-        context = mem.get_recent_context() if mem else []
-        if engine:
-            decision = engine.process_command(command, context)
+        if _agent_service:
+            result = _agent_service.process_input(command)
+            return jsonify(result)
+
+        # Fallback if AgentService is not available
+        context = _mem.get_recent_context() if _mem else []
+        if _engine:
+            decision = _engine.process_command(command, context)
         else:
             decision = {"response": f"MSA received: {command}", "action": "none", "parameters": {}}
 
-        if mem:
+        if _mem:
             try:
-                mem.add_conversation(command, decision["response"], decision["action"])
+                _mem.add_conversation(command, decision["response"], decision["action"])
             except Exception as e:
                 logger.warning("Memory write error: %s", e)
 
-        logger.info("execute — cmd=%r action=%s", command, decision.get("action"))
+        logger.info("execute (fallback) — cmd=%r action=%s", command, decision.get("action"))
         return jsonify({
             "status":     "success",
             "response":   decision.get("response", ""),
@@ -214,12 +279,17 @@ def api_location():
 def api_history():
     """Return last N decrypted conversations."""
     try:
-        _, _, mem = _get_components()
-        if not mem:
+        _get_components()
+        limit = int(request.args.get("limit", 10))
+
+        if _agent_service:
+            history = _agent_service.get_history(limit=limit)
+            return jsonify({"status": "ok", "history": history})
+
+        if not _mem:
             return jsonify({"status": "ok", "history": []})
 
-        limit   = int(request.args.get("limit", 10))
-        history = mem.get_recent_context(limit=limit)
+        history = _mem.get_recent_context(limit=limit)
         return jsonify({"status": "ok", "history": history})
 
     except Exception as e:
@@ -242,7 +312,10 @@ def api_status():
     mem_ok    = mem is not None
     sec_ok    = _sec is not None
 
-    mem_stats = mem.get_stats() if mem else {}
+    if _agent_service:
+        mem_stats = _agent_service.get_memory_stats()
+    else:
+        mem_stats = mem.get_stats() if mem else {}
 
     return jsonify({
         "status": "online",
@@ -312,7 +385,7 @@ def on_disconnect():
 
 @socketio.on("audio")
 def handle_audio(data):
-    """Receives base64-encoded audio → transcribe → decide → emit response."""
+    """Receives base64-encoded audio → transcribe → decide → execute → emit response."""
     stt, engine, mem = _get_components()
 
     try:
@@ -333,6 +406,16 @@ def handle_audio(data):
         emit("response", {"text": "Could not transcribe audio.", "action": "none", "params": {}})
         return
 
+    if _agent_service:
+        result = _agent_service.process_input(text)
+        emit("response", {
+            "text":       result.get("response", ""),
+            "action":     result.get("action", "none"),
+            "params":     result.get("parameters", {}),
+            "transcript": text,
+        })
+        return
+
     context  = mem.get_recent_context() if mem else []
     decision = _run_engine(engine, text, context)
 
@@ -342,7 +425,7 @@ def handle_audio(data):
         except Exception as e:
             logger.warning("Memory write error: %s", e)
 
-    logger.info("audio — text=%r action=%s", text, decision.get("action"))
+    logger.info("audio (fallback) — text=%r action=%s", text, decision.get("action"))
     emit("response", {
         "text":       decision.get("response", ""),
         "action":     decision.get("action", "none"),
@@ -354,21 +437,31 @@ def handle_audio(data):
 @socketio.on("text_command")
 def handle_text_command(data):
     """Plain-text command from UI chat box."""
-    _, engine, mem = _get_components()
+    _get_components()
     command = data.get("command", "").strip()
     if not command:
         return
 
-    context  = mem.get_recent_context() if mem else []
-    decision = _run_engine(engine, command, context)
+    if _agent_service:
+        result = _agent_service.process_input(command)
+        emit("response", {
+            "text":       result.get("response", ""),
+            "action":     result.get("action", "none"),
+            "params":     result.get("parameters", {}),
+            "transcript": command,
+        })
+        return
 
-    if mem:
+    context  = _mem.get_recent_context() if _mem else []
+    decision = _run_engine(_engine, command, context)
+
+    if _mem:
         try:
-            mem.add_conversation(command, decision["response"], decision["action"])
+            _mem.add_conversation(command, decision["response"], decision["action"])
         except Exception as e:
             logger.warning("Memory write error: %s", e)
 
-    logger.info("text_command — cmd=%r action=%s", command, decision.get("action"))
+    logger.info("text_command (fallback) — cmd=%r action=%s", command, decision.get("action"))
     emit("response", {
         "text":       decision.get("response", ""),
         "action":     decision.get("action", "none"),
