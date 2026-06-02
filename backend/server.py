@@ -157,6 +157,48 @@ def serve_mobile_app():
 
 
 # ---------------------------------------------------------------------------
+# PWA infrastructure — manifest, service worker, icons
+# ---------------------------------------------------------------------------
+@app.route("/manifest.json")
+def serve_manifest():
+    """Serve the PWA Web App Manifest with correct MIME type."""
+    resp = send_from_directory(
+        os.path.join(PROJECT_ROOT, "ui"),
+        "manifest.json",
+        mimetype="application/manifest+json",
+    )
+    resp.headers["Cache-Control"] = "no-cache"
+    return resp
+
+
+@app.route("/sw.js")
+def serve_service_worker():
+    """Serve the Service Worker JS with root scope permission."""
+    resp = send_from_directory(
+        os.path.join(PROJECT_ROOT, "ui"),
+        "sw.js",
+        mimetype="application/javascript",
+    )
+    resp.headers["Service-Worker-Allowed"] = "/"
+    resp.headers["Cache-Control"]           = "no-cache"
+    return resp
+
+
+@app.route("/icon-192.png")
+@app.route("/icon-512.png")
+def serve_icons():
+    """Serve PWA icons (192×192 and 512×512)."""
+    filename = request.path.lstrip("/")
+    return send_from_directory(
+        os.path.join(PROJECT_ROOT, "ui"),
+        filename,
+        mimetype="image/png",
+    )
+
+
+
+
+# ---------------------------------------------------------------------------
 # GET /api/logs  — last N log lines for the VS Code-style console
 # ---------------------------------------------------------------------------
 import io as _io, collections as _col

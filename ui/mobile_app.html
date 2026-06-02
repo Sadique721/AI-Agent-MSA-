@@ -10,6 +10,11 @@
 <meta name="apple-mobile-web-app-title" content="MSA Agent">
 <meta name="description" content="MSA AI Agent — Your personal offline AI assistant by Md Sadique Amin. Voice-controlled, multi-device, intelligent.">
 <title>MSA Agent — AI Assistant</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="msapplication-TileImage" content="/icon-192.png">
+<meta name="msapplication-TileColor" content="#050b18">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <style>
@@ -902,6 +907,105 @@ body {
   font-size: 0.78rem;
 }
 .vsc-empty-icon { font-size: 2rem; margin-bottom: 8px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   PWA INSTALL BANNER
+   ═══════════════════════════════════════════════════════════════ */
+#pwa-install-banner {
+  position: fixed;
+  bottom: calc(var(--nav-h) + 16px);
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  width: calc(100% - 32px);
+  max-width: 450px;
+  background: rgba(12, 24, 52, 0.95);
+  border: 1px solid var(--border);
+  border-top-color: rgba(0, 212, 255, 0.3);
+  border-bottom-color: rgba(124, 58, 237, 0.3);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  z-index: 9999;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 20px rgba(0,212,255,0.1);
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+  opacity: 0;
+  pointer-events: none;
+}
+#pwa-install-banner.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.pwa-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: radial-gradient(circle at 35% 35%, var(--cyan), var(--purple));
+  box-shadow: 0 0 12px rgba(0,212,255,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.pwa-info {
+  flex: 1;
+}
+.pwa-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.pwa-desc {
+  font-size: 0.72rem;
+  color: var(--text2);
+  line-height: 1.3;
+}
+.pwa-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pwa-btn {
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: var(--transition);
+  text-align: center;
+  white-space: nowrap;
+}
+.pwa-btn-install {
+  background: linear-gradient(135deg, var(--cyan), var(--purple));
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(0,212,255,0.2);
+}
+.pwa-btn-install:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 12px rgba(0,212,255,0.3);
+}
+.pwa-btn-dismiss {
+  background: rgba(255,255,255,0.06);
+  color: var(--text2);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.pwa-btn-dismiss:hover {
+  background: rgba(255,255,255,0.12);
+  color: var(--text);
+}
+@media(min-width: 1024px) {
+  #pwa-install-banner {
+    bottom: 24px;
+    left: calc(50% + 110px);
+  }
+}
 </style>
 </head>
 <body>
@@ -911,6 +1015,19 @@ body {
 
 <!-- ─── Toast Container ─────────────────────────────────────────── -->
 <div id="toast-container"></div>
+
+<!-- ─── PWA Install Banner ───────────────────────────────────────── -->
+<div id="pwa-install-banner" role="dialog" aria-labelledby="pwa-title" aria-describedby="pwa-desc">
+  <div class="pwa-icon" aria-hidden="true">📱</div>
+  <div class="pwa-info">
+    <div class="pwa-title" id="pwa-title">Install MSA Agent</div>
+    <div class="pwa-desc" id="pwa-desc">Add MSA Agent to your home screen for quick offline access and control.</div>
+  </div>
+  <div class="pwa-actions">
+    <button class="pwa-btn pwa-btn-install" onclick="installPWA()" aria-label="Install MSA Agent app">Install</button>
+    <button class="pwa-btn pwa-btn-dismiss" onclick="dismissPWABanner()" aria-label="Dismiss install recommendation">Later</button>
+  </div>
+</div>
 
 <!-- ─── Desktop Side Nav (hidden on mobile) ─────────────────────── -->
 <nav id="side-nav" aria-label="Main navigation">
@@ -2085,6 +2202,59 @@ window.addEventListener('load', () => {
 document.querySelectorAll('.action-card').forEach(card => {
   card.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' ') card.click(); });
 });
+
+// ── PWA: Service Worker Registration ─────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .then(reg => {
+        console.log('[MSA] Service Worker registered. Scope:', reg.scope);
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              toast('MSA update available — refresh to apply.', 'info');
+            }
+          });
+        });
+      })
+      .catch(err => console.warn('[MSA] SW registration failed:', err));
+  });
+}
+
+// ── PWA: Install Prompt (Add to Home Screen) ─────────────────────
+let _pwaPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  _pwaPrompt = e;
+  // Show install banner
+  const banner = document.getElementById('pwa-install-banner');
+  if (banner) banner.classList.add('show');
+});
+
+window.addEventListener('appinstalled', () => {
+  const banner = document.getElementById('pwa-install-banner');
+  if (banner) banner.classList.remove('show');
+  _pwaPrompt = null;
+  toast('✅ MSA Agent installed on your device!', 'success');
+});
+
+function installPWA() {
+  if (!_pwaPrompt) {
+    toast('Open this page in Chrome on your Android device to install.', 'info');
+    return;
+  }
+  _pwaPrompt.prompt();
+  _pwaPrompt.userChoice.then(result => {
+    if (result.outcome === 'accepted') toast('Installing MSA Agent…', 'success');
+    _pwaPrompt = null;
+  });
+}
+
+function dismissPWABanner() {
+  const banner = document.getElementById('pwa-install-banner');
+  if (banner) banner.classList.remove('show');
+}
 </script>
 </body>
 </html>
