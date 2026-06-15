@@ -1,29 +1,44 @@
 """
 agent/AgentService.py
 =====================
-Core orchestration layer for the MSA Agent.
+Phase-2: Reasoning-Based Autonomous Agent orchestration layer.
 
-Pipeline:
-  user input → DecisionEngine (LLM / keyword fallback)
-             → AgentExecutor (system/mobile/web action)
-             → AgentMemory (persist turn)
-             → structured response dict
-
-This is the single entry point all server routes and the wake-word
-loop should call. It owns one AgentMemory and one AgentExecutor.
+Upgraded pipeline:
+  1. Detect & normalize language (Hinglish Engine)
+  2. Augment context via RAG semantic memory
+  3. ReasoningEngine — goal/risk/tool analysis          [PHASE-2 NEW]
+  4. Security approval check for high-risk actions      [PHASE-2 NEW]
+  5. PlannerAgent — multi-step plan generation
+  6. Validator + Auto-Replan loop (max 3 retries)       [PHASE-2 NEW]
+  7. Execute via Tool Registry
+  8. Store turn in long-term memory
+  9. Return structured response dict
 """
+
 import logging
 import os
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 
 from agent.AgentMemory import AgentMemory
 from agent.AgentExecutor import AgentExecutor
+from config import (
+    ENABLE_HINGLISH_ENGINE,
+    ENABLE_PLANNER,
+    ENABLE_RAG_MEMORY,
+    ENABLE_BROWSER_AGENT,
+    ENABLE_REASONING_ENGINE,
+    ENABLE_VALIDATOR,
+    ENABLE_AUTO_REPLAN,
+    MAX_REPLAN_RETRIES,
+    ENABLE_CODING_AGENT,
+)
 
 logger = logging.getLogger("msa.agent.service")
 
-# Try to load llama-cpp-python (optional — only if DeepSeek model exists)
+# ── Optional DeepSeek / Llama LLM ────────────────────────────────────────────
 _LLM = None
 _LLM_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models", "llm", "deepseek.gguf")
+
 
 def _load_llm():
     global _LLM
@@ -39,28 +54,287 @@ def _load_llm():
     else:
         logger.info("No LLM model found at %s. Keyword fallback only.", _LLM_PATH)
 
-_load_llm()  # Load at import time (non-blocking if model missing)
+
+_load_llm()
 
 
 class AgentService:
     """
-    Stateful orchestrator — one instance should be shared across all requests
-    (held by AgentController / server.py singletons).
+    Stateful Phase-2 orchestrator — one instance shared across all requests.
+    Manages language, memory, reasoning, planning, validation, and execution.
     """
 
     def __init__(self, decision_engine, memory):
-        """
-        Args:
-            decision_engine: backend.decision_engine.DecisionEngine instance
-            memory:          memory.memory.Memory instance
-        """
         self.engine   = decision_engine
         self.memory   = AgentMemory(memory)
         self.executor = AgentExecutor()
-        logger.info("AgentService ready.")
+
+        # ── Phase-1 subsystems ──
+        self.language_manager = None
+        if ENABLE_HINGLISH_ENGINE:
+            try:
+                from language.language_manager import LanguageManager
+                self.language_manager = LanguageManager()
+            except Exception as e:
+                logger.warning("LanguageManager init failed: %s", e)
+
+        self.rag_memory = None
+        if ENABLE_RAG_MEMORY:
+            try:
+                from memory.rag_memory import RAGMemory
+                self.rag_memory = RAGMemory(sqlite_memory=memory)
+            except Exception as e:
+                logger.warning("RAGMemory init failed: %s", e)
+
+        self.planner = None
+        if ENABLE_PLANNER:
+            try:
+                from agent.Planner import PlannerAgent
+                self.planner = PlannerAgent(language_manager=self.language_manager)
+            except Exception as e:
+                logger.warning("PlannerAgent init failed: %s", e)
+
+        # ── Phase-2 subsystems ──
+        self.reasoning_engine = None
+        if ENABLE_REASONING_ENGINE:
+            try:
+                from agent.ReasoningEngine import ReasoningEngine
+                self.reasoning_engine = ReasoningEngine()
+            except Exception as e:
+                logger.warning("ReasoningEngine init failed: %s", e)
+
+        self.validator = None
+        if ENABLE_VALIDATOR:
+            try:
+                from agent.Validator import Validator
+                self.validator = Validator()
+            except Exception as e:
+                logger.warning("Validator init failed: %s", e)
+
+        # ── Phase-3 coding subsystems ──
+        self.code_generator = None
+        self.bug_analyzer = None
+        self.stacktrace_analyzer = None
+        self.project_generator = None
+        self.refactor_engine = None
+        self.test_generator = None
+        self.code_explainer = None
+        self.code_reviewer = None
+
+        if ENABLE_CODING_AGENT:
+            try:
+                from coding.CodeGenerator import CodeGenerator
+                from coding.BugAnalyzer import BugAnalyzer
+                from coding.StackTraceAnalyzer import StackTraceAnalyzer
+                from coding.ProjectGenerator import ProjectGenerator
+                from coding.RefactorEngine import RefactorEngine
+                from coding.TestGenerator import TestGenerator
+                from coding.CodeExplainer import CodeExplainer
+                from coding.CodeReviewer import CodeReviewer
+
+                self.code_generator = CodeGenerator(_LLM)
+                self.bug_analyzer = BugAnalyzer(_LLM)
+                self.stacktrace_analyzer = StackTraceAnalyzer(_LLM)
+                self.project_generator = ProjectGenerator(_LLM)
+                self.refactor_engine = RefactorEngine(_LLM)
+                self.test_generator = TestGenerator(_LLM)
+                self.code_explainer = CodeExplainer(_LLM)
+                self.code_reviewer = CodeReviewer(_LLM)
+                logger.info("Coding Agent subsystems initialised successfully.")
+            except Exception as e:
+                logger.warning("Coding Agent init failed: %s", e)
+
+        # ── Bind tool handlers ──
+        self._bind_tool_handlers()
+        logger.info("AgentService Phase-2 ready.")
+
+    # ── Tool handler binding ──────────────────────────────────────────────────
+
+    def _bind_tool_handlers(self) -> None:
+        """Connect registry tools to actual executable handlers."""
+        from tools.tool_registry import registry
+
+        # 1. System/Desktop Tools
+        registry.set_handler("open_app", self.executor._open_app)
+
+        def system_control_handler(params: Dict) -> str:
+            action = params.get("action", "").lower()
+            if action == "restart":
+                return self.executor._restart(params)
+            return self.executor._shutdown(params)
+
+        registry.set_handler("system_control", system_control_handler)
+        registry.set_handler("get_time",    self.executor._get_time)
+        registry.set_handler("get_profile", self.executor._get_profile)
+        registry.set_handler("automation",  self.executor._automation)
+
+        # 2. Browser Tools
+        if ENABLE_BROWSER_AGENT:
+            try:
+                from browser_agent.playwright_agent import PlaywrightAgent
+                from browser_agent.browser_skills import search_google, search_jobs
+                browser_agent = PlaywrightAgent()
+
+                registry.set_handler("browser_navigate", lambda p: browser_agent.navigate(p.get("url")))
+                registry.set_handler("browser_search",   search_google)
+                registry.set_handler("browser_linkedin", search_jobs)
+                registry.set_handler(
+                    "browser_extract",
+                    lambda p: browser_agent.extract_text(p.get("selector", "body")),
+                )
+            except Exception as e:
+                logger.error("Failed to bind browser tools: %s", e)
+
+        # 3. Internet search
+        registry.set_handler("internet_search", self.executor._web_search)
+
+        # 4. Memory Tools
+        if ENABLE_RAG_MEMORY and self.rag_memory:
+            registry.set_handler(
+                "memory_remember",
+                lambda p: str(self.rag_memory.remember(
+                    p.get("text") or p.get("content") or "", p.get("category", "fact")
+                )),
+            )
+            registry.set_handler(
+                "memory_search",
+                lambda p: str(self.rag_memory.recall(p.get("query", ""), int(p.get("top_k", 5)))),
+            )
+
+        # 5. Mobile Tools
+        registry.set_handler("mobile_control", self.executor._mobile_open_app)
+        registry.set_handler("mobile_call",    self.executor._mobile_call)
+        registry.set_handler("mobile_alarm",   self.executor._mobile_alarm)
+
+        # 6. Vision Tools
+        registry.set_handler("vision_capture", self.executor._vision_capture)
+        registry.set_handler("vision_detect",  lambda p: self.executor._vision_capture(p))
+
+        # 7. Phase-2 Reasoning Tools
+        registry.set_handler("reason_task",   self._handle_reason_task)
+        registry.set_handler("validate_task", self._handle_validate_task)
+        registry.set_handler("replan_task",   self._handle_replan_task)
+
+        # 8. Phase-3 Coding Tools
+        if ENABLE_CODING_AGENT:
+            registry.set_handler("generate_code",      self._handle_generate_code)
+            registry.set_handler("debug_code",         self._handle_debug_code)
+            registry.set_handler("analyze_stacktrace", self._handle_analyze_stacktrace)
+            registry.set_handler("generate_project",   self._handle_generate_project)
+            registry.set_handler("refactor_code",      self._handle_refactor_code)
+            registry.set_handler("generate_tests",     self._handle_generate_tests)
+            registry.set_handler("explain_code",       self._handle_explain_code)
+            registry.set_handler("review_code",        self._handle_review_code)
+
+    # ── Phase-2 reasoning tool handlers ──────────────────────────────────────
+
+    def _handle_reason_task(self, params: Dict) -> str:
+        """Tool handler: run reasoning engine on a task description."""
+        task = params.get("task", params.get("query", ""))
+        if not task or not self.reasoning_engine:
+            return "Reasoning engine not available."
+        result = self.reasoning_engine.reason(task)
+        import json
+        return json.dumps(result, indent=2)
+
+    def _handle_validate_task(self, params: Dict) -> str:
+        """Tool handler: validate a list of step results."""
+        results = params.get("results", [])
+        if not self.validator:
+            return "Validator not available."
+        validation = self.validator.validate_result(results)
+        import json
+        return json.dumps(validation, indent=2)
+
+    def _handle_replan_task(self, params: Dict) -> str:
+        """Tool handler: trigger replan for a failed task."""
+        task   = params.get("task", "")
+        reason = params.get("reason", "previous attempt failed")
+        if not task:
+            return "No task provided for replan."
+        return f"Replan requested for: '{task}'. Reason: {reason}"
+
+    # ── Phase-3 coding tool handlers ─────────────────────────────────────────
+
+    def _handle_generate_code(self, params: Dict) -> str:
+        if not self.code_generator: return "Code generator not available."
+        prompt = params.get("prompt", params.get("task", ""))
+        lang = params.get("language")
+        res = self.code_generator.generate(prompt, lang)
+        import json
+        if self.rag_memory:
+            self.rag_memory.remember(f"Generated {res.get('language')} code: {res.get('explanation')}", "coding_project")
+        return json.dumps(res, indent=2)
+
+    def _handle_debug_code(self, params: Dict) -> str:
+        if not self.bug_analyzer: return "Bug analyzer not available."
+        logs = params.get("logs", params.get("error", ""))
+        res = self.bug_analyzer.analyze(logs)
+        import json
+        if self.rag_memory:
+            self.rag_memory.remember(f"Bug analysis: {res.get('root_cause')} -> Fix: {res.get('fix')}", "coding_bug")
+        return json.dumps(res, indent=2)
+
+    def _handle_analyze_stacktrace(self, params: Dict) -> str:
+        if not self.stacktrace_analyzer: return "Stack trace analyzer not available."
+        trace = params.get("trace", params.get("stacktrace", ""))
+        res = self.stacktrace_analyzer.analyze(trace)
+        import json
+        if self.rag_memory:
+            self.rag_memory.remember(f"Stack trace check: {res.get('file')}:{res.get('line')} -> Issue: {res.get('issue')}", "coding_bug")
+        return json.dumps(res, indent=2)
+
+    def _handle_generate_project(self, params: Dict) -> str:
+        if not self.project_generator: return "Project generator not available."
+        p_type = params.get("project_type", params.get("type", "springboot"))
+        name = params.get("name", "my-app")
+        desc = params.get("description", "")
+        res = self.project_generator.generate(p_type, name, desc)
+        import json
+        if self.rag_memory:
+            self.rag_memory.remember(f"Generated project {name} ({p_type}): {desc}", "coding_project")
+        return json.dumps(res, indent=2)
+
+    def _handle_refactor_code(self, params: Dict) -> str:
+        if not self.refactor_engine: return "Refactor engine not available."
+        code = params.get("code", "")
+        res = self.refactor_engine.refactor(code)
+        import json
+        if self.rag_memory:
+            self.rag_memory.remember(f"Refactored code. Improvements: {', '.join(res.get('improvements', []))}", "coding_reference")
+        return json.dumps(res, indent=2)
+
+    def _handle_generate_tests(self, params: Dict) -> str:
+        if not self.test_generator: return "Test generator not available."
+        code = params.get("code", "")
+        fw = params.get("framework", "")
+        res = self.test_generator.generate(code, fw)
+        import json
+        if self.rag_memory:
+            self.rag_memory.remember(f"Generated {res.get('framework')} tests", "coding_reference")
+        return json.dumps(res, indent=2)
+
+    def _handle_explain_code(self, params: Dict) -> str:
+        if not self.code_explainer: return "Code explainer not available."
+        code = params.get("code", "")
+        res = self.code_explainer.explain(code)
+        import json
+        if self.rag_memory:
+            self.rag_memory.remember(f"Explained code: {res.get('summary')}", "coding_reference")
+        return json.dumps(res, indent=2)
+
+    def _handle_review_code(self, params: Dict) -> str:
+        if not self.code_reviewer: return "Code reviewer not available."
+        code = params.get("code", "")
+        res = self.code_reviewer.review(code)
+        import json
+        if self.rag_memory:
+            self.rag_memory.remember(f"Reviewed code. Grade: {res.get('grade')} | Comments: {', '.join(res.get('comments', []))}", "coding_review")
+        return json.dumps(res, indent=2)
+
+    # ── LLM fallback ─────────────────────────────────────────────────────────
 
     def _ask_llm(self, prompt: str) -> str:
-        """Use DeepSeek LLM for unknown/complex queries (if model loaded)."""
         if _LLM:
             try:
                 result = _LLM(prompt, max_tokens=200, stop=["\n\n"])
@@ -70,17 +344,20 @@ class AgentService:
                 logger.error("LLM inference error: %s", e)
         return "I understand your message but I need more context. Try: 'open notepad', 'search python', or 'my profile'."
 
-    # ── Main pipeline ──────────────────────────────────────────────────────────
+    # ── Main pipeline ─────────────────────────────────────────────────────────
+
     def process_input(self, user_input: str) -> Dict[str, Any]:
         """
-        Full pipeline: text → decision → (optional action) → persisted → response.
-
-        Returns a dict with keys:
-            response         str   — reply to show / speak
-            action           str   — action that was taken
-            parameters       dict  — action parameters
-            execution_result str   — result of the executed action (if any)
-            status           str   — "success" | "error"
+        Phase-2 upgraded pipeline:
+          1. Language detection & Hinglish normalization
+          2. RAG Memory context augmentation
+          3. ReasoningEngine — goal/risk/tool analysis
+          4. Security: approval check for high-risk actions
+          5. PlannerAgent — generate steps using reasoning context
+          6. Auto-Replan loop (max MAX_REPLAN_RETRIES)
+          7. Execute via Tool Registry
+          8. Store turn in long-term memory
+          9. Return structured response
         """
         if not user_input or not user_input.strip():
             return {
@@ -89,34 +366,213 @@ class AgentService:
                 "parameters":       {},
                 "execution_result": "",
                 "status":           "success",
+                "reasoning":        None,
+                "validation":       None,
             }
 
-        # 1. Get recent context
+        # ── Step 1: Language detection & Hinglish normalization ──────────────
+        language = "english"
+        lang_res = {}
+        if ENABLE_HINGLISH_ENGINE and self.language_manager:
+            try:
+                lang_res = self.language_manager.process(user_input)
+                language = lang_res.get("language", "english")
+            except Exception as e:
+                logger.error("LanguageEngine error: %s", e)
+
+        # ── Step 2: RAG Memory context augmentation ──────────────────────────
         context = self.memory.get_context(limit=5)
+        rag_ctx = {}
+        if ENABLE_RAG_MEMORY and self.rag_memory:
+            try:
+                rag_ctx = self.rag_memory.get_augmented_context(user_input)
+                for item in rag_ctx.get("semantic", []):
+                    context.insert(0, f"Memory: {item['text']} (category: {item.get('category')})")
+            except Exception as e:
+                logger.error("RAGMemory recall error: %s", e)
 
-        # 2. Decision engine (LLM or keyword fallback)
-        try:
-            decision = self.engine.process_command(user_input, context)
-        except Exception as e:
-            logger.error("DecisionEngine error: %s", e)
-            decision = {
-                "response":   f"I encountered an error processing your request: {e}",
-                "action":     "none",
-                "parameters": {},
+        # ── Step 3: ReasoningEngine analysis ────────────────────────────────
+        reasoning = None
+        if ENABLE_REASONING_ENGINE and self.reasoning_engine:
+            try:
+                reasoning = self.reasoning_engine.reason(user_input, context)
+                logger.info(
+                    "Reasoning: goal='%s' type=%s risk=%s",
+                    reasoning.get("goal", ""),
+                    reasoning.get("reasoning_type", ""),
+                    reasoning.get("risk_level", ""),
+                )
+            except Exception as e:
+                logger.error("ReasoningEngine error: %s", e)
+
+        # ── Step 4: Security — approval check for high-risk actions ──────────
+        if reasoning and reasoning.get("requires_approval"):
+            logger.warning("High-risk action detected — requires approval: %s", reasoning.get("goal"))
+            approval_msg = self._build_approval_message(reasoning, language)
+            return {
+                "response":          approval_msg,
+                "action":            "approval_required",
+                "parameters":        {"goal": reasoning.get("goal"), "risk_level": reasoning.get("risk_level")},
+                "execution_result":  "",
+                "status":            "pending_approval",
+                "reasoning":         reasoning,
+                "validation":        None,
             }
 
-        action     = decision.get("action", "none")
-        params     = decision.get("parameters", {})
-        response   = decision.get("response", "")
-        exec_result= ""
+        # ── Steps 5–7: Plan → Validate → Auto-Replan loop ───────────────────
+        from tools.tool_registry import registry
 
-        # 3. Execute action (if any)
-        if action and action != "none":
-            exec_result = self.executor.execute(action, params)
-            logger.info("Executed action=%s result=%r", action, exec_result[:80])
+        action      = "none"
+        params      = {}
+        response    = ""
+        exec_result = ""
+        validation  = None
+        steps       = []
 
-        # 4. Persist to memory
+        if ENABLE_PLANNER and self.planner:
+            try:
+                steps = self.planner.plan(user_input, context)
+            except Exception as e:
+                logger.error("PlannerAgent error: %s", e)
+
+        if len(steps) > 1:
+            # ── Multi-step: plan → execute → validate → auto-replan ──────────
+            attempt    = 0
+            max_tries  = MAX_REPLAN_RETRIES if ENABLE_AUTO_REPLAN else 1
+            results    = []
+            current_reasoning = reasoning
+
+            while attempt < max_tries:
+                attempt += 1
+                logger.info("Execution attempt %d/%d — %d steps", attempt, max_tries, len(steps))
+                results = []
+
+                for step in steps:
+                    t_name   = step["tool"]
+                    t_params = step["params"]
+                    logger.info("  Step %d: tool=%s params=%s", step["step"], t_name, t_params)
+                    res = registry.execute(t_name, t_params)
+                    results.append({
+                        "step":   step["step"],
+                        "tool":   t_name,
+                        "action": step.get("action", ""),
+                        "params": t_params,
+                        "result": res,
+                    })
+
+                # Validate results
+                if ENABLE_VALIDATOR and self.validator and current_reasoning:
+                    try:
+                        validation = self.validator.validate_result(results, current_reasoning)
+                        logger.info(
+                            "Validation: valid=%s score=%.2f attempt=%d",
+                            validation["valid"], validation["score"], attempt,
+                        )
+
+                        if validation["valid"]:
+                            break  # Success — exit replan loop
+
+                        if attempt < max_tries and ENABLE_AUTO_REPLAN:
+                            logger.info("Auto-replan triggered (attempt %d)…", attempt)
+                            # Adjust reasoning for retry
+                            if self.reasoning_engine:
+                                current_reasoning = self.reasoning_engine.reason(
+                                    user_input, context, failure_hint=validation
+                                )
+                            # Regenerate plan with updated reasoning
+                            try:
+                                steps = self.planner.plan(user_input, context)
+                            except Exception as e:
+                                logger.error("Replan failed: %s", e)
+                                break
+                    except Exception as e:
+                        logger.error("Validator error: %s", e)
+                        break
+                else:
+                    break  # No validator configured — single pass
+
+            exec_result = "\n".join(
+                f"Step {r['step']} ({r['tool']}): {r['result']}" for r in results
+            )
+            action = "multi_step_plan"
+            params = {"steps": steps}
+
+            # Final output validation
+            final_validation = None
+            if ENABLE_VALIDATOR and self.validator and reasoning:
+                try:
+                    final_validation = self.validator.validate_final_output(
+                        results, reasoning.get("goal", user_input)
+                    )
+                    logger.info(
+                        "Final validation: grade=%s score=%.2f",
+                        final_validation.get("grade"),
+                        final_validation.get("score", 0),
+                    )
+                except Exception as e:
+                    logger.error("Final validation error: %s", e)
+
+            # Build response
+            if language == "hinglish":
+                response = (
+                    f"Maine aapka multi-step plan complete kar diya hai:\n"
+                    + "\n".join(f"- Step {s['step']}: {s['tool']}" for s in steps)
+                )
+            else:
+                response = (
+                    f"I have successfully completed the multi-step plan:\n"
+                    + "\n".join(f"- Step {s['step']}: {s['tool']}" for s in steps)
+                )
+            if final_validation:
+                response += f"\n\n✓ Result: {final_validation.get('feedback', '')}"
+                if validation and not validation.get("valid"):
+                    response += f"\n⚠ Some steps needed retry ({validation.get('passed', 0)}/{validation.get('total', 0)} succeeded)."
+
+        else:
+            # ── Single-action fallback ────────────────────────────────────────
+            try:
+                decision = self.engine.process_command(user_input, context)
+            except Exception as e:
+                logger.error("DecisionEngine error: %s", e)
+                decision = {
+                    "response":   f"Error processing: {e}",
+                    "action":     "none",
+                    "parameters": {},
+                }
+
+            action   = decision.get("action", "none")
+            params   = decision.get("parameters", {})
+            response = decision.get("response", "")
+
+            tool_name = registry.suggest_tool(action)
+            if tool_name:
+                exec_result = registry.execute(tool_name, params)
+                # Single-step validation
+                if ENABLE_VALIDATOR and self.validator and reasoning:
+                    try:
+                        step_info = {"step": 1, "tool": tool_name, "action": action, "params": params}
+                        step_val  = self.validator.validate_step(step_info, exec_result, reasoning)
+                        validation = step_val
+                        if not step_val["valid"]:
+                            logger.info("Single-step validation failed: %s", step_val["reason"])
+                    except Exception as e:
+                        logger.error("Single-step validation error: %s", e)
+            elif action and action != "none":
+                exec_result = self.executor.execute(action, params)
+
+            if lang_res and lang_res.get("response"):
+                response = lang_res.get("response")
+
+        # ── Step 8: Store turn in long-term memory ───────────────────────────
         self.memory.add_turn(user_input, response, action)
+        if ENABLE_RAG_MEMORY and self.rag_memory:
+            try:
+                self.rag_memory.remember_conversation(user_input, response)
+                # Also store reasoning goal in memory
+                if reasoning and reasoning.get("goal"):
+                    self.rag_memory.remember(reasoning["goal"], category="goal")
+            except Exception as e:
+                logger.error("RAGMemory store error: %s", e)
 
         return {
             "response":         response,
@@ -124,13 +580,48 @@ class AgentService:
             "parameters":       params,
             "execution_result": exec_result,
             "status":           "success",
+            "reasoning":        reasoning,
+            "validation":       validation,
         }
 
-    # ── Convenience ────────────────────────────────────────────────────────
+    # ── Approval message builder ──────────────────────────────────────────────
+
+    def _build_approval_message(self, reasoning: Dict, language: str) -> str:
+        goal      = reasoning.get("goal", "this action")
+        risk      = reasoning.get("risk_level", "high")
+        req_tools = reasoning.get("required_tools", [])
+        if language == "hinglish":
+            return (
+                f"⚠️ Yeh action high-risk hai!\n"
+                f"Goal: {goal}\n"
+                f"Risk: {risk.upper()}\n"
+                f"Tools needed: {', '.join(req_tools)}\n\n"
+                f"Kya aap sure hain? Confirm karne ke liye 'YES confirm' type karein."
+            )
+        return (
+            f"⚠️ This action requires your approval!\n"
+            f"Goal: {goal}\n"
+            f"Risk Level: {risk.upper()}\n"
+            f"Tools required: {', '.join(req_tools)}\n\n"
+            f"Are you sure? Type 'YES confirm' to proceed."
+        )
+
+    # ── Convenience methods ───────────────────────────────────────────────────
+
     def get_history(self, limit: int = 10):
-        """Return recent conversation history."""
         return self.memory.get_context(limit=limit)
 
     def get_memory_stats(self) -> Dict:
-        """Return memory stats for the dashboard."""
         return self.memory.get_stats()
+
+    def get_reasoning_status(self) -> Dict:
+        """Return current Phase-2 and Phase-3 subsystem status."""
+        return {
+            "reasoning_engine": self.reasoning_engine is not None,
+            "validator":        self.validator is not None,
+            "auto_replan":      ENABLE_AUTO_REPLAN,
+            "max_retries":      MAX_REPLAN_RETRIES,
+            "planner":          self.planner is not None,
+            "rag_memory":       self.rag_memory is not None,
+            "coding_agent":     ENABLE_CODING_AGENT and (self.code_generator is not None),
+        }

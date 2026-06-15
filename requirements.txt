@@ -30,7 +30,7 @@ opencv-python
 # Encryption / Security
 cryptography
 
-# System Monitoring [NEW]
+# System Monitoring
 psutil
 
 # Deep Learning (optional — Speaker Verification)
@@ -54,5 +54,22 @@ pure-python-adb
 pyautogui
 pynput
 
-# Web scraping (optional)
+# Web scraping
 selenium
+
+# ── NEW: Upgrade 1 — Language Engine ─────────────────────────────────────────
+# Statistical language detection (English / Hindi / Hinglish)
+langdetect
+
+# ── NEW: Upgrade 3 — RAG Memory ──────────────────────────────────────────────
+# Offline semantic embeddings (~80 MB model, downloaded once)
+sentence-transformers
+# CPU-only FAISS vector index (no GPU required)
+faiss-cpu
+
+# ── NEW: Upgrade 4 — Browser Agent ───────────────────────────────────────────
+# Reliable browser automation (Chromium/Firefox/WebKit)
+playwright
+
+# Speech recognition (wake-word + listen loop)
+SpeechRecognition

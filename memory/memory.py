@@ -8,6 +8,7 @@ FIX LOG:
     race conditions under concurrent Flask requests.
   - Added limit parameter default to get_recent_context()
   - Added get_stats() method for dashboard
+  - [NEW] Added remember_fact() / get_fact() / get_all_facts() for RAGMemory
 """
 
 import logging
@@ -15,7 +16,7 @@ import os
 import sqlite3
 import threading
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("msa.memory")
 
@@ -33,7 +34,7 @@ class Memory:
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
 
         self.sec = security
-        self._lock = threading.Lock()  # FIX: thread-safety
+        self._lock = threading.Lock()  # thread-safety
 
         self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self._create_tables()
@@ -122,3 +123,53 @@ class Memory:
         except Exception as e:
             logger.error("Memory.get_stats error: %s", e)
             return {"total_conversations": 0, "last_interaction": None}
+
+    # ── NEW: Key-Value fact store (used by RAGMemory) ─────────────────────────
+
+    def remember_fact(self, key: str, value: str) -> None:
+        """
+        Store or update a named fact in the preferences table.
+        Used by RAGMemory to persist important facts alongside FAISS vectors.
+
+        Args:
+            key:   Unique identifier (e.g. "rag:project:12345").
+            value: Fact content to store (plain text).
+        """
+        try:
+            with self._lock:
+                self.conn.execute(
+                    "INSERT OR REPLACE INTO preferences (key, value) VALUES (?, ?)",
+                    (key, value),
+                )
+                self.conn.commit()
+        except Exception as e:
+            logger.error("Memory.remember_fact error: %s", e)
+
+    def get_fact(self, key: str) -> Optional[str]:
+        """
+        Retrieve a stored fact by its key.
+
+        Returns:
+            Value string, or None if not found.
+        """
+        try:
+            with self._lock:
+                row = self.conn.execute(
+                    "SELECT value FROM preferences WHERE key = ?", (key,)
+                ).fetchone()
+            return row[0] if row else None
+        except Exception as e:
+            logger.error("Memory.get_fact error: %s", e)
+            return None
+
+    def get_all_facts(self) -> Dict[str, str]:
+        """Return all stored key-value facts as a dict."""
+        try:
+            with self._lock:
+                rows = self.conn.execute(
+                    "SELECT key, value FROM preferences"
+                ).fetchall()
+            return {row[0]: row[1] for row in rows}
+        except Exception as e:
+            logger.error("Memory.get_all_facts error: %s", e)
+            return {}

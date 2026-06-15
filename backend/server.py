@@ -363,7 +363,7 @@ def api_status():
         "status": "online",
         "subsystems": {
             "stt":             "ok" if stt_ok    else "degraded (model missing)",
-            "decision_engine": "ok (LLM online)" if llm_ok else "ok (keyword fallback)" if engine_ok else "degraded",
+            "decision_engine": "ok (LLM online)" if llm_ok else "ok" if engine_ok else "degraded",
             "memory":          "ok" if mem_ok    else "degraded",
             "security":        "ok" if sec_ok    else "degraded",
         },
@@ -410,9 +410,673 @@ def api_search():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
+# ---------------------------------------------------------------------------
+# GET /api/tools — List all registered tools
+# ---------------------------------------------------------------------------
+@app.route("/api/tools", methods=["GET"])
+def api_tools():
+    """List all registered tools + status."""
+    try:
+        from tools.tool_registry import registry
+        return jsonify({"status": "success", "tools": registry.to_dict()})
+    except Exception as e:
+        logger.exception("Error in /api/tools")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# POST /api/planner — Submit complex task to Planner
+# ---------------------------------------------------------------------------
+@app.route("/api/planner", methods=["POST"])
+def api_planner():
+    """Submit complex task to Planner."""
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        task = data.get("task", "").strip()
+        if not task:
+            return jsonify({"status": "error", "message": "task is required"}), 400
+
+        _get_components()
+        if _agent_service and _agent_service.planner:
+            context = _agent_service.get_history()
+            steps = _agent_service.planner.plan(task, context)
+
+            # Execute the plan
+            exec_results = []
+            from tools.tool_registry import registry
+            for step in steps:
+                res = registry.execute(step["tool"], step["params"])
+                exec_results.append({
+                    "step": step["step"],
+                    "tool": step["tool"],
+                    "action": step["action"],
+                    "params": step["params"],
+                    "result": res
+                })
+
+            return jsonify({
+                "status": "success",
+                "task": task,
+                "steps": steps,
+                "execution": exec_results
+            })
+
+        return jsonify({"status": "error", "message": "Planner or AgentService not initialised"}), 503
+    except Exception as e:
+        logger.exception("Error in /api/planner")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# POST /api/browser — Execute a browser action directly
+# ---------------------------------------------------------------------------
+@app.route("/api/browser", methods=["POST"])
+def api_browser():
+    """Execute a browser action directly."""
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        action = data.get("action", "").strip()
+        if not action:
+            return jsonify({"status": "error", "message": "action is required"}), 400
+
+        from tools.tool_registry import registry
+        tool_name = f"browser_{action}" if not action.startswith("browser_") else action
+        if not registry.get(tool_name):
+            tool_name = action
+
+        if not registry.get(tool_name):
+            return jsonify({"status": "error", "message": f"Browser tool '{action}' not found"}), 404
+
+        params = data.get("parameters", data.get("params", {}))
+        res = registry.execute(tool_name, params)
+        return jsonify({"status": "success", "tool": tool_name, "result": res})
+    except Exception as e:
+        logger.exception("Error in /api/browser")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# GET /api/memory/search — Semantic FAISS memory search
+# ---------------------------------------------------------------------------
+@app.route("/api/memory/search", methods=["GET"])
+def api_memory_search():
+    """Semantic FAISS memory search."""
+    try:
+        query = request.args.get("q", "").strip()
+        if not query:
+            return jsonify({"status": "error", "message": "q query parameter is required"}), 400
+
+        _get_components()
+        if _agent_service and _agent_service.rag_memory:
+            top_k = int(request.args.get("top_k", 5))
+            results = _agent_service.rag_memory.recall(query, top_k=top_k)
+            return jsonify({"status": "success", "query": query, "results": results})
+
+        return jsonify({"status": "error", "message": "RAGMemory not initialised"}), 503
+    except Exception as e:
+        logger.exception("Error in /api/memory/search")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ===========================================================================
+# PHASE-2: REASONING ENGINE ENDPOINTS
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# POST /api/reason  — Run ReasoningEngine on a task
+# ---------------------------------------------------------------------------
+@app.route("/api/reason", methods=["POST"])
+def api_reason():
+    """Run ReasoningEngine on a task and return structured reasoning packet."""
+    try:
+        data  = request.get_json(force=True, silent=True) or {}
+        task  = data.get("task", data.get("command", "")).strip()
+        if not task:
+            return jsonify({"status": "error", "message": "task is required"}), 400
+
+        _get_components()
+        if _agent_service and _agent_service.reasoning_engine:
+            context  = _agent_service.get_history(limit=5)
+            reasoning = _agent_service.reasoning_engine.reason(task, context)
+            return jsonify({"status": "success", "task": task, "reasoning": reasoning})
+
+        return jsonify({"status": "error", "message": "ReasoningEngine not initialised"}), 503
+    except Exception as e:
+        logger.exception("Error in /api/reason")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# POST /api/validate  — Validate task execution results
+# ---------------------------------------------------------------------------
+@app.route("/api/validate", methods=["POST"])
+def api_validate():
+    """Validate a list of step results using the Validator."""
+    try:
+        data    = request.get_json(force=True, silent=True) or {}
+        results = data.get("results", [])
+        goal    = data.get("goal", "")
+        if not results:
+            return jsonify({"status": "error", "message": "results list is required"}), 400
+
+        _get_components()
+        if _agent_service and _agent_service.validator:
+            reasoning   = {"goal": goal} if goal else None
+            validation  = _agent_service.validator.validate_result(results, reasoning)
+            final_val   = None
+            if goal:
+                final_val = _agent_service.validator.validate_final_output(results, goal)
+            return jsonify({
+                "status":             "success",
+                "step_validation":    validation,
+                "final_validation":   final_val,
+            })
+
+        return jsonify({"status": "error", "message": "Validator not initialised"}), 503
+    except Exception as e:
+        logger.exception("Error in /api/validate")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# POST /api/reason-execute  — Full pipeline: Reason + Plan + Execute
+# ---------------------------------------------------------------------------
+@app.route("/api/reason-execute", methods=["POST"])
+def api_reason_execute():
+    """Full autonomous pipeline: ReasoningEngine → Planner → Validator → Execute."""
+    try:
+        data    = request.get_json(force=True, silent=True) or {}
+        command = data.get("command", data.get("task", "")).strip()
+        if not command:
+            return jsonify({"status": "error", "message": "command is required"}), 400
+
+        _get_components()
+        if _agent_service:
+            result = _agent_service.process_input(command)
+            return jsonify({"status": "success", "command": command, **result})
+
+        return jsonify({"status": "error", "message": "AgentService not initialised"}), 503
+    except Exception as e:
+        logger.exception("Error in /api/reason-execute")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ===========================================================================
+# PHASE-2: MOBILE REASONING ENDPOINTS
+# ===========================================================================
+
+# In-memory store for latest mobile device capabilities
+_mobile_capabilities: dict = {}
+_mobile_status_log: list   = []
+
+
+# ---------------------------------------------------------------------------
+# POST /mobile/status  — Mobile device sends heartbeat + status
+# ---------------------------------------------------------------------------
+@app.route("/mobile/status", methods=["POST"])
+def mobile_status():
+    """Mobile device sends current agent status / heartbeat."""
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        _mobile_status_log.append(data)
+        if len(_mobile_status_log) > 100:
+            _mobile_status_log.pop(0)
+
+        logger.info("Mobile status received: %s", str(data)[:200])
+        return jsonify({
+            "status":   "ok",
+            "received": True,
+            "message":  "Status recorded.",
+        })
+    except Exception as e:
+        logger.exception("Error in /mobile/status")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# POST /mobile/validate  — Mobile reports whether an action completed
+# ---------------------------------------------------------------------------
+@app.route("/mobile/validate", methods=["POST"])
+def mobile_validate():
+    """Mobile APK reports action completion for server-side feedback loop."""
+    try:
+        data       = request.get_json(force=True, silent=True) or {}
+        action     = data.get("action", "")
+        success    = data.get("success", False)
+        detail     = data.get("detail", "")
+        device_id  = data.get("device_id", "unknown")
+
+        logger.info("Mobile validate: device=%s action=%s success=%s", device_id, action, success)
+
+        # Feed back into AgentService validation context if available
+        _get_components()
+        feedback_msg = f"Mobile action '{action}' on device {device_id}: {'✓ succeeded' if success else '✗ failed'}. {detail}"
+
+        if _agent_service and _agent_service.rag_memory:
+            try:
+                _agent_service.rag_memory.remember(feedback_msg, category="mobile")
+            except Exception:
+                pass
+
+        return jsonify({
+            "status":   "ok",
+            "recorded": True,
+            "message":  feedback_msg,
+        })
+    except Exception as e:
+        logger.exception("Error in /mobile/validate")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# POST /mobile/capabilities  — Mobile sends device capabilities
+# ---------------------------------------------------------------------------
+@app.route("/mobile/capabilities", methods=["POST"])
+def mobile_capabilities():
+    """Mobile APK sends device capabilities (battery, network, apps, etc.)."""
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        _mobile_capabilities.update(data)
+        _mobile_capabilities["last_updated"] = __import__("time").time()
+
+        battery   = data.get("battery", "?")
+        wifi      = data.get("wifi", False)
+        gps       = data.get("location_enabled", False)
+        app_count = len(data.get("apps", []))
+
+        logger.info(
+            "Mobile capabilities: battery=%s%% wifi=%s gps=%s apps=%d",
+            battery, wifi, gps, app_count,
+        )
+
+        # Store in reasoning context memory
+        _get_components()
+        if _agent_service and _agent_service.rag_memory:
+            capability_summary = (
+                f"Mobile device: battery={battery}%, wifi={wifi}, "
+                f"gps={gps}, apps installed={app_count}"
+            )
+            try:
+                _agent_service.rag_memory.remember(capability_summary, category="mobile")
+            except Exception:
+                pass
+
+        return jsonify({
+            "status":   "ok",
+            "received": True,
+            "summary":  f"Battery {battery}% | WiFi: {wifi} | GPS: {gps} | Apps: {app_count}",
+        })
+    except Exception as e:
+        logger.exception("Error in /mobile/capabilities")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# POST /mobile/task-result  — Mobile sends final task execution result
+# ---------------------------------------------------------------------------
+@app.route("/mobile/task-result", methods=["POST"])
+def mobile_task_result():
+    """Mobile APK sends the final result of an executed task."""
+    try:
+        data      = request.get_json(force=True, silent=True) or {}
+        task_id   = data.get("task_id", "unknown")
+        result    = data.get("result", "")
+        success   = data.get("success", False)
+        device_id = data.get("device_id", "unknown")
+
+        logger.info(
+            "Mobile task result: id=%s device=%s success=%s result=%s",
+            task_id, device_id, success, str(result)[:100],
+        )
+
+        # Run validator on mobile result
+        _get_components()
+        validation = None
+        if _agent_service and _agent_service.validator:
+            step = {"step": 1, "tool": "mobile_control", "action": task_id, "params": {}}
+            validation = _agent_service.validator.validate_step(step, str(result))
+
+        # Persist to memory
+        if _agent_service and _agent_service.rag_memory and result:
+            try:
+                _agent_service.rag_memory.remember(
+                    f"Mobile task {task_id}: {result}", category="mobile"
+                )
+            except Exception:
+                pass
+
+        return jsonify({
+            "status":     "ok",
+            "task_id":    task_id,
+            "success":    success,
+            "validation": validation,
+        })
+    except Exception as e:
+        logger.exception("Error in /mobile/task-result")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# GET /api/reasoning-status  — Subsystem health check
+# ---------------------------------------------------------------------------
+@app.route("/api/reasoning-status", methods=["GET"])
+def api_reasoning_status():
+    """Return Phase-2 subsystem health and mobile device info."""
+    try:
+        _get_components()
+        phase2 = {}
+        if _agent_service and hasattr(_agent_service, "get_reasoning_status"):
+            phase2 = _agent_service.get_reasoning_status()
+
+        return jsonify({
+            "status":              "online",
+            "phase2_subsystems":   phase2,
+            "mobile_capabilities": _mobile_capabilities,
+            "mobile_log_count":    len(_mobile_status_log),
+        })
+    except Exception as e:
+        logger.exception("Error in /api/reasoning-status")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ===========================================================================
+# PHASE-3: CODING AGENT ENDPOINTS
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# POST /api/code/generate — Generate code from natural language
+# ---------------------------------------------------------------------------
+@app.route("/api/code/generate", methods=["POST"])
+def api_code_generate():
+    """Generate source code from a natural language prompt."""
+    try:
+        data   = request.get_json(force=True, silent=True) or {}
+        prompt = data.get("prompt", data.get("command", "")).strip()
+        lang   = data.get("language")
+        if not prompt:
+            return jsonify({"status": "error", "message": "prompt is required"}), 400
+
+        _get_components()
+        if _agent_service and _agent_service.code_generator:
+            result = _agent_service.code_generator.generate(prompt, lang)
+            # Store in memory
+            if _agent_service.rag_memory:
+                try:
+                    _agent_service.rag_memory.remember(
+                        f"Generated {result.get('language')} code: {result.get('explanation')}",
+                        "coding_project",
+                    )
+                except Exception:
+                    pass
+            return jsonify({"status": "success", "result": result})
+
+        return jsonify({"status": "error", "message": "Code generator not initialised"}), 503
+    except Exception as e:
+        logger.exception("Error in /api/code/generate")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# POST /api/code/debug — Analyze error logs / exceptions
+# ---------------------------------------------------------------------------
+@app.route("/api/code/debug", methods=["POST"])
+def api_code_debug():
+    """Analyze runtime exceptions and recommend fixes."""
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        logs = data.get("logs", data.get("error", "")).strip()
+        if not logs:
+            return jsonify({"status": "error", "message": "logs or error text is required"}), 400
+
+        _get_components()
+        if _agent_service and _agent_service.bug_analyzer:
+            result = _agent_service.bug_analyzer.analyze(logs)
+            if _agent_service.rag_memory:
+                try:
+                    _agent_service.rag_memory.remember(
+                        f"Bug analysis: {result.get('root_cause')} -> Fix: {result.get('fix')}",
+                        "coding_bug",
+                    )
+                except Exception:
+                    pass
+            return jsonify({"status": "success", "result": result})
+
+        return jsonify({"status": "error", "message": "Bug analyzer not initialised"}), 503
+    except Exception as e:
+        logger.exception("Error in /api/code/debug")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# POST /api/code/review — Code quality review
+# ---------------------------------------------------------------------------
+@app.route("/api/code/review", methods=["POST"])
+def api_code_review():
+    """Analyze source code quality (security, performance, SOLID)."""
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        code = data.get("code", "").strip()
+        if not code:
+            return jsonify({"status": "error", "message": "code is required"}), 400
+
+        _get_components()
+        if _agent_service and _agent_service.code_reviewer:
+            result = _agent_service.code_reviewer.review(code)
+            if _agent_service.rag_memory:
+                try:
+                    _agent_service.rag_memory.remember(
+                        f"Code review: Grade {result.get('grade')}",
+                        "coding_review",
+                    )
+                except Exception:
+                    pass
+            return jsonify({"status": "success", "result": result})
+
+        return jsonify({"status": "error", "message": "Code reviewer not initialised"}), 503
+    except Exception as e:
+        logger.exception("Error in /api/code/review")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# POST /api/code/explain — Line-by-line code explanation
+# ---------------------------------------------------------------------------
+@app.route("/api/code/explain", methods=["POST"])
+def api_code_explain():
+    """Generate line-by-line explanations for source code."""
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        code = data.get("code", "").strip()
+        if not code:
+            return jsonify({"status": "error", "message": "code is required"}), 400
+
+        _get_components()
+        if _agent_service and _agent_service.code_explainer:
+            result = _agent_service.code_explainer.explain(code)
+            if _agent_service.rag_memory:
+                try:
+                    _agent_service.rag_memory.remember(
+                        f"Explained code: {result.get('summary')}",
+                        "coding_reference",
+                    )
+                except Exception:
+                    pass
+            return jsonify({"status": "success", "result": result})
+
+        return jsonify({"status": "error", "message": "Code explainer not initialised"}), 503
+    except Exception as e:
+        logger.exception("Error in /api/code/explain")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# POST /api/code/project — Generate project scaffolding
+# ---------------------------------------------------------------------------
+@app.route("/api/code/project", methods=["POST"])
+def api_code_project():
+    """Generate boilerplate project structures, configs, and Dockerfiles."""
+    try:
+        data         = request.get_json(force=True, silent=True) or {}
+        project_type = data.get("project_type", data.get("type", "")).strip()
+        name         = data.get("name", "").strip()
+        description  = data.get("description", "")
+        if not project_type or not name:
+            return jsonify({"status": "error", "message": "project_type and name are required"}), 400
+
+        _get_components()
+        if _agent_service and _agent_service.project_generator:
+            result = _agent_service.project_generator.generate(project_type, name, description)
+            
+            # Map compatibility fields for Android app client parser
+            result["language"] = result.get("project_type", "N/A")
+            blueprint = result.get("blueprint", {})
+            result["files"] = blueprint.get("files", [])
+            result["explanation"] = f"Scaffolded a new {project_type} project named '{name}' successfully."
+
+            if _agent_service.rag_memory:
+                try:
+                    _agent_service.rag_memory.remember(
+                        f"Generated project {name} ({project_type})",
+                        "coding_project",
+                    )
+                except Exception:
+                    pass
+            return jsonify({"status": "success", "result": result})
+
+        return jsonify({"status": "error", "message": "Project generator not initialised"}), 503
+    except Exception as e:
+        logger.exception("Error in /api/code/project")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# POST /api/code/test — Generate test suites
+# ---------------------------------------------------------------------------
+@app.route("/api/code/test", methods=["POST"])
+def api_code_test():
+    """Generate unit test suites for given source code."""
+    try:
+        data      = request.get_json(force=True, silent=True) or {}
+        code      = data.get("code", "").strip()
+        framework = data.get("framework", "")
+        if not code:
+            return jsonify({"status": "error", "message": "code is required"}), 400
+
+        _get_components()
+        if _agent_service and _agent_service.test_generator:
+            result = _agent_service.test_generator.generate(code, framework)
+            if _agent_service.rag_memory:
+                try:
+                    _agent_service.rag_memory.remember(
+                        f"Generated {result.get('framework')} tests",
+                        "coding_reference",
+                    )
+                except Exception:
+                    pass
+            return jsonify({"status": "success", "result": result})
+
+        return jsonify({"status": "error", "message": "Test generator not initialised"}), 503
+    except Exception as e:
+        logger.exception("Error in /api/code/test")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# POST /api/code/refactor — Refactor source code
+# ---------------------------------------------------------------------------
+@app.route("/api/code/refactor", methods=["POST"])
+def api_code_refactor():
+    """Detect and apply code refactoring improvements."""
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        code = data.get("code", "").strip()
+        if not code:
+            return jsonify({"status": "error", "message": "code is required"}), 400
+
+        _get_components()
+        if _agent_service and _agent_service.refactor_engine:
+            result = _agent_service.refactor_engine.refactor(code)
+            if _agent_service.rag_memory:
+                try:
+                    _agent_service.rag_memory.remember(
+                        f"Refactored code. Improvements: {', '.join(result.get('improvements', []))}",
+                        "coding_reference",
+                    )
+                except Exception:
+                    pass
+            return jsonify({"status": "success", "result": result})
+
+        return jsonify({"status": "error", "message": "Refactor engine not initialised"}), 503
+    except Exception as e:
+        logger.exception("Error in /api/code/refactor")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# POST /api/code/stacktrace — Parse and analyze stack traces
+# ---------------------------------------------------------------------------
+@app.route("/api/code/stacktrace", methods=["POST"])
+def api_code_stacktrace():
+    """Parse stack traces and identify offending file, line, method, and issue."""
+    try:
+        data  = request.get_json(force=True, silent=True) or {}
+        trace = data.get("trace", data.get("stacktrace", "")).strip()
+        if not trace:
+            return jsonify({"status": "error", "message": "trace or stacktrace is required"}), 400
+
+        _get_components()
+        if _agent_service and _agent_service.stacktrace_analyzer:
+            result = _agent_service.stacktrace_analyzer.analyze(trace)
+            if _agent_service.rag_memory:
+                try:
+                    _agent_service.rag_memory.remember(
+                        f"Stack trace: {result.get('file')}:{result.get('line')} -> {result.get('issue')}",
+                        "coding_bug",
+                    )
+                except Exception:
+                    pass
+            return jsonify({"status": "success", "result": result})
+
+        return jsonify({"status": "error", "message": "StackTrace analyzer not initialised"}), 503
+    except Exception as e:
+        logger.exception("Error in /api/code/stacktrace")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# GET /api/code/history — Retrieve coding-related memory entries
+# ---------------------------------------------------------------------------
+@app.route("/api/code/history", methods=["GET"])
+def api_code_history():
+    """Retrieve recent coding-related events from memory."""
+    try:
+        _get_components()
+        limit = int(request.args.get("limit", 20))
+
+        if _agent_service and _agent_service.rag_memory:
+            coding_categories = ["coding_project", "coding_bug", "coding_review", "coding_reference"]
+            results = []
+            for cat in coding_categories:
+                try:
+                    items = _agent_service.rag_memory.recall(cat, top_k=limit)
+                    if isinstance(items, list):
+                        results.extend(items)
+                except Exception:
+                    pass
+            # Sort by timestamp if available, limit total
+            results = results[:limit]
+            return jsonify({"status": "success", "history": results, "total": len(results)})
+
+        return jsonify({"status": "success", "history": [], "total": 0})
+    except Exception as e:
+        logger.exception("Error in /api/code/history")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 # ===========================================================================
 # SOCKET.IO
 # ===========================================================================
+
 
 @socketio.on("connect")
 def on_connect():

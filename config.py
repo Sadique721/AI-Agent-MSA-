@@ -60,3 +60,63 @@ USER_PROFILE = {
     ],
     "project": "MSA AI Agent - Offline Multi Device AI Assistant"
 }
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NEW: Architecture Upgrade Feature Flags
+# Set any flag to False to disable that subsystem (backward-compatible)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Upgrade 1: Hinglish / Hindi / English Language Engine
+ENABLE_HINGLISH_ENGINE = True
+
+# Upgrade 2: Multi-step Planner Agent
+ENABLE_PLANNER         = True
+
+# Upgrade 3: RAG Memory (FAISS + SQLite semantic search)
+ENABLE_RAG_MEMORY      = True
+
+# Upgrade 4: Playwright Browser Agent
+ENABLE_BROWSER_AGENT   = True
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE-2: Reasoning-Based Autonomous Agent Feature Flags
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Upgrade 5: Reasoning Engine — goal extraction, risk detection, dependency graph
+ENABLE_REASONING_ENGINE  = True
+
+# Upgrade 6: Validator — step / result / final output validation
+ENABLE_VALIDATOR         = True
+
+# Upgrade 7: Auto-Replan — retry on failure up to MAX_REPLAN_RETRIES times
+ENABLE_AUTO_REPLAN       = True
+
+# Upgrade 8: Mobile Reasoning — device capability context from Android APK
+ENABLE_MOBILE_REASONING  = True
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE-3: Coding Agent Feature Flags
+# ═══════════════════════════════════════════════════════════════════════════════
+ENABLE_CODING_AGENT         = True
+ENABLE_STACKTRACE_ANALYZER  = True
+ENABLE_BUG_ANALYZER         = True
+ENABLE_CODE_GENERATOR       = True
+ENABLE_TEST_GENERATOR       = True
+ENABLE_CODE_REVIEW          = True
+ENABLE_PROJECT_GENERATOR    = True
+ENABLE_REFACTOR_ENGINE      = True
+ENABLE_CODE_EXPLAINER       = True
+
+# Maximum number of replan attempts before giving up
+MAX_REPLAN_RETRIES       = 3
+
+# ── RAG Memory Paths ──────────────────────────────────────────────────────────
+FAISS_INDEX_PATH  = os.path.join(PROJECT_ROOT, "data", "memory", "msa_vectors.faiss")
+FAISS_META_PATH   = os.path.join(PROJECT_ROOT, "data", "memory", "msa_vectors_meta.json")
+# Offline embedding model (downloads ~80 MB once, fully offline after that)
+EMBEDDING_MODEL   = "sentence-transformers/all-MiniLM-L6-v2"
+
+# ── Browser Agent Config ──────────────────────────────────────────────────────
+BROWSER_HEADLESS   = False          # False = visible browser window
+BROWSER_TYPE       = "chromium"     # chromium | firefox | webkit
+BROWSER_TIMEOUT_MS = 30000          # 30-second page load timeout

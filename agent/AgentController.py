@@ -106,7 +106,7 @@ class AgentController:
             "status": "online",
             "subsystems": {
                 "stt":             "ok" if stt_ok    else "degraded (model missing)",
-                "decision_engine": "ok (LLM)" if llm_ok else "ok (keyword fallback)" if engine_ok else "degraded",
+                "decision_engine": "ok (LLM)" if llm_ok else "ok" if engine_ok else "degraded",
                 "memory":          "ok" if mem else "degraded",
                 "security":        "ok",
             },

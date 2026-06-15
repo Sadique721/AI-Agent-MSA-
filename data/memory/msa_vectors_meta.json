@@ -1,0 +1,952 @@
+[
+  {
+    "text": "My B.Tech graduation project is the MSA AI Agent",
+    "timestamp": "2026-06-05T18:16:57.320061",
+    "category": "project"
+  },
+  {
+    "text": "I live in Bangalore",
+    "timestamp": "2026-06-05T18:16:57.328943",
+    "category": "preference"
+  },
+  {
+    "text": "Md Sadique Amin is a Software Engineer",
+    "timestamp": "2026-06-05T18:17:02.652754",
+    "category": "preference"
+  },
+  {
+    "text": "My B.Tech graduation project is the MSA AI Agent",
+    "timestamp": "2026-06-05T18:17:22.104755",
+    "category": "project"
+  },
+  {
+    "text": "I live in Bangalore",
+    "timestamp": "2026-06-05T18:17:22.116680",
+    "category": "preference"
+  },
+  {
+    "text": "Md Sadique Amin is a Software Engineer",
+    "timestamp": "2026-06-05T18:17:26.731211",
+    "category": "preference"
+  },
+  {
+    "text": "My B.Tech graduation project is the MSA AI Agent",
+    "timestamp": "2026-06-05T18:17:34.734389",
+    "category": "project"
+  },
+  {
+    "text": "I live in Bangalore",
+    "timestamp": "2026-06-05T18:17:34.744225",
+    "category": "preference"
+  },
+  {
+    "text": "Md Sadique Amin is a Software Engineer",
+    "timestamp": "2026-06-05T18:17:39.665938",
+    "category": "preference"
+  },
+  {
+    "text": "My B.Tech graduation project is the MSA AI Agent",
+    "timestamp": "2026-06-05T18:18:06.113580",
+    "category": "project"
+  },
+  {
+    "text": "I live in Bangalore",
+    "timestamp": "2026-06-05T18:18:06.122014",
+    "category": "preference"
+  },
+  {
+    "text": "Md Sadique Amin is a Software Engineer",
+    "timestamp": "2026-06-05T18:18:11.893980",
+    "category": "preference"
+  },
+  {
+    "text": "My B.Tech graduation project is the MSA AI Agent",
+    "timestamp": "2026-06-05T18:18:36.604254",
+    "category": "project"
+  },
+  {
+    "text": "I live in Bangalore",
+    "timestamp": "2026-06-05T18:18:36.613340",
+    "category": "preference"
+  },
+  {
+    "text": "Md Sadique Amin is a Software Engineer",
+    "timestamp": "2026-06-05T18:18:41.541713",
+    "category": "preference"
+  },
+  {
+    "text": "User said: open calculator | MSA replied: Opening calculator for you.",
+    "timestamp": "2026-06-05T18:51:08.593285",
+    "category": "conversation"
+  },
+  {
+    "text": "User said: hi | MSA replied: I received your message. How can I help you?",
+    "timestamp": "2026-06-05T18:54:21.847546",
+    "category": "conversation"
+  },
+  {
+    "text": "User said: give me hello world program in java lang | MSA replied: I received your message. How can I help you?",
+    "timestamp": "2026-06-05T18:54:42.380314",
+    "category": "conversation"
+  },
+  {
+    "text": "User said: no | MSA replied: I received your message. How can I help you?",
+    "timestamp": "2026-06-05T18:54:51.734788",
+    "category": "conversation"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-05T19:27:30.931399",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-05T19:27:30.947551",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-05T19:27:30.963478",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=?%, wifi=False, gps=False, apps installed=0",
+    "timestamp": "2026-06-05T19:27:30.979424",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=50%, wifi=False, gps=False, apps installed=0",
+    "timestamp": "2026-06-05T19:27:30.994151",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-05T19:27:31.013032",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-05T19:27:31.029047",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'call' on device test_device_001: ✗ failed. Call dropped after 2 seconds",
+    "timestamp": "2026-06-05T19:27:31.043503",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-05T19:27:31.061592",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-05T19:27:31.084659",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-05T19:27:31.099120",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-05T19:27:31.114448",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-05T19:27:31.137155",
+    "category": "fact"
+  },
+  {
+    "text": "My B.Tech graduation project is the MSA AI Agent",
+    "timestamp": "2026-06-05T19:27:36.138445",
+    "category": "project"
+  },
+  {
+    "text": "I live in Bangalore",
+    "timestamp": "2026-06-05T19:27:36.148123",
+    "category": "preference"
+  },
+  {
+    "text": "Md Sadique Amin is a Software Engineer",
+    "timestamp": "2026-06-05T19:27:40.828337",
+    "category": "preference"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-05T19:28:33.924424",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-05T19:28:33.945495",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-05T19:28:33.959849",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=?%, wifi=False, gps=False, apps installed=0",
+    "timestamp": "2026-06-05T19:28:33.974320",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=50%, wifi=False, gps=False, apps installed=0",
+    "timestamp": "2026-06-05T19:28:33.990214",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-05T19:28:34.008864",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-05T19:28:34.025620",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'call' on device test_device_001: ✗ failed. Call dropped after 2 seconds",
+    "timestamp": "2026-06-05T19:28:34.040587",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-05T19:28:34.059071",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-05T19:28:34.080885",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-05T19:28:34.098901",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-05T19:28:34.115768",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-05T19:28:34.140062",
+    "category": "fact"
+  },
+  {
+    "text": "My B.Tech graduation project is the MSA AI Agent",
+    "timestamp": "2026-06-05T19:28:39.896410",
+    "category": "project"
+  },
+  {
+    "text": "I live in Bangalore",
+    "timestamp": "2026-06-05T19:28:39.905597",
+    "category": "preference"
+  },
+  {
+    "text": "Md Sadique Amin is a Software Engineer",
+    "timestamp": "2026-06-05T19:28:44.735459",
+    "category": "preference"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-08T10:46:02.076140",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-08T10:46:02.097507",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-08T10:46:02.115057",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=?%, wifi=False, gps=False, apps installed=0",
+    "timestamp": "2026-06-08T10:46:02.134810",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=50%, wifi=False, gps=False, apps installed=0",
+    "timestamp": "2026-06-08T10:46:02.154537",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-08T10:46:02.178452",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-08T10:46:02.197842",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'call' on device test_device_001: ✗ failed. Call dropped after 2 seconds",
+    "timestamp": "2026-06-08T10:46:02.216005",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-08T10:46:02.245903",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-08T10:46:02.280889",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-08T10:46:02.303534",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-08T10:46:02.323537",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-08T10:46:02.349445",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-08T10:51:31.118521",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-08T10:51:31.145935",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-08T10:51:31.165457",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=?%, wifi=False, gps=False, apps installed=0",
+    "timestamp": "2026-06-08T10:51:31.187000",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=50%, wifi=False, gps=False, apps installed=0",
+    "timestamp": "2026-06-08T10:51:31.211157",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-08T10:51:31.239400",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-08T10:51:31.259484",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'call' on device test_device_001: ✗ failed. Call dropped after 2 seconds",
+    "timestamp": "2026-06-08T10:51:31.281559",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-08T10:51:31.302861",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-08T10:51:31.331447",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-08T10:51:31.351220",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-08T10:51:31.372467",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-08T10:51:31.401578",
+    "category": "fact"
+  },
+  {
+    "text": "My B.Tech graduation project is the MSA AI Agent",
+    "timestamp": "2026-06-08T10:51:34.819191",
+    "category": "project"
+  },
+  {
+    "text": "I live in Bangalore",
+    "timestamp": "2026-06-08T10:51:34.833944",
+    "category": "preference"
+  },
+  {
+    "text": "Md Sadique Amin is a Software Engineer",
+    "timestamp": "2026-06-08T10:51:38.268179",
+    "category": "preference"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-08T11:24:01.036914",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-08T11:24:01.060889",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-08T11:24:01.082771",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=?%, wifi=False, gps=False, apps installed=0",
+    "timestamp": "2026-06-08T11:24:01.107963",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=50%, wifi=False, gps=False, apps installed=0",
+    "timestamp": "2026-06-08T11:24:01.128481",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-08T11:24:01.151690",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-08T11:24:01.170929",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'call' on device test_device_001: ✗ failed. Call dropped after 2 seconds",
+    "timestamp": "2026-06-08T11:24:01.190387",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-08T11:24:01.209066",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-08T11:24:01.241965",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-08T11:24:01.264836",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-08T11:24:01.288547",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-08T11:24:01.342215",
+    "category": "fact"
+  },
+  {
+    "text": "My B.Tech graduation project is the MSA AI Agent",
+    "timestamp": "2026-06-08T11:24:04.972617",
+    "category": "project"
+  },
+  {
+    "text": "I live in Bangalore",
+    "timestamp": "2026-06-08T11:24:04.987941",
+    "category": "preference"
+  },
+  {
+    "text": "Md Sadique Amin is a Software Engineer",
+    "timestamp": "2026-06-08T11:24:08.544223",
+    "category": "preference"
+  },
+  {
+    "text": "User said: Find Java jobs then save top 20 | MSA replied: I have successfully completed the multi-step plan:\n- Step 1: internet_search\n- Step 2: internet_search\n\n✓ Result: Excellent — task completed successfully.",
+    "timestamp": "2026-06-08T11:31:18.773579",
+    "category": "conversation"
+  },
+  {
+    "text": "Find Java jobs then save top 20",
+    "timestamp": "2026-06-08T11:31:18.792340",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-08T12:41:57.902794",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-08T12:41:57.924721",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-08T12:41:57.943012",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=?%, wifi=False, gps=False, apps installed=0",
+    "timestamp": "2026-06-08T12:41:57.960371",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=50%, wifi=False, gps=False, apps installed=0",
+    "timestamp": "2026-06-08T12:41:57.977739",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-08T12:41:57.997701",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-08T12:41:58.015125",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'call' on device test_device_001: ✗ failed. Call dropped after 2 seconds",
+    "timestamp": "2026-06-08T12:41:58.032446",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-08T12:41:58.050540",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-08T12:41:58.075353",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-08T12:41:58.094152",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-08T12:41:58.111617",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-08T12:41:58.132785",
+    "category": "fact"
+  },
+  {
+    "text": "My B.Tech graduation project is the MSA AI Agent",
+    "timestamp": "2026-06-08T12:42:01.686399",
+    "category": "project"
+  },
+  {
+    "text": "I live in Bangalore",
+    "timestamp": "2026-06-08T12:42:01.697073",
+    "category": "preference"
+  },
+  {
+    "text": "Md Sadique Amin is a Software Engineer",
+    "timestamp": "2026-06-08T12:42:05.446863",
+    "category": "preference"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-15T11:02:22.864838",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-15T11:02:22.890346",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-15T11:02:22.908453",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=?%, wifi=False, gps=False, apps installed=0",
+    "timestamp": "2026-06-15T11:02:22.927320",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=50%, wifi=False, gps=False, apps installed=0",
+    "timestamp": "2026-06-15T11:02:22.946113",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-15T11:02:22.969141",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-15T11:02:22.988207",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'call' on device test_device_001: ✗ failed. Call dropped after 2 seconds",
+    "timestamp": "2026-06-15T11:02:23.007695",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-15T11:02:23.025998",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-15T11:02:23.054958",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-15T11:02:23.074220",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-15T11:02:23.093401",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-15T11:02:23.118910",
+    "category": "fact"
+  },
+  {
+    "text": "My B.Tech graduation project is the MSA AI Agent",
+    "timestamp": "2026-06-15T11:02:26.823650",
+    "category": "project"
+  },
+  {
+    "text": "I live in Bangalore",
+    "timestamp": "2026-06-15T11:02:26.837347",
+    "category": "preference"
+  },
+  {
+    "text": "Md Sadique Amin is a Software Engineer",
+    "timestamp": "2026-06-15T11:02:30.380896",
+    "category": "preference"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-15T11:04:05.479209",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-15T11:04:05.502376",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-15T11:04:05.517434",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=?%, wifi=False, gps=False, apps installed=0",
+    "timestamp": "2026-06-15T11:04:05.533422",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=50%, wifi=False, gps=False, apps installed=0",
+    "timestamp": "2026-06-15T11:04:05.549151",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-15T11:04:05.565636",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-15T11:04:05.582021",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'call' on device test_device_001: ✗ failed. Call dropped after 2 seconds",
+    "timestamp": "2026-06-15T11:04:05.598560",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-15T11:04:05.615983",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-15T11:04:05.636011",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-15T11:04:05.654879",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-15T11:04:05.671624",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-15T11:04:05.694084",
+    "category": "fact"
+  },
+  {
+    "text": "My B.Tech graduation project is the MSA AI Agent",
+    "timestamp": "2026-06-15T11:04:09.243269",
+    "category": "project"
+  },
+  {
+    "text": "I live in Bangalore",
+    "timestamp": "2026-06-15T11:04:09.253049",
+    "category": "preference"
+  },
+  {
+    "text": "Md Sadique Amin is a Software Engineer",
+    "timestamp": "2026-06-15T11:04:12.775669",
+    "category": "preference"
+  },
+  {
+    "text": "Generated javascript code: Generated NodeJS Express REST endpoint script featuring customer search and creation.",
+    "timestamp": "2026-06-15T11:04:52.654304",
+    "category": "coding_project"
+  },
+  {
+    "text": "Mobile device: battery=100%, wifi=True, gps=True, apps installed=3",
+    "timestamp": "2026-06-15T11:48:47.434744",
+    "category": "fact"
+  },
+  {
+    "text": "User said: open notepad | MSA replied: Opening notepad for you.",
+    "timestamp": "2026-06-15T11:49:52.340531",
+    "category": "conversation"
+  },
+  {
+    "text": "Open notepad",
+    "timestamp": "2026-06-15T11:49:52.416005",
+    "category": "fact"
+  },
+  {
+    "text": "User said: open calculator | MSA replied: Opening calculator for you.",
+    "timestamp": "2026-06-15T11:50:01.518778",
+    "category": "conversation"
+  },
+  {
+    "text": "Open calculator",
+    "timestamp": "2026-06-15T11:50:01.650573",
+    "category": "fact"
+  },
+  {
+    "text": "User said: open browser | MSA replied: Opening chrome for you.",
+    "timestamp": "2026-06-15T11:50:09.263521",
+    "category": "conversation"
+  },
+  {
+    "text": "Open browser",
+    "timestamp": "2026-06-15T11:50:09.366637",
+    "category": "fact"
+  },
+  {
+    "text": "User said: open cmd | MSA replied: Opening cmd for you.",
+    "timestamp": "2026-06-15T11:50:19.183621",
+    "category": "conversation"
+  },
+  {
+    "text": "Open cmd",
+    "timestamp": "2026-06-15T11:50:19.282711",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=100%, wifi=True, gps=True, apps installed=3",
+    "timestamp": "2026-06-15T12:01:11.576495",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=100%, wifi=True, gps=True, apps installed=3",
+    "timestamp": "2026-06-15T12:01:11.598125",
+    "category": "fact"
+  },
+  {
+    "text": "User said: open notepad | MSA replied: Opening notepad for you.",
+    "timestamp": "2026-06-15T12:03:43.356112",
+    "category": "conversation"
+  },
+  {
+    "text": "Open notepad",
+    "timestamp": "2026-06-15T12:03:43.392953",
+    "category": "fact"
+  },
+  {
+    "text": "User said: search python | MSA replied: Searching the web for: python",
+    "timestamp": "2026-06-15T12:03:47.483594",
+    "category": "conversation"
+  },
+  {
+    "text": "Search python",
+    "timestamp": "2026-06-15T12:03:47.511983",
+    "category": "fact"
+  },
+  {
+    "text": "User said: what can you do | MSA replied: Aapka message mila. Kaise help karun?",
+    "timestamp": "2026-06-15T12:03:47.634193",
+    "category": "conversation"
+  },
+  {
+    "text": "What  do",
+    "timestamp": "2026-06-15T12:03:47.669422",
+    "category": "fact"
+  },
+  {
+    "text": "User said: open calculator | MSA replied: Opening calculator for you.",
+    "timestamp": "2026-06-15T12:03:47.796271",
+    "category": "conversation"
+  },
+  {
+    "text": "Open calculator",
+    "timestamp": "2026-06-15T12:03:47.839898",
+    "category": "fact"
+  },
+  {
+    "text": "User said: open notepad | MSA replied: Opening notepad for you.",
+    "timestamp": "2026-06-15T12:06:05.007073",
+    "category": "conversation"
+  },
+  {
+    "text": "Open notepad",
+    "timestamp": "2026-06-15T12:06:05.033433",
+    "category": "fact"
+  },
+  {
+    "text": "User said: search python | MSA replied: Searching the web for: python",
+    "timestamp": "2026-06-15T12:06:07.512144",
+    "category": "conversation"
+  },
+  {
+    "text": "Search python",
+    "timestamp": "2026-06-15T12:06:07.529688",
+    "category": "fact"
+  },
+  {
+    "text": "User said: what can you do | MSA replied: Aapka message mila. Kaise help karun?",
+    "timestamp": "2026-06-15T12:06:07.576295",
+    "category": "conversation"
+  },
+  {
+    "text": "What  do",
+    "timestamp": "2026-06-15T12:06:07.596342",
+    "category": "fact"
+  },
+  {
+    "text": "User said: open calculator | MSA replied: Opening calculator for you.",
+    "timestamp": "2026-06-15T12:06:07.665549",
+    "category": "conversation"
+  },
+  {
+    "text": "Open calculator",
+    "timestamp": "2026-06-15T12:06:07.686588",
+    "category": "fact"
+  },
+  {
+    "text": "Code review: Grade A",
+    "timestamp": "2026-06-15T12:11:12.804174",
+    "category": "coding_review"
+  },
+  {
+    "text": "Stack trace: UnknownSource.java:42 -> unparsed runtime exception",
+    "timestamp": "2026-06-15T12:13:40.772505",
+    "category": "coding_bug"
+  },
+  {
+    "text": "Generated project todo-app (react)",
+    "timestamp": "2026-06-15T12:19:45.938303",
+    "category": "coding_project"
+  },
+  {
+    "text": "Generated project todo-app (react)",
+    "timestamp": "2026-06-15T12:27:57.027288",
+    "category": "coding_project"
+  },
+  {
+    "text": "User said: open notepad | MSA replied: Opening notepad for you.",
+    "timestamp": "2026-06-15T12:36:18.346655",
+    "category": "conversation"
+  },
+  {
+    "text": "Open notepad",
+    "timestamp": "2026-06-15T12:36:18.379025",
+    "category": "fact"
+  },
+  {
+    "text": "User said: open notepad | MSA replied: Opening notepad for you.",
+    "timestamp": "2026-06-15T12:44:19.547715",
+    "category": "conversation"
+  },
+  {
+    "text": "Open notepad",
+    "timestamp": "2026-06-15T12:44:19.565516",
+    "category": "fact"
+  },
+  {
+    "text": "User said: search python | MSA replied: Searching the web for: python",
+    "timestamp": "2026-06-15T12:44:22.310480",
+    "category": "conversation"
+  },
+  {
+    "text": "Search python",
+    "timestamp": "2026-06-15T12:44:22.326490",
+    "category": "fact"
+  },
+  {
+    "text": "User said: what can you do | MSA replied: Aapka message mila. Kaise help karun?",
+    "timestamp": "2026-06-15T12:44:22.376928",
+    "category": "conversation"
+  },
+  {
+    "text": "What  do",
+    "timestamp": "2026-06-15T12:44:22.391856",
+    "category": "fact"
+  },
+  {
+    "text": "User said: open calculator | MSA replied: Opening calculator for you.",
+    "timestamp": "2026-06-15T12:44:22.462116",
+    "category": "conversation"
+  },
+  {
+    "text": "Open calculator",
+    "timestamp": "2026-06-15T12:44:22.483397",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=100%, wifi=True, gps=True, apps installed=3",
+    "timestamp": "2026-06-15T12:47:15.429855",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=100%, wifi=True, gps=True, apps installed=3",
+    "timestamp": "2026-06-15T12:47:15.445329",
+    "category": "fact"
+  }
+]
