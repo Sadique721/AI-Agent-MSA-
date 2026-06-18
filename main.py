@@ -51,7 +51,7 @@ def run_background_workers() -> None:
 # Entry point
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    logger.info("MSA AI Agent initialising …")
+    logger.info("MSA AI AGENT initialising …")
 
     # Start background daemon
     bg_thread = threading.Thread(

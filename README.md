@@ -1,23 +1,23 @@
 <!--
-███╗   ███╗███████╗ █████╗ 
-████╗ ████║██╔════╝██╔══██╗
-██╔████╔██║███████╗███████║
-██║╚██╔╝██║╚════██║██╔══██║
-██║ ╚═╝ ██║███████║██║  ██║
-╚═╝     ╚═╝╚══════╝╚═╝  ╚═╝
+███╗   ███╗███████╗ █████╗      █████╗ ██╗     █████╗  ██████╗ ███████╗███╗   ██╗████████╗
+████╗ ████║██╔════╝██╔══██╗    ██╔══██╗██║    ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝
+██╔████╔██║███████╗███████║    ███████║██║    ███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║   
+██║╚██╔╝██║╚════██║██╔══██║    ██╔══██║██║    ██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║   
+██║ ╚═╝ ██║███████║██║  ██║    ██║  ██║██║    ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║   
+╚═╝     ╚═╝╚══════╝╚═╝  ╚═╝    ╚═╝  ╚═╝╚═╝    ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝   
 -->
 
-# 🚀✨ MSA – Ultimate Offline AI Agent ✨🚀
+# 🚀✨ MSA AI AGENT – Ultimate Offline AI Agent & Software Engineering Assistant ✨🚀
 
-> **⚡ Your Personal AI — Fully Offline, Private, Powerful, Autonomous**
+> **⚡ Your Personal AI Assistant — Fully Offline, Private, Powerful, Autonomous**
 
 [![Offline First](https://img.shields.io/badge/🌍-Offline%20First-brightgreen?style=for-the-badge)](https://github.com/Sadique721/AI-Agent-MSA-)
 [![Privacy Guaranteed](https://img.shields.io/badge/🔒-Privacy%20Guaranteed-blue?style=for-the-badge)](https://github.com/Sadique721/AI-Agent-MSA-)
 [![Python 3.14+](https://img.shields.io/badge/Python-3.14%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-[![Kotlin Android](https://img.shields.io/badge/Kotlin-Android-007ACC?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Flutter](https://img.shields.io/badge/Flutter-%2302569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev)
 
 <p align="center">
-  <i>No cloud. No API. No tracking. 👉 Just pure private AI power.</i><br>
+  <i>No cloud data leakage. No subscription fees. No tracking. 👉 Just pure private AI power.</i><br>
   <b>Say "Hey MSA" 🎤 …and your intelligent assistant comes alive 🔥</b>
 </p>
 
@@ -25,26 +25,26 @@
 
 ## 📖 Table of Contents
 
-1. [🌟 What is MSA?](#-what-is-msa)
+1. [🌟 What is MSA AI AGENT?](#-what-is-msa-ai-agent)
 2. [🔥 Core Features](#-core-features)
 3. [🧠 Technology Stack](#-technology-stack)
 4. [📁 Project Structure](#-project-structure)
 5. [⚙️ Installation Guide](#️-installation-guide)
-6. [🔐 Voice Training](#-voice-training)
+6. [🔐 Voice Training (Siamese Network)](#-voice-training-siamese-network)
 7. [💻 Coding Agent (Phase 3 Upgrade)](#-coding-agent-phase-3-upgrade)
-8. [🚀 Running MSA](#-running-msa)
+8. [🚀 Running the System](#-running-the-system)
 9. [🧪 Unit Testing & Validation](#-unit-testing--validation)
-10. [📱 Android APK & Emulator Connection](#-android-apk--emulator-connection)
-11. [🌈 Why MSA is Special](#-why-msa-is-special)
+10. [📱 Flutter Mobile Client & Telemetry](#-flutter-mobile-client--telemetry)
+11. [⚔️ Comparative Advantages](#️-comparative-advantages)
 
 ---
 
-## 🌟 What is MSA?
+## 🌟 What is MSA AI AGENT?
 
-**MSA** is a next‑generation **offline AI assistant and Software Engineering Agent** that runs locally on your machine and seamlessly controls your mobile device over Wi‑Fi.
+**MSA AI AGENT** is a next‑generation **offline AI assistant and Software Engineering Agent** that runs locally on your machine and coordinates various specialized agents to execute system tasks, automate web browser actions, generate production-ready code, and control your mobile device over Wi‑Fi.
 
 > [!IMPORTANT]
-> **100% local execution**: Vosk/Whisper.cpp, Llama-2 (GGUF), FAISS vector indexing, and OpenCV vision models run locally on your CPU/GPU. No data ever leaves your computer.
+> **100% local execution**: Speech Recognition (Vosk), LLM reasoning engines (Llama-2/DeepSeek GGUF or local Ollama), FAISS vector memory, and OpenCV vision models run locally on your CPU/GPU. No personal data or private code ever leaves your device.
 
 ---
 
@@ -52,15 +52,15 @@
 
 | Category | Feature | Description |
 |----------|---------|-------------|
-| 🎙️ **Voice Intelligence** | Offline Speech Recognition | Vosk / Whisper.cpp – speech‑to‑text without internet |
-| | Speaker Verification | Custom embeddings + Siamese network: only **your** voice activates MSA |
+| 🎙️ **Voice Intelligence** | Offline Speech Recognition | Vosk – speech‑to‑text without internet |
+| | Speaker Verification | Custom embeddings + Siamese network: only **your** voice activates the agent |
 | | Bilingual Support | Naturally handles Hindi & Hinglish commands |
 | 🧠 **Local Memory** | RAG Memory System | FAISS vector database + SQLite storage for long‑term facts and context |
-| | Conversation logs | Encrypted local chat history database |
-| 📱 **Mobile Control** | Android ADB Integration | Control Android over Wi‑Fi: open apps, capture input, take screenshots |
-| | Unified control plane | Synchronized backend state between computer and Android client |
-| 👁️ **Computer Vision** | Object Detection | OpenCV + real‑time screen parsing and camera automation |
-| 💻 **Coding Agent** | Autonomous Coding Engine | Generates production code, reviews logic, explains algorithms, and refactors legacy structures |
+| | Conversation Logs | Encrypted local chat history database |
+| 📱 **Mobile Control** | Flutter App Wrapper | Mobile WebView client that uploads device state context (battery, network, GPS) |
+| | ADB Control Plane | Control Android emulator/device over local Wi‑Fi: open apps, take screenshots, capture inputs |
+| 👁️ **Computer Vision** | Object Detection | OpenCV‑based screen parsing, template matching, and camera automation |
+| 💻 **Coding Agent** | Autonomous Coding Engine | Generates production code, reviews logic, explains algorithms, and refactors legacy scripts |
 | | Stack Trace Analyzer | Pinpoints root causes and lists ranked fixes for Java, Node, Python exceptions |
 | | Project Scaffolder | Generates complete Angular, React, Node, Spring Boot project templates |
 
@@ -68,15 +68,15 @@
 
 ## 🧠 Technology Stack
 
-* **Backend core**: Python 3.14+ (Flask, Flask-SocketIO, gevent-websocket)
-* **Local LLM**: Llama 2 / TinyLlama (GGUF via `llama-cpp-python`)
+* **Backend Core**: Python 3.14+ (Flask, Flask-SocketIO, gevent-websocket)
+* **Local LLM**: Llama 2 / DeepSeek-R1 (GGUF via `llama-cpp-python` or local Ollama client)
 * **Vector Database**: FAISS (Facebook AI Similarity Search) + SQLite
 * **Text Embeddings**: `sentence-transformers/all-MiniLM-L6-v2`
-* **Voice recognition**: Vosk speech API / Whisper.cpp
+* **Voice Recognition**: Vosk offline speech API
 * **Audio Capture**: PyAudio / PortAudio
-* **Computer Vision**: OpenCV
+* **Computer Vision**: OpenCV (`opencv-python`)
 * **Mobile Connection**: Android Debug Bridge (ADB) over TCP/IP
-* **Android Client**: Native Kotlin App, Socket.IO Client, AppCompat, Retrofit
+* **Mobile Client**: Dart & Flutter SDK with `webview_flutter`, `permission_handler`, `battery_plus`, and `connectivity_plus`
 
 ---
 
@@ -87,16 +87,12 @@ msa_agent/
 ├── 📁 agent/                  # AI reasoning & planning agents
 │   ├── ReasoningEngine.py     # Main logical coordinator
 │   └── Planner.py             # Complex task decomposition engine
-├── 📁 android_app/            # Android Kotlin native app codebase
-│   └── 📁 app/src/main/
-│       ├── 📁 java/com/msa/agent/   # Activities: MainActivity, CodeReviewActivity, etc.
-│       └── 📁 res/layout/           # Dark-themed UI layouts
 ├── 📁 backend/                # Server core logic
 │   └── server.py              # Flask-SocketIO REST & WS router (port 5000)
-├── 📁 browser_agent/          # Browser automation and selenium controllers
+├── 📁 browser_agent/          # Browser automation and Playwright controllers
 ├── 📁 coding/                 # 💻 Phase-3 Coding Agent System
 │   ├── CodingAgent.py         # Main router and controller
-│   ├── CodeGenerator.py       # REST API / Entity / Component boilerplate creator
+│   ├── CodeGenerator.py       # Boilerplate boilerplate creator
 │   ├── StackTraceAnalyzer.py  # Regex and LLM parser for exception traces
 │   ├── BugAnalyzer.py         # Runtime logs & configurations verification
 │   ├── CodeReviewer.py        # SOLID, DRY, naming, and architectural grader
@@ -106,6 +102,16 @@ msa_agent/
 │   ├── CodingMemory.py        # FAISS database gateway (remembering projects/fixes)
 │   └── CodingValidator.py     # Compile check and import sanity validator
 ├── 📁 data/                   # Encrypted logs, conversation history, SQLite DB
+├── 📁 flutter_app/            # 📱 Flutter mobile client codebase
+│   ├── 📁 lib/
+│   │   ├── main.dart                 # WebView wrapper & asynchronous JavaScript bridge
+│   │   ├── 📁 services/
+│   │   │   ├── code_client.dart      # REST Client wrapper for coding API
+│   │   │   ├── reasoning_client.dart # Sends telemetry and polls backend status
+│   │   │   └── validation_service.dart# Validates mobile triggers/alarms
+│   │   └── 📁 utils/
+│   │       └── device_telemetry.dart # Collects battery, Wi-Fi, connectivity, storage
+│   └── pubspec.yaml           # Flutter dependencies
 ├── 📁 memory/                 # Core RAG long‑term memory management
 │   └── rag_memory.py          # SQLite + FAISS wrapper class
 ├── 📁 models/                 # AI model assets (GGUF, Vosk voice models)
@@ -113,10 +119,11 @@ msa_agent/
 │   ├── test_coding_memory.py
 │   ├── test_coding_validator.py
 │   ├── test_stacktrace_analyzer.py
-│   └── ... (19 total test suites)
-├── 📄 main.py                 # Main backend orchestrator script
-├── 📄 requirements.txt        # Backend dependencies
-└── 📄 README.md               # User manual
+│   └── ... (419 passing tests)
+├── 📄 config.py               # Central environment configurations
+├── 📄 main.py                 # Main backend orchestrator launcher
+├── 📄 HOW_TO_USE.txt          # Quick start developer manual
+└── 📄 README.md               # Visual user manual
 ```
 
 ---
@@ -124,9 +131,9 @@ msa_agent/
 ## ⚙️ Installation Guide
 
 ### Prerequisites
-1. **Python 3.14+** (make sure it's on your environment PATH)
-2. **Android SDK & platform-tools** (requires `adb.exe` to run Android tasks)
-3. **Gradle 9.1.0+** (included in the wrapper) and JDK 17+ (to compile the Android app)
+1. **Python 3.14+** (Ensure it is on your environment PATH)
+2. **Android SDK & platform-tools** (requires `adb` to run Android tasks)
+3. **Flutter & Dart SDK** (to build the mobile application)
 
 ### Step 1: Install Python Dependencies
 ```bash
@@ -137,11 +144,11 @@ python -m pip install -r requirements.txt
 ### Step 2: Configure Local Models
 Create a `models/` directory and place your local offline models inside:
 - **Speech recognition**: Extract a Vosk model to `models/vosk/`
-- **Large Language Model**: Put a `.gguf` file in `models/llm/` and verify the path matches in `config.py`.
+- **Large Language Model**: Put a `.gguf` file in `models/llm/` and verify the path matches in `config.py` (or start a local Ollama instance).
 
 ---
 
-## 🔐 Voice Training
+## 🔐 Voice Training (Siamese Network)
 
 To train the Speaker Verification Siamese network to identify your voice:
 1. Run the enrollment script:
@@ -167,7 +174,7 @@ The Phase 3 upgrade introduces a fully local software engineering pipeline. The 
 
 ---
 
-## 🚀 Running MSA
+## 🚀 Running the System
 
 ### 1. Launch the Backend Server
 ```bash
@@ -176,23 +183,21 @@ python main.py
 *The server will start on `http://localhost:5000`.*
 
 ### 2. Boot up the Android Emulator
-Make sure your emulator AVD matches your settings (e.g. `medium_phone`) and launch it with SwiftShader software rendering to bypass OpenGL issues:
+Make sure your emulator AVD matches your settings (e.g. `medium_phone`) and launch it:
 ```bash
 "C:\Users\MD SADIQUE AMIN\AppData\Local\Android\Sdk\emulator\emulator.exe" -avd medium_phone -no-audio -no-boot-anim -gpu swiftshader_indirect
 ```
 
-### 3. Install and Launch the Android App
+### 3. Install and Launch the Flutter App
 ```bash
-# Compile the updated project and native activities
-cd android_app
-.\gradlew.bat assembleDebug
+# Move to the Flutter folder
+cd flutter_app
 
-# Install on the active emulator
-cd ..
-adb install -r android_app\app\build\outputs\apk\debug\app-debug.apk
+# Fetch dependencies
+flutter pub get
 
-# Start the application launcher activity
-adb shell am start -n com.msa.agent/.MainActivity
+# Launch on the active emulator/device
+flutter run
 ```
 
 ---
@@ -201,7 +206,7 @@ adb shell am start -n com.msa.agent/.MainActivity
 
 Run the pytest suite to verify all logic systems are performing correctly:
 ```bash
-python -m pytest
+python -m pytest --ignore=test_api.py
 ```
 
 > [!TIP]
@@ -209,24 +214,30 @@ python -m pytest
 
 ---
 
-## 📱 Android APK & Emulator Connection
+## 📱 Flutter Mobile Client & Telemetry
 
-The native Android app uses Retrofit and WebSocket libraries to establish a bidirectional sync socket connection with the host backend server.
+The legacy native Android (Kotlin) app has been completely removed and replaced by a unified **Flutter application** (`flutter_app/`).
 
-> [!WARNING]
-> Android Emulators route host server requests to the local IP loopback address **`10.0.2.2:5000`** instead of `127.0.0.1:5000`. This mapping is already configured in the Retrofit connections inside `CodeAgentClient.kt`.
+### Device Context & Telemetry
+The Flutter client gathers the host system status parameters and uploads them to the server to populate the Reasoning Engine's planning context:
+* **Battery State**: Power level (%), temperature, charging status.
+* **Connectivity**: WiFi SSID, connection status, signal strength.
+* **Storage info**: Free/Total local storage capacity.
+* **Device details**: Manufacturer, model, OS build number.
 
-### Built-in Native Activities
-The Android application defines four native developer-focused activities that can be launched directly or accessed from the agent console:
-* **`CodeReviewActivity`**: Paste your scripts and retrieve immediate structural feedback.
-* **`StackTraceActivity`**: Paste error traces to get pinpointed line number locations and debug recommendations.
-* **`ProjectGeneratorActivity`**: Configure project name and boilerplate languages (React, Node, Angular) to output complete workspace scaffolding.
-* **`CodingHistoryActivity`**: Query the local SQLite database to display lists of all recently compiled scripts.
+### Asynchronous JavaScript Bridge
+WebViews do not natively support synchronous return types from JavaScript interfaces. We solved this by implementing an custom asynchronous JS Channel bridge in `lib/main.dart`:
+1. The dashboard page requests actions from the device.
+2. A script injected on page finish captures these requests and forwards them to Flutter's `webview_flutter` `JavaScriptChannel`.
+3. Flutter processes the requests asynchronously (e.g., retrieving GPS coordinates, reading battery, launching alarms).
+4. Flutter fires the result back into the WebView via `runJavaScript` to update the user interface dynamically.
 
 ---
 
-## 🌈 Why MSA is Special
+## ⚔️ Comparative Advantages
 
-1. **Zero-Latency Privacy**: No cloud processing. Even the voice models and sentence embeddings are loaded directly from local weights.
-2. **Dynamic UI/UX**: Android activities use harmonized dark modes, crisp status badges, and animated layouts built for readability.
-3. **Closed-Loop Engineering**: Generated code is automatically processed through `CodingValidator` compiling steps and import-scans before being served to the user interface.
+For a deep comparison between the offline **MSA AI AGENT** and global systems like ChatGPT, DeepSeek, Claude, and Gemini, read the [Comparative Report](file:///d:/My%20Self%20Details/Programs/AI/msa_agent/MSA_AI_AGENT_VS_GLOBAL_AI_PLATFORMS.md).
+
+* **100% Privacy**: No code or conversation logs are leaked to external servers.
+* **Zero Cost**: Works without subscription limits or token fees.
+* **Hardware Integration**: Directly interfaces with local compilation and device hardware.

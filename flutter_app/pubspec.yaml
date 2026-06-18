@@ -1,0 +1,27 @@
+name: msa_ai_agent
+description: "MSA AI AGENT Flutter Mobile App - Local-first privacy-respecting client"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  webview_flutter: ^4.4.2
+  http: ^1.1.0
+  permission_handler: ^11.0.1
+  battery_plus: ^5.0.1
+  connectivity_plus: ^5.0.2
+  device_info_plus: ^9.0.3
+  path_provider: ^2.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

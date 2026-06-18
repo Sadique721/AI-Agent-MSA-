@@ -1,0 +1,154 @@
+================================================================================
+                       MSA AI AGENT - USER & DEVELOPER MANUAL
+================================================================================
+
+Welcome to the official manual for the MSA AI AGENT, a cutting-edge, local-first,
+privacy-respecting multi-agent AI assistant and software engineering platform.
+This document outlines what technology is used, how to install and configure it, 
+and how to run both the local backend server and the Flutter-based mobile client.
+
+--------------------------------------------------------------------------------
+1. TECH STACK & ARCHITECTURE OVERVIEW
+--------------------------------------------------------------------------------
+The MSA AI AGENT is built with a dual-agent (Planner & Validator) framework that
+coordinates various expert sub-agents (Reasoning, Coding, Memory, Vision, Voice).
+The entire suite runs completely offline on your local machine, keeping your data
+secure and private.
+
+CORE TECHNOLOGIES:
+* Python 3.14+ (Backend engine running Flask, Flask-SocketIO & gevent-websocket)
+* Dart & Flutter SDK (Mobile application platform wrapper replacing legacy Kotlin)
+* Llama-cpp-python / Ollama (Quantized GGUF LLM execution for local reasoning)
+* Vosk Speech API (Offline Speech-to-Text conversion)
+* Sentence-Transformers (Offline text embeddings using all-MiniLM-L6-v2)
+* FAISS (Vector database for semantic RAG memory storage)
+* SQLite (Encrypted SQL database for conversation metadata and history storage)
+* OpenCV (Offline computer vision for temple-matching and screen automation)
+* Android Debug Bridge (ADB over TCP/IP for local device hardware control)
+
+--------------------------------------------------------------------------------
+2. DIRECTORY STRUCTURE
+--------------------------------------------------------------------------------
+msa_agent/
+├── agent/                  # AI reasoning & planner agents
+├── backend/                # Flask/SocketIO server implementation
+├── browser_agent/          # Playwright-based browser automation hooks
+├── coding/                 # Coding Agent: generator, reviewer, refactor engine
+├── data/                   # Local databases, FAISS indices & encrypted keys
+├── flutter_app/            # Flutter mobile application codebase
+│   ├── lib/
+│   │   ├── main.dart             # App Entry & WebView controller
+│   │   ├── services/             # Code agent, validation & reasoning APIs
+│   │   └── utils/                # Device capability & telemetry logs
+│   └── pubspec.yaml        # Flutter dependency manager
+├── language/               # Translation & Hinglish conversion engine
+├── memory/                 # RAG storage: FAISS vectors + SQLite metadata
+├── models/                 # Model assets (Vosk models, LLM GGUF weights)
+├── tools/                  # Registered tool execution contracts
+├── ui/                     # Front-end HTML/CSS dashboard and console pages
+├── voice/                  # Offline Speech-to-Text & Siamese Voice enrollment
+├── config.py               # Central environment configurations
+└── main.py                 # Primary entry point launcher
+
+--------------------------------------------------------------------------------
+3. INSTALLATION & SETUP GUIDE
+--------------------------------------------------------------------------------
+
+Prerequisites:
+  1. Python 3.14+ (Ensure Python is on system path)
+  2. Flutter & Dart SDK (Needed if building/compiling the Flutter app APK)
+  3. Android Platform Tools (adb.exe must be available in system path)
+  4. Visual Studio Build Tools (Required to compile llama-cpp-python on Windows)
+
+Step 1: Install Python dependencies
+  Open your command shell and run:
+  > python -m pip install -r requirements.txt
+
+Step 2: Configure Offline Models
+  The agent requires local models to operate. Create a folder structure under "models/":
+  
+  * Offline Speech Recognition (Vosk):
+    Download "vosk-model-small-en-us-0.15" from https://alphacephei.com/vosk/models
+    Extract it to:
+    models/vosk/vosk-model-small-en-us-0.15/
+
+  * Offline Large Language Model (LLM GGUF):
+    Download a compatible quantized model (e.g., llama-2-7b-chat.Q4_K_M.gguf or DeepSeek-R1-Distill-Q4_K_M.gguf)
+    Place the GGUF file under:
+    models/llm/llama-2-7b-chat.Q4_K_M.gguf
+    
+    (Note: If using a different file name, update the MODEL_LLM_PATH variable in config.py)
+
+Step 3: Setup Local Ollama Endpoint (Optional Alternative)
+  Instead of using llama-cpp-python, you can run Ollama locally for faster GPU speed:
+  1. Download and install Ollama (https://ollama.com/)
+  2. Pull a model: "ollama pull deepseek-r1:8b" or "ollama pull llama3"
+  3. The MSA AI AGENT backend can be configured to point to http://localhost:11434/v1
+
+--------------------------------------------------------------------------------
+4. VOICE PROFILE TRAINING (SIAMESE NETWORK)
+--------------------------------------------------------------------------------
+To protect your assistant from unauthorized execution, enroll your voice using the 
+Siamese verification network:
+  1. Run the voice enrollment script:
+     > python scripts/voice_enrollment.py
+  2. Say the wakeword "Hey MSA" when prompted.
+  3. The network calculates and stores a local voice vector profile to authorize
+     incoming vocal commands.
+
+--------------------------------------------------------------------------------
+5. RUNNING THE SYSTEM
+--------------------------------------------------------------------------------
+
+A. Launching the Backend Server
+  Run the main launcher:
+  > python main.py
+  This starts the Flask-SocketIO dashboard on: http://localhost:5000
+
+B. Setting up the Android Emulator & ADB Control
+  Ensure you have an active emulator running:
+  1. Boot your emulator using hardware-bypassing software rendering (recommended for Windows):
+     > "C:\Users\MD SADIQUE AMIN\AppData\Local\Android\Sdk\emulator\emulator.exe" -avd medium_phone -no-audio -no-boot-anim -gpu swiftshader_indirect
+  2. Verify adb is connected to the emulator:
+     > adb devices
+  3. Set up TCP/IP binding for remote/local control loop:
+     > adb tcpip 5555
+
+C. Launching the Flutter Mobile Client
+  The Flutter app is located inside "flutter_app/".
+  To build and run:
+  1. Open a terminal inside the directory:
+     > cd flutter_app
+  2. Retrieve packages:
+     > flutter pub get
+  3. Run the application on your active emulator or connected physical phone:
+     > flutter run
+  
+  The Flutter app will ask for critical device permissions (Record Audio, Location,
+  Phone State) and immediately render the MSA AI AGENT Dashboard using a secure,
+  performance-optimized WebView interface. It periodically transmits device telemetry
+  (battery status, WiFi connection, GPS coordinates) to feed backend context.
+
+--------------------------------------------------------------------------------
+6. API & INTERACTION PROTOCOLS
+--------------------------------------------------------------------------------
+
+The dashboard client communicates with the server via WebSockets and REST:
+* POST /api/execute         - Primary entrypoint. Accepts natural language/Hinglish instructions.
+* POST /api/code/generate   - Scaffolds boilerplate script files.
+* POST /api/code/review     - Reviews target code for DRY, SOLID, and security.
+* POST /api/code/stacktrace - Parses raw exception stacks and generates rank-ordered bug fixes.
+* POST /mobile/capabilities - Uploads device statistics.
+
+SECURITY PROTOCOL:
+* All requests are authenticated on local network interfaces using the secure key:
+  Header: X-MSA-Key: MSA_SECURE_123
+
+--------------------------------------------------------------------------------
+7. RUNNING TESTS
+--------------------------------------------------------------------------------
+The project contains 419 unit and integration tests verifying compiling mechanisms, 
+AST parsing, RAG FAISS recall, and multi-step plan replanning.
+To verify integrity, run:
+  > python -m pytest --ignore=test_api.py
+================================================================================

@@ -1,7 +1,7 @@
 """
 backend/server.py
 =================
-Flask + Flask-SocketIO server for the MSA AI Agent.
+Flask + Flask-SocketIO server for the MSA AI AGENT.
 
 Responsibilities:
   - Serves the Web UI at GET /
@@ -1081,7 +1081,7 @@ def api_code_history():
 @socketio.on("connect")
 def on_connect():
     logger.info("SocketIO client connected: %s", request.sid)
-    emit("connected", {"message": "MSA Agent online. Say 'Hey MSA' or type a command."})
+    emit("connected", {"message": "MSA AI AGENT online. Say 'Hey MSA' or type a command."})
 
 
 @socketio.on("disconnect")

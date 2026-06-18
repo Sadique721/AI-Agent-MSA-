@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MSA — Voice Assistant</title>
+<title>MSA AI AGENT — Voice Assistant</title>
 <meta name="description" content="MSA Voice Command Interface — A high-fidelity, local, voice-controlled UI with animated rings and real-time response.">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -100,8 +100,8 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 
   <!-- Title -->
   <div style="text-align:center">
-    <div class="title">M.S.A</div>
-    <div class="subtitle">MSA AI — Voice Command Interface</div>
+    <div class="title">MSA AI AGENT</div>
+    <div class="subtitle">MSA AI AGENT — Voice Command Interface</div>
   </div>
 
   <!-- Core Animation -->
@@ -111,7 +111,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
     <div class="ring ring-3"></div>
     <div class="core-inner">
       <div class="core-icon">🤖</div>
-      <div class="core-label">MSA ONLINE</div>
+      <div class="core-label">MSA AI AGENT ONLINE</div>
     </div>
   </div>
 
@@ -127,7 +127,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
   <!-- Display -->
   <div class="display">
     <div class="display-label">⬡ OUTPUT FEED</div>
-    <div class="display-text" id="display-text">Hello Sadique. MSA UI is online. Activate voice or type a command.</div>
+    <div class="display-text" id="display-text">Hello Sadique. MSA AI AGENT UI is online. Activate voice or type a command.</div>
   </div>
 
   <!-- Buttons -->
@@ -281,8 +281,8 @@ function setStatus(text){
 window.addEventListener('load', ()=>{
   window.speechSynthesis.onvoiceschanged = () => {};  // preload voices
   setTimeout(()=>{
-    setDisplay('Hello Sadique! MSA is online. Activate voice or type a command below.', 'agent');
-    speak('Hello Sadique, MSA is online and ready.');
+    setDisplay('Hello Sadique! MSA AI AGENT is online. Activate voice or type a command below.', 'agent');
+    speak('Hello Sadique, MSA AI AGENT is online and ready.');
   }, 800);
 });
 </script>
