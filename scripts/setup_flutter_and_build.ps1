@@ -4,7 +4,7 @@
 $ErrorActionPreference = "Stop"
 
 # Define Paths
-$ProjectRoot = "d:\My Self Details\Programs\AI\msa_agent"
+$ProjectRoot = (Get-Item $PSScriptRoot).Parent.FullName
 $ToolsDir = Join-Path $ProjectRoot "tools"
 $FlutterZip = Join-Path $ToolsDir "flutter_windows.zip"
 $FlutterDir = Join-Path $ToolsDir "flutter"
@@ -95,6 +95,9 @@ if (-not (Test-Path $AndroidDir)) {
     Remove-Item -Path (Join-Path $FlutterAppDir "pubspec.yaml") -Force
     Rename-Item -Path (Join-Path $FlutterAppDir "pubspec.yaml.backup") -NewName "pubspec.yaml" -Force
 }
+
+Write-Host "Running flutter clean..." -ForegroundColor Cyan
+& $FlutterExe clean
 
 Write-Host "Running flutter pub get..." -ForegroundColor Cyan
 & $FlutterExe pub get

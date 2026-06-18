@@ -145,6 +145,7 @@ class ReasoningEngine:
         user_input: str,
         context: Optional[List] = None,
         failure_hint: Optional[Dict] = None,
+        replan_attempt: int = 0,
     ) -> Dict[str, Any]:
         """
         Analyse user input and produce a reasoning packet.
@@ -153,6 +154,7 @@ class ReasoningEngine:
             user_input:   Raw user command (English / Hinglish).
             context:      Recent conversation context (list of strings).
             failure_hint: On replan, the Validator failure dict from previous attempt.
+            replan_attempt: Current replan retry attempt count.
 
         Returns:
             {
@@ -177,13 +179,13 @@ class ReasoningEngine:
         if self._llm:
             result = self._llm_reason(user_input, context)
             if result:
-                result["replan_attempt"] = 0
+                result["replan_attempt"] = replan_attempt
                 result["failure_hint"] = failure_hint
                 return result
 
         # Fall back to rule-based reasoning
         packet = self._rule_based_reason(lower, user_input, context)
-        packet["replan_attempt"] = 0
+        packet["replan_attempt"] = replan_attempt
         packet["failure_hint"] = failure_hint
 
         if failure_hint:

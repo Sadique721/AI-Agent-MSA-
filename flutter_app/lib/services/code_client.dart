@@ -16,7 +16,7 @@ class CodeClient {
         Uri.parse('$serverUrl/api/code/generate'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(payload),
-      );
+      ).timeout(const Duration(seconds: 30));
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       }
@@ -26,11 +26,12 @@ class CodeClient {
 
   Future<Map<String, dynamic>?> uploadLogs(String logs) async {
     try {
+      // FIX BUG-11: was /api/code/debug — correct endpoint is /api/code/analyze
       final response = await http.post(
-        Uri.parse('$serverUrl/api/code/debug'),
+        Uri.parse('$serverUrl/api/code/analyze'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'logs': logs}),
-      );
+      ).timeout(const Duration(seconds: 30));
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       }
@@ -44,7 +45,7 @@ class CodeClient {
         Uri.parse('$serverUrl/api/code/review'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'code': code}),
-      );
+      ).timeout(const Duration(seconds: 30));
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       }
@@ -58,7 +59,7 @@ class CodeClient {
         Uri.parse('$serverUrl/api/code/refactor'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'code': code}),
-      );
+      ).timeout(const Duration(seconds: 30));
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       }
@@ -72,7 +73,7 @@ class CodeClient {
         Uri.parse('$serverUrl/api/code/explain'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'code': code}),
-      );
+      ).timeout(const Duration(seconds: 30));
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       }
@@ -86,11 +87,12 @@ class CodeClient {
         'code': code,
         if (framework != null) 'framework': framework,
       };
+      // FIX BUG-12: was /api/code/test — correct endpoint is /api/code/tests
       final response = await http.post(
-        Uri.parse('$serverUrl/api/code/test'),
+        Uri.parse('$serverUrl/api/code/tests'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(payload),
-      );
+      ).timeout(const Duration(seconds: 30));
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       }
@@ -100,11 +102,12 @@ class CodeClient {
 
   Future<Map<String, dynamic>?> analyzeStackTrace(String trace) async {
     try {
+      // FIX BUG-13: was /api/code/stacktrace — aligned with backend route
       final response = await http.post(
         Uri.parse('$serverUrl/api/code/stacktrace'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'trace': trace}),
-      );
+      ).timeout(const Duration(seconds: 30));
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       }

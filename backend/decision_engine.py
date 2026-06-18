@@ -42,8 +42,10 @@ if PROJECT_ROOT not in sys.path:
 
 try:
     from agent.AgentUtils import parse_intent, extract_keywords, format_response
+    from config import USER_PROFILE_DATA as _USER_PROFILE_DATA
     _agent_utils_ok = True
 except ImportError:
+    _USER_PROFILE_DATA = {"name": "Md Sadique Amin", "role": "Software Engineer"}
     _agent_utils_ok = False
     logger.warning("AgentUtils not available — using minimal fallback.")
 
@@ -115,7 +117,7 @@ class DecisionEngine:
             with open(profile_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
-            return {"name": "Md Sadique Amin", "role": "software engineer"}
+            return _USER_PROFILE_DATA
 
     # -----------------------------------------------------------------------
     def process_command(self, user_input: str, context: list) -> dict:

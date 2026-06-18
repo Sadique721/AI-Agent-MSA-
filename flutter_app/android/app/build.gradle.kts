@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.flutter_app"
+    namespace = "com.msaaiagent.msa_ai_agent"
     compileSdk = 36
     ndkVersion = "28.2.13676358"
 

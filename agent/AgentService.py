@@ -477,7 +477,7 @@ class AgentService:
                             # Adjust reasoning for retry
                             if self.reasoning_engine:
                                 current_reasoning = self.reasoning_engine.reason(
-                                    user_input, context, failure_hint=validation
+                                    user_input, context, failure_hint=validation, replan_attempt=attempt
                                 )
                             # Regenerate plan with updated reasoning
                             try:

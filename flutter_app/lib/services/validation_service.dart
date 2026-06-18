@@ -9,12 +9,13 @@ class ValidationService {
   ValidationService({required this.serverUrl});
 
   Future<void> validateAndReport(String action, String detail, String taskId) async {
-    bool success = true;
-    String reason = 'Action assumed complete.';
+    // FIX BUG-4: Default to false — only confirmed cases are true
+    bool success = false;
+    String reason = 'Action result unknown.';
 
     switch (action.toLowerCase()) {
       case 'notification':
-        success = true; // Telemetry check in Flutter placeholder
+        success = true;
         reason = 'Notification delivered successfully.';
         break;
       case 'call':
@@ -33,6 +34,10 @@ class ValidationService {
         success = true;
         reason = 'App opened: $detail';
         break;
+      default:
+        // Unknown actions report false — not assumed successful
+        success = false;
+        reason = 'Unknown action type: $action. Cannot confirm success.';
     }
 
     try {
@@ -45,11 +50,12 @@ class ValidationService {
         'device_id': devId,
       };
 
+      // FIX ISSUE-1: 10-second timeout prevents indefinite hang
       await http.post(
         Uri.parse('$serverUrl/mobile/validate'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(payload),
-      );
+      ).timeout(const Duration(seconds: 10));
     } catch (_) {}
   }
 }

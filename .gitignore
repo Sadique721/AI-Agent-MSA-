@@ -64,3 +64,6 @@ tools/flutter/
 
 # Temporary builds and caches
 .build_tmp/
+
+# Release and compiled APKs
+*.apk

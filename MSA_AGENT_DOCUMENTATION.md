@@ -36,7 +36,7 @@ graph TD
     RAG --> Embed[Embedding Service: sentence-transformers]
     RAG --> Vector[Vector Store: FAISS Index]
     
-    MobileCtrl --> AndroidApp[Android Client app-debug.apk]
+    MobileCtrl --> FlutterApp[Flutter Client msa_agent_client.apk]
     AndroidApp --> WebView[WebView Client UI]
     WebView -.->|Wi-Fi HTTP/WS| Server
 ```
@@ -81,11 +81,11 @@ Enables robust, browser-level interaction replacing fragile desktop macros.
 * **Agent Service (`agent/AgentService.py`)**: Executes the unified agent loop: language parsing -> context augmentation via RAG -> plan generation -> dynamic tool execution -> memory storage -> response.
 * **Agent Executor (`agent/AgentExecutor.py`)**: Old-style direct dispatch engine serving as execution backups for desktop commands.
 
-### 2.7. Mobile / Android Subsystem (`android_app/`)
+### 2.7. Mobile / Android Subsystem (`flutter_app/`)
 Enables the mobile phone to function as a visual interface and control extension of the PC.
-* **Native Android App**: Compiled with Gradle `9.1.0`, Android Gradle Plugin `8.9.1`, Kotlin `2.1.20`, and `compileSdk 36`.
+* **Flutter Android App**: Compiled with Dart & Flutter SDK and target SDK 36. Uses `shared_preferences` for local storage.
 * **WebView Integration**: Displays the responsive Web App client hosted by the local server over Wi-Fi (`http://<PC-IP>:5000/app`).
-* **Hardware Permissions**: Requested dynamically (e.g. `RECORD_AUDIO` for microphone support to send voice commands).
+* **Hardware Permissions**: Requested dynamically via `permission_handler` (e.g. `RECORD_AUDIO` for microphone support, location, etc.).
 * **Cleartext Network Config**: Configured to bypass default Android HTTP restrictions, allowing cleartext connection to local servers (`usesCleartextTraffic="true"`).
 
 ### 2.8. Web Server / Backend Dashboard (`backend/server.py`)
@@ -152,12 +152,13 @@ msa_agent/
 │   ├── test_rag_memory.py      # Tests for semantic memories
 │   └── test_browser_agent.py   # Tests for browser automation
 │
-├── android_app/                # Android Application source code
-│   ├── build.gradle.kts        # Root build configuration (Gradle 9.1.0)
-│   ├── app/                    # App module
-│   │   ├── build.gradle.kts    # App build config (SDK 36, Kotlin 2.1.20)
-│   │   └── src/main/           # Android Manifest, Kotlin code, resources
-│   └── gradlew.bat             # Windows Gradle wrapper execution script
+├── flutter_app/                # Flutter Mobile Client codebase
+│   ├── lib/                    # Dart source code (WebView wrapper & bridges)
+│   │   ├── main.dart           # App entry & WebView setup
+│   │   ├── services/           # Clients for validation, coding, reasoning
+│   │   └── utils/              # System telemetry & device capabilities
+│   ├── android/                # Android platform specific directory
+│   └── pubspec.yaml            # Flutter package dependencies configuration
 │
 ├── backend/                    # Core automation & server logic
 │   ├── server.py               # Flask-SocketIO WebSocket server
@@ -211,7 +212,7 @@ Configured inside `config.py`, this internal profile guides the local decision-m
    ```bash
    python main.py
    ```
-3. **Connect the Android App**: Ensure the phone and laptop are on the same Wi-Fi network. Find the phone's IP and place it in `mobile_ip.txt` to enable ADB. Compile and install `app-debug.apk` onto the phone to load the control screen.
+3. **Connect the Android App**: Ensure the phone and laptop are on the same Wi-Fi network. Find the phone's IP and place it in `mobile_ip.txt` to enable ADB. Compile and install the `msa_agent_client.apk` onto the phone, launch it, and configure the PC IP address in the settings gear.
 4. **Running Automated Tests**: Validate system integrity:
    ```bash
    python -m pytest tests/ -v

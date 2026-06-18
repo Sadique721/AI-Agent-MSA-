@@ -18,13 +18,13 @@ DB_PATH          = os.path.join(PROJECT_ROOT, "data", "memory", "msa.db")
 KEY_FILE         = os.path.join(PROJECT_ROOT, "data", "encryption_key")
 LOG_DIR          = os.path.join(PROJECT_ROOT, "data", "logs")
 LOG_FILE         = os.path.join(LOG_DIR, "msa.log")
-USER_PROFILE     = os.path.join(PROJECT_ROOT, "data", "user_profile.json")
+USER_PROFILE_PATH = os.path.join(PROJECT_ROOT, "data", "user_profile.json")
 MOBILE_IP_FILE   = os.path.join(PROJECT_ROOT, "mobile_ip.txt")
 
 # ── Server ───────────────────────────────────────────────────────────────────
 SERVER_HOST      = "0.0.0.0"
 SERVER_PORT      = 5000
-SECRET_KEY       = "msa-secret-key-change-in-production"
+SECRET_KEY       = os.environ.get("MSA_SECRET_KEY", "msa-secret-key-change-in-production")
 
 # ── Voice ────────────────────────────────────────────────────────────────────
 SAMPLE_RATE      = 16000
@@ -46,7 +46,7 @@ MAX_KEYWORDS     = 8
 API_KEY          = "MSA_SECURE_123"   # Change this in production!
 
 # ── User Profile (safe internal storage — never sent to external APIs) ────────
-USER_PROFILE = {
+USER_PROFILE_DATA = {
     "name":            "Md Sadique Amin",
     "role":            "Software Engineer",
     "email":           "mdsadiqueamin721786@gmail.com",

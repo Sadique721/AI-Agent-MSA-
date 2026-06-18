@@ -1,24 +1,8 @@
-"""
-main.py
-=======
-MSA AI Agent — Primary Entry Point (thin launcher).
-
-This file starts:
-  1. A background daemon thread for future background workers
-     (voice, memory sync, etc.)
-  2. The Flask-SocketIO web server
-
-FIX: start_server() previously called with (host, port) args but the old
-     server.py signature accepted none.  Both are now aligned — server.py
-     start_server() accepts optional host/port with sensible defaults.
-"""
-
 import logging
 import threading
 import time
 
 from backend.server import start_server
-from voice.msa_voice import start_msa_voice
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -63,7 +47,9 @@ if __name__ == "__main__":
     logger.info("Background worker started (daemon).")
 
     # Start MSA voice assistant (daemon thread — wakes on 'hey msa')
+    # FIX: Import moved inside try block so voice module absence does NOT crash server
     try:
+        from voice.msa_voice import start_msa_voice
         start_msa_voice()
         logger.info("MSA voice assistant started.")
     except Exception as e:
@@ -72,3 +58,4 @@ if __name__ == "__main__":
     # Start the web server (blocks until Ctrl+C)
     logger.info("Starting Wi-Fi server on port 5000 …")
     start_server(host="0.0.0.0", port=5000)
+

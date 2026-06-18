@@ -1748,5 +1748,180 @@
     "text": "Md Sadique Amin is a Software Engineer",
     "timestamp": "2026-06-18T16:57:11.544174",
     "category": "preference"
+  },
+  {
+    "text": "Prompt: Create project | Response: React scaffolding",
+    "timestamp": "2026-06-18T18:36:52.716806",
+    "category": "coding_project"
+  },
+  {
+    "text": "Prompt: Fix bug | Response: Add null check",
+    "timestamp": "2026-06-18T18:36:56.592607",
+    "category": "coding_fix"
+  },
+  {
+    "text": "Prompt: Review code | Response: Quality is B",
+    "timestamp": "2026-06-18T18:37:00.432820",
+    "category": "coding_review"
+  },
+  {
+    "text": "Prompt: Reference | Response: Docs link",
+    "timestamp": "2026-06-18T18:37:04.314586",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Prompt: Template | Response: Flask boilerplate",
+    "timestamp": "2026-06-18T18:37:08.215157",
+    "category": "coding_template"
+  },
+  {
+    "text": "Prompt: Empty | Response: ",
+    "timestamp": "2026-06-18T18:37:12.126975",
+    "category": "coding_project"
+  },
+  {
+    "text": "Prompt: React app | Response: React dashboard app",
+    "timestamp": "2026-06-18T18:37:16.057557",
+    "category": "coding_project"
+  },
+  {
+    "text": "Prompt: Prompt 0 | Response: Response 0",
+    "timestamp": "2026-06-18T18:37:20.037325",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Prompt: Prompt 1 | Response: Response 1",
+    "timestamp": "2026-06-18T18:37:23.901000",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Prompt: Prompt 2 | Response: Response 2",
+    "timestamp": "2026-06-18T18:37:27.797073",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Prompt: Prompt 3 | Response: Response 3",
+    "timestamp": "2026-06-18T18:37:31.669438",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Prompt: Prompt 4 | Response: Response 4",
+    "timestamp": "2026-06-18T18:37:35.538044",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Prompt: Prompt 5 | Response: Response 5",
+    "timestamp": "2026-06-18T18:37:39.396841",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Prompt: Prompt 6 | Response: Response 6",
+    "timestamp": "2026-06-18T18:37:43.275883",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Prompt: Prompt 7 | Response: Response 7",
+    "timestamp": "2026-06-18T18:37:47.510060",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Prompt: Prompt 8 | Response: Response 8",
+    "timestamp": "2026-06-18T18:37:52.178589",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Prompt: Prompt 9 | Response: Response 9",
+    "timestamp": "2026-06-18T18:37:56.338412",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Prompt: Prompt 10 | Response: Response 10",
+    "timestamp": "2026-06-18T18:38:00.294099",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Prompt: Prompt 11 | Response: Response 11",
+    "timestamp": "2026-06-18T18:38:04.224088",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-18T18:38:10.149024",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-18T18:38:10.223688",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-18T18:38:10.265433",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=?%, wifi=False, gps=False, apps installed=0",
+    "timestamp": "2026-06-18T18:38:10.307090",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=50%, wifi=False, gps=False, apps installed=0",
+    "timestamp": "2026-06-18T18:38:10.349246",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-18T18:38:10.397691",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-18T18:38:10.437222",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'call' on device test_device_001: ✗ failed. Call dropped after 2 seconds",
+    "timestamp": "2026-06-18T18:38:10.478801",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-18T18:38:10.521480",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-18T18:38:10.576930",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-18T18:38:10.616482",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-18T18:38:10.659193",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-18T18:38:10.711939",
+    "category": "fact"
+  },
+  {
+    "text": "My B.Tech graduation project is the MSA AI Agent",
+    "timestamp": "2026-06-18T18:38:14.741007",
+    "category": "project"
+  },
+  {
+    "text": "I live in Bangalore",
+    "timestamp": "2026-06-18T18:38:14.773783",
+    "category": "preference"
+  },
+  {
+    "text": "Md Sadique Amin is a Software Engineer",
+    "timestamp": "2026-06-18T18:38:18.726322",
+    "category": "preference"
   }
 ]

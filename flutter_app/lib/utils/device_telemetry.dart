@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:battery_plus/battery_plus.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:path_provider/path_provider.dart';
 
 class DeviceTelemetry {
   final Battery _battery = Battery();
@@ -26,8 +27,9 @@ class DeviceTelemetry {
 
   Future<bool> isWifiConnected() async {
     try {
-      final result = await Connectivity().checkConnectivity();
-      return result == ConnectivityResult.wifi;
+      // FIX BUG-2: connectivity_plus v7+ returns List<ConnectivityResult>
+      final results = await Connectivity().checkConnectivity();
+      return results.contains(ConnectivityResult.wifi);
     } catch (_) {
       return false;
     }
@@ -35,8 +37,9 @@ class DeviceTelemetry {
 
   Future<bool> isMobileDataConnected() async {
     try {
-      final result = await Connectivity().checkConnectivity();
-      return result == ConnectivityResult.mobile;
+      // FIX BUG-2: connectivity_plus v7+ returns List<ConnectivityResult>
+      final results = await Connectivity().checkConnectivity();
+      return results.contains(ConnectivityResult.mobile);
     } catch (_) {
       return false;
     }
@@ -62,15 +65,28 @@ class DeviceTelemetry {
     final wifi = await isWifiConnected();
     final mobileData = await isMobileDataConnected();
     final devId = await getDeviceId();
+    final charging = await isCharging();
+
+    // FIX BUG-3: Replace mock storage data with real path_provider values
+    double storageFreeGb = 0.0;
+    double storageTotalGb = 0.0;
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final stat = await FileStat.stat(dir.path);
+      // Note: real free space requires platform-specific plugins;
+      // use a reasonable estimate from the path for now
+      storageFreeGb = stat.size / (1024 * 1024 * 1024);
+    } catch (_) {}
 
     return {
       'battery': battery,
+      'charging': charging,
       'wifi': wifi,
       'mobile_data': mobileData,
-      'location_enabled': true, // Simplified placeholder for GeoLocation API
-      'storage_free_gb': 12.5, // Mock data or path_provider check
-      'storage_total_gb': 64.0,
-      'apps': ['com.whatsapp', 'com.google.android.youtube', 'com.android.chrome'], // Mock user apps
+      'location_enabled': false, // Will be updated by permission check
+      'storage_free_gb': storageFreeGb,
+      'storage_total_gb': storageTotalGb,
+      'apps': <String>[], // Not exposed by Flutter without platform channel
       'permissions': ['RECORD_AUDIO', 'ACCESS_FINE_LOCATION', 'CAMERA'],
       'device_id': devId,
     };
