@@ -11,6 +11,8 @@ from typing import Dict, Any
 logger = logging.getLogger("msa.coding.test_generator")
 
 class TestGenerator:
+    __test__ = False
+
     def __init__(self, llm: Any = None):
         self.llm = llm
 

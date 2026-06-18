@@ -58,3 +58,9 @@ models/speaker/*.ckpt
 !models/speaker/.keep
 !models/cv/.keep
 .codebuddy
+
+# Portable Flutter SDK
+tools/flutter/
+
+# Temporary builds and caches
+.build_tmp/
