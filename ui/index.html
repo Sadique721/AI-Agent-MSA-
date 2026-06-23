@@ -7,7 +7,8 @@
 <meta name="description" content="MSA AI Agent Command Center — Your personal offline AI assistant. System control, mobile integration, and intelligence in one dashboard.">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<!-- FIX ISSUE-5: Use locally-served Socket.IO v4.x (no CDN dependency, works offline) -->
+<script src="/socket.io.min.js"></script>
 <script>
 tailwind.config={darkMode:'class',theme:{extend:{colors:{brand:'#6366f1',brand2:'#8b5cf6',surface:'#0d1220',card:'#111827',border:'#1e2d45'},fontFamily:{sans:['Inter','sans-serif']}}}}
 </script>

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../utils/device_telemetry.dart';
 
@@ -39,10 +40,10 @@ class ReasoningClient {
         body: jsonEncode(caps),
       ).timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
-        print('[ReasoningClient] Capabilities sent successfully');
+        debugPrint('[ReasoningClient] Capabilities sent successfully');
       }
     } catch (e) {
-      print('[ReasoningClient] sendCapabilities failed: $e');
+      debugPrint('[ReasoningClient] sendCapabilities failed: $e');
     }
   }
 

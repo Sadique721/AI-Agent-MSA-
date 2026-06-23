@@ -1923,5 +1923,260 @@
     "text": "Md Sadique Amin is a Software Engineer",
     "timestamp": "2026-06-18T18:38:18.726322",
     "category": "preference"
+  },
+  {
+    "text": "Prompt: Create project | Response: React scaffolding",
+    "timestamp": "2026-06-18T22:01:17.170386",
+    "category": "coding_project"
+  },
+  {
+    "text": "Prompt: Fix bug | Response: Add null check",
+    "timestamp": "2026-06-18T22:01:23.017096",
+    "category": "coding_fix"
+  },
+  {
+    "text": "Prompt: Review code | Response: Quality is B",
+    "timestamp": "2026-06-18T22:01:28.160589",
+    "category": "coding_review"
+  },
+  {
+    "text": "Prompt: Reference | Response: Docs link",
+    "timestamp": "2026-06-18T22:01:33.519699",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Prompt: Template | Response: Flask boilerplate",
+    "timestamp": "2026-06-18T22:01:39.248569",
+    "category": "coding_template"
+  },
+  {
+    "text": "Prompt: Empty | Response: ",
+    "timestamp": "2026-06-18T22:01:44.529851",
+    "category": "coding_project"
+  },
+  {
+    "text": "Prompt: React app | Response: React dashboard app",
+    "timestamp": "2026-06-18T22:01:49.938625",
+    "category": "coding_project"
+  },
+  {
+    "text": "Prompt: Prompt 0 | Response: Response 0",
+    "timestamp": "2026-06-18T22:01:55.269457",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Prompt: Prompt 1 | Response: Response 1",
+    "timestamp": "2026-06-18T22:02:01.038370",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Prompt: Prompt 2 | Response: Response 2",
+    "timestamp": "2026-06-18T22:02:06.068127",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Prompt: Prompt 3 | Response: Response 3",
+    "timestamp": "2026-06-18T22:02:12.915262",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Prompt: Prompt 4 | Response: Response 4",
+    "timestamp": "2026-06-18T22:02:17.816605",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Prompt: Prompt 5 | Response: Response 5",
+    "timestamp": "2026-06-18T22:02:23.083065",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Prompt: Prompt 6 | Response: Response 6",
+    "timestamp": "2026-06-18T22:02:28.899098",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Prompt: Prompt 7 | Response: Response 7",
+    "timestamp": "2026-06-18T22:02:34.995473",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Prompt: Prompt 8 | Response: Response 8",
+    "timestamp": "2026-06-18T22:02:40.467963",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Prompt: Prompt 9 | Response: Response 9",
+    "timestamp": "2026-06-18T22:02:44.752162",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Prompt: Prompt 10 | Response: Response 10",
+    "timestamp": "2026-06-18T22:02:50.077204",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Prompt: Prompt 11 | Response: Response 11",
+    "timestamp": "2026-06-18T22:02:55.109044",
+    "category": "coding_reference"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-18T22:03:02.406078",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-18T22:03:02.463106",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-18T22:03:02.511638",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=?%, wifi=False, gps=False, apps installed=0",
+    "timestamp": "2026-06-18T22:03:02.549450",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=50%, wifi=False, gps=False, apps installed=0",
+    "timestamp": "2026-06-18T22:03:02.602610",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-18T22:03:02.640909",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-18T22:03:02.708223",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'call' on device test_device_001: ✗ failed. Call dropped after 2 seconds",
+    "timestamp": "2026-06-18T22:03:02.761773",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile action 'notification' on device test_device_001: ✓ succeeded. Notification sent for alarm at 7:00 AM",
+    "timestamp": "2026-06-18T22:03:02.826161",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-18T22:03:02.896102",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-18T22:03:02.943938",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile task task_search_001: Found 25 Java developer jobs in Ahmedabad. Top result: Senior Java Dev at TCS.",
+    "timestamp": "2026-06-18T22:03:02.989487",
+    "category": "fact"
+  },
+  {
+    "text": "Mobile device: battery=82%, wifi=True, gps=True, apps installed=4",
+    "timestamp": "2026-06-18T22:03:03.057322",
+    "category": "fact"
+  },
+  {
+    "text": "My B.Tech graduation project is the MSA AI Agent",
+    "timestamp": "2026-06-18T22:03:09.089529",
+    "category": "project"
+  },
+  {
+    "text": "I live in Bangalore",
+    "timestamp": "2026-06-18T22:03:09.165101",
+    "category": "preference"
+  },
+  {
+    "text": "Md Sadique Amin is a Software Engineer",
+    "timestamp": "2026-06-18T22:03:14.209281",
+    "category": "preference"
+  },
+  {
+    "text": "User said: open notepad | MSA replied: Opening notepad for you.",
+    "timestamp": "2026-06-18T23:26:52.560895",
+    "category": "conversation"
+  },
+  {
+    "text": "Open notepad",
+    "timestamp": "2026-06-18T23:26:52.601571",
+    "category": "fact"
+  },
+  {
+    "text": "User said: open calculator | MSA replied: Opening calculator for you.",
+    "timestamp": "2026-06-18T23:27:06.038971",
+    "category": "conversation"
+  },
+  {
+    "text": "Open calculator",
+    "timestamp": "2026-06-18T23:27:06.087286",
+    "category": "fact"
+  },
+  {
+    "text": "User said: write hello world program in java | MSA replied: I received your message. How can I help you?",
+    "timestamp": "2026-06-18T23:27:32.938648",
+    "category": "conversation"
+  },
+  {
+    "text": "Write hello world program in java",
+    "timestamp": "2026-06-18T23:27:32.978329",
+    "category": "fact"
+  },
+  {
+    "text": "User said: write hello world program in java | MSA replied: I received your message. How can I help you?",
+    "timestamp": "2026-06-18T23:28:46.511537",
+    "category": "conversation"
+  },
+  {
+    "text": "Write hello world program in java",
+    "timestamp": "2026-06-18T23:28:46.552867",
+    "category": "fact"
+  },
+  {
+    "text": "User said: open notepad | MSA replied: Opening notepad for you.",
+    "timestamp": "2026-06-18T23:35:41.690470",
+    "category": "conversation"
+  },
+  {
+    "text": "Open notepad",
+    "timestamp": "2026-06-18T23:35:41.738538",
+    "category": "fact"
+  },
+  {
+    "text": "User said: open cmd | MSA replied: Opening cmd for you.",
+    "timestamp": "2026-06-18T23:35:46.133046",
+    "category": "conversation"
+  },
+  {
+    "text": "Open cmd",
+    "timestamp": "2026-06-18T23:35:46.177202",
+    "category": "fact"
+  },
+  {
+    "text": "User said: open browser | MSA replied: Opening chrome for you.",
+    "timestamp": "2026-06-18T23:35:50.383123",
+    "category": "conversation"
+  },
+  {
+    "text": "Open browser",
+    "timestamp": "2026-06-18T23:35:50.422832",
+    "category": "fact"
+  },
+  {
+    "text": "User said: open calculator | MSA replied: Opening calculator for you.",
+    "timestamp": "2026-06-18T23:36:21.485540",
+    "category": "conversation"
+  },
+  {
+    "text": "Open calculator",
+    "timestamp": "2026-06-18T23:36:21.527315",
+    "category": "fact"
   }
 ]

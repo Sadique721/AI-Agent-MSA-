@@ -16,7 +16,7 @@
 <meta name="msapplication-TileImage" content="/icon-192.png">
 <meta name="msapplication-TileColor" content="#050b18">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="/socket.io.min.js"></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════
    RESET & ROOT TOKENS
@@ -1078,6 +1078,13 @@ body {
     </div>
     <div class="topbar-right">
       <div id="clock-display" aria-live="polite"></div>
+      <!-- FIX BUG-8: Settings button to configure server IP from the web UI -->
+      <button id="settings-btn" onclick="openSettings()" aria-label="Server Settings"
+        style="background:none;border:1px solid var(--border);border-radius:8px;color:var(--text3);padding:5px 9px;cursor:pointer;font-size:0.8rem;transition:var(--transition);"
+        onmouseover="this.style.borderColor='var(--cyan)';this.style.color='var(--cyan)';"
+        onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)';">
+        ⚙
+      </button>
       <div class="online-pill" id="online-pill">
         <div class="online-dot" id="online-dot"></div>
         <span id="online-label">Connecting</span>
@@ -1463,6 +1470,46 @@ body {
 
 </div><!-- end app-shell -->
 
+<!-- FIX BUG-8: Server IP Configuration Modal -->
+<div class="modal-overlay" id="settings-modal" role="dialog" aria-modal="true" aria-label="Server Settings" onclick="if(event.target===this)closeSettings()">
+  <div class="modal-sheet">
+    <div class="modal-handle" aria-hidden="true"></div>
+    <div class="modal-header">
+      <div class="modal-title">⚙ MSA Server Settings</div>
+      <button class="modal-close-btn" onclick="closeSettings()" aria-label="Close settings">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.82rem;color:var(--text2);margin-bottom:16px;line-height:1.6">
+        Enter your PC's local Wi-Fi IP address. Both the MSA Flutter app and this web page use this setting to connect to your MSA server.
+      </p>
+      <div style="margin-bottom:14px">
+        <label style="font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;display:block;margin-bottom:6px">Server URL</label>
+        <input id="settings-url-input" type="url" placeholder="e.g. http://192.168.1.100:5000"
+          style="width:100%;background:rgba(5,11,24,0.8);border:1px solid var(--border);color:var(--text);padding:11px 14px;border-radius:10px;font-size:0.88rem;outline:none;font-family:monospace;"
+          onfocus="this.style.borderColor='var(--cyan)'"
+          onblur="this.style.borderColor='var(--border)'">
+      </div>
+      <div style="background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.15);border-radius:10px;padding:12px;margin-bottom:16px">
+        <div style="font-size:0.72rem;color:var(--cyan);font-weight:600;margin-bottom:6px">💡 Quick Tips</div>
+        <div style="font-size:0.75rem;color:var(--text2);line-height:1.7">
+          • <strong>Android Emulator:</strong> use <code style="color:var(--cyan)">http://10.0.2.2:5000</code><br>
+          • <strong>Real phone on Wi-Fi:</strong> use your PC's IP e.g. <code style="color:var(--cyan)">http://192.168.1.X:5000</code><br>
+          • Find PC IP: run <code style="color:var(--cyan)">ipconfig</code> in Windows CMD
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button onclick="closeSettings()" style="flex:1;padding:12px;border-radius:10px;background:none;border:1px solid var(--border);color:var(--text3);cursor:pointer;font-size:0.85rem;transition:var(--transition);"
+          onmouseover="this.style.borderColor='var(--cyan)'"
+          onmouseout="this.style.borderColor='var(--border)'">Cancel</button>
+        <button onclick="saveSettings()" id="settings-save-btn"
+          style="flex:2;padding:12px;border-radius:10px;background:linear-gradient(135deg,var(--cyan),var(--purple));border:none;color:#fff;cursor:pointer;font-size:0.85rem;font-weight:600;transition:var(--transition);"
+          onmouseover="this.style.opacity='0.85'"
+          onmouseout="this.style.opacity='1'">✓ Save &amp; Reconnect</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ─── Privacy Policy Modal ───────────────────────────────────── -->
 <div class="modal-overlay" id="privacy-modal" role="dialog" aria-modal="true" aria-label="Privacy Policy" onclick="if(event.target===this)closePrivacy()">
   <div class="modal-sheet">
@@ -1607,6 +1654,49 @@ function updateClock(){
   if(el) el.textContent = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 }
 setInterval(updateClock, 1000); updateClock();
+
+// ── FIX BUG-8: SERVER URL MANAGEMENT ────────────────────────────
+// Priority: Flutter MsaBridge > localStorage > window.location.origin
+function getBaseUrl() {
+  try {
+    if (window.MsaBridge && typeof window.MsaBridge.getServerUrl === 'function') {
+      const url = window.MsaBridge.getServerUrl();
+      if (url && url.startsWith('http')) return url;
+    }
+  } catch(_) {}
+  const saved = localStorage.getItem('msa_server_url');
+  if (saved && saved.startsWith('http')) return saved;
+  return window.location.origin;
+}
+
+function openSettings() {
+  document.getElementById('settings-url-input').value = getBaseUrl();
+  document.getElementById('settings-modal').classList.add('open');
+}
+
+function closeSettings() {
+  document.getElementById('settings-modal').classList.remove('open');
+}
+
+function saveSettings() {
+  const url = document.getElementById('settings-url-input').value.trim();
+  if (!url || !url.startsWith('http')) {
+    toast('Please enter a valid URL (must start with http://)','error');
+    return;
+  }
+  localStorage.setItem('msa_server_url', url);
+  closeSettings();
+  toast('✓ Server URL saved. Reconnecting…', 'success');
+  setTimeout(() => {
+    // Reinitialise socket with new URL
+    if (typeof socket !== 'undefined' && socket) {
+      try { socket.disconnect(); } catch(_) {}
+    }
+    initSocket();
+    refreshAll();
+  }, 600);
+}
+
 
 // ── PAGE NAVIGATION ─────────────────────────────────────────────
 let currentPage = 'chat';

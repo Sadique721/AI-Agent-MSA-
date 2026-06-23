@@ -47,30 +47,44 @@ class MsaHome extends StatefulWidget {
 }
 
 class _MsaHomeState extends State<MsaHome> {
-  late final WebViewController _webController;
+  // CRASH FIX: Use nullable controller instead of `late final` to avoid
+  // LateInitializationError when build() runs before async init completes.
+  WebViewController? _webController;
+  bool _isReady = false; // guards build — shows loading until init done
 
-  // FIX BUG-1: Server URL is now configurable — not hardcoded to emulator IP
-  String _serverUrl = 'http://192.168.1.100:5000'; // Will be loaded from prefs
-  late ReasoningClient _reasoningClient;
-  late ValidationService _validationService;
+  String _serverUrl = 'http://192.168.1.100:5000';
+  ReasoningClient? _reasoningClient;
+  ValidationService? _validationService;
   final DeviceTelemetry _telemetry = DeviceTelemetry();
 
   @override
   void initState() {
     super.initState();
+    // Run async init — build() shows loading spinner until _isReady = true
     _loadServerUrl();
   }
 
   // ── Load saved server URL from SharedPreferences ──────────────────────────
   Future<void> _loadServerUrl() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedUrl = prefs.getString('msa_server_url');
-    if (savedUrl != null && savedUrl.isNotEmpty) {
-      _serverUrl = savedUrl;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedUrl = prefs.getString('msa_server_url');
+      if (savedUrl != null && savedUrl.isNotEmpty) {
+        _serverUrl = savedUrl;
+      }
+    } catch (e) {
+      debugPrint('[MSA] SharedPreferences load error: $e');
     }
-    _initWebView();
+
+    // All async work done — now safe to init WebView & clients
+    if (!mounted) return;
     _initClients();
-    await _requestPermissions();
+    _initWebView();
+    _requestPermissions();
+
+    if (mounted) {
+      setState(() => _isReady = true); // triggers rebuild → shows WebView
+    }
   }
 
   void _initClients() {
@@ -79,7 +93,7 @@ class _MsaHomeState extends State<MsaHome> {
   }
 
   void _initWebView() {
-    _webController = WebViewController()
+    final controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
         NavigationDelegate(
@@ -87,7 +101,7 @@ class _MsaHomeState extends State<MsaHome> {
             _injectJsBridges();
           },
           onWebResourceError: (WebResourceError error) {
-            debugPrint('[WebView] Error: ${error.description}');
+            debugPrint('[WebView] Error: \${error.description}');
           },
         ),
       )
@@ -97,12 +111,18 @@ class _MsaHomeState extends State<MsaHome> {
           _handleJsMessage(message.message);
         },
       )
-      ..loadRequest(Uri.parse('$_serverUrl/app'));
+      ..loadRequest(Uri.parse('\$_serverUrl/app'));
 
-    _reasoningClient.start((statusJson) {
-      _webController.runJavaScript(
-        "if(window.onMsaServerStatus) window.onMsaServerStatus('$statusJson');"
-      );
+    _webController = controller;
+
+    // CRASH FIX: Start reasoning client AFTER _webController is assigned
+    _reasoningClient?.start((statusJson) {
+      // Guard: only call runJavaScript if controller is ready & widget mounted
+      if (mounted && _webController != null) {
+        _webController!.runJavaScript(
+          "if(window.onMsaServerStatus) window.onMsaServerStatus('\$statusJson');"
+        );
+      }
     });
   }
 
@@ -120,11 +140,12 @@ class _MsaHomeState extends State<MsaHome> {
 
   // ── JavaScript Bridge Injection ───────────────────────────────────────────
   void _injectJsBridges() {
+    if (_webController == null) return;
     final serverUrlEscaped = _serverUrl.replaceAll("'", "\\'");
     final js = '''
       (function() {
         window.MsaBridge = {
-          getServerUrl: function() { return '$serverUrlEscaped'; },
+          getServerUrl: function() { return '\$serverUrlEscaped'; },
           getDeviceStatus: function() {
             return JSON.stringify({
               battery: 85,
@@ -173,7 +194,7 @@ class _MsaHomeState extends State<MsaHome> {
         };
       })();
     ''';
-    _webController.runJavaScript(js);
+    _webController!.runJavaScript(js);
   }
 
   // ── JavaScript Message Handler ────────────────────────────────────────────
@@ -183,9 +204,9 @@ class _MsaHomeState extends State<MsaHome> {
       final event = data['event'];
 
       if (event == 'sendCapabilities') {
-        _reasoningClient.sendCapabilities();
+        _reasoningClient?.sendCapabilities();
       } else if (event == 'notifyActionComplete') {
-        _validationService.validateAndReport(
+        _validationService?.validateAndReport(
           data['action'],
           data['detail'] ?? '',
           data['taskId'] ?? '',
@@ -193,22 +214,19 @@ class _MsaHomeState extends State<MsaHome> {
       } else if (event == 'approveAction') {
         final confirmed = data['confirmed'] == true;
         final goal = data['goal'] ?? '';
-        // FIX BUG-7: Use debugPrint instead of print
-        debugPrint('[MSA] User action approval: $confirmed for goal: $goal');
-        _webController.runJavaScript(
-          "if(window.onApprovalResult) window.onApprovalResult($confirmed, '$goal');"
+        debugPrint('[MSA] User action approval: \$confirmed for goal: \$goal');
+        _webController?.runJavaScript(
+          "if(window.onApprovalResult) window.onApprovalResult(\$confirmed, '\$goal');"
         );
       } else if (event == 'openSettings') {
         _showSettingsDialog();
       }
     } catch (e) {
-      // FIX BUG-7: Use debugPrint instead of print
-      debugPrint('[MSA] Error parsing JS message: $e');
+      debugPrint('[MSA] Error parsing JS message: \$e');
     }
   }
 
   // ── IP Settings Dialog ────────────────────────────────────────────────────
-  // FIX BUG-1: Allow user to configure server IP from the app
   void _showSettingsDialog() {
     final controller = TextEditingController(text: _serverUrl);
     showDialog(
@@ -224,7 +242,7 @@ class _MsaHomeState extends State<MsaHome> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Enter your PC\'s Wi-Fi IP address and port:',
+              "Enter your PC's Wi-Fi IP address and port:",
               style: TextStyle(color: Color(0xFF94A3C8), fontSize: 13),
             ),
             const SizedBox(height: 12),
@@ -272,10 +290,11 @@ class _MsaHomeState extends State<MsaHome> {
               if (newUrl.isEmpty) return;
               final prefs = await SharedPreferences.getInstance();
               await prefs.setString('msa_server_url', newUrl);
+              if (!mounted) return;
               setState(() => _serverUrl = newUrl);
-              _reasoningClient.stop();
+              _reasoningClient?.stop();
               _initClients();
-              _webController.loadRequest(Uri.parse('$_serverUrl/app'));
+              _webController?.loadRequest(Uri.parse('\$_serverUrl/app'));
               if (ctx.mounted) Navigator.pop(ctx);
             },
             child: const Text('Save & Connect'),
@@ -287,7 +306,7 @@ class _MsaHomeState extends State<MsaHome> {
 
   @override
   void dispose() {
-    _reasoningClient.stop();
+    _reasoningClient?.stop();
     super.dispose();
   }
 
@@ -308,7 +327,6 @@ class _MsaHomeState extends State<MsaHome> {
           ),
         ),
         actions: [
-          // FIX BUG-1: Settings button to configure server IP
           IconButton(
             icon: const Icon(Icons.settings, color: Color(0xFF94A3C8)),
             tooltip: 'Configure Server IP',
@@ -318,13 +336,59 @@ class _MsaHomeState extends State<MsaHome> {
             icon: const Icon(Icons.refresh, color: Color(0xFF94A3C8)),
             tooltip: 'Reload',
             onPressed: () {
-              _webController.loadRequest(Uri.parse('$_serverUrl/app'));
+              _webController?.loadRequest(Uri.parse('\$_serverUrl/app'));
             },
           ),
         ],
       ),
+      // CRASH FIX: Show loading screen until async init completes.
+      // Prevents LateInitializationError from build() accessing
+      // _webController before _loadServerUrl() finishes.
       body: SafeArea(
-        child: WebViewWidget(controller: _webController),
+        child: _isReady && _webController != null
+            ? WebViewWidget(controller: _webController!)
+            : const _LoadingScreen(),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Loading Screen — shown while async init runs (prevents LateInitError crash)
+// ---------------------------------------------------------------------------
+class _LoadingScreen extends StatelessWidget {
+  const _LoadingScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 60,
+            height: 60,
+            child: CircularProgressIndicator(
+              color: Color(0xFF00D4FF),
+              strokeWidth: 2.5,
+            ),
+          ),
+          SizedBox(height: 24),
+          Text(
+            'M · S · A',
+            style: TextStyle(
+              color: Color(0xFF00D4FF),
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 6,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Initializing AI Agent…',
+            style: TextStyle(color: Color(0xFF4A6080), fontSize: 13),
+          ),
+        ],
       ),
     );
   }

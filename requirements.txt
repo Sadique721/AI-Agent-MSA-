@@ -73,3 +73,7 @@ playwright
 
 # Speech recognition (wake-word + listen loop)
 SpeechRecognition
+
+# Cloud LLM Support
+google-generativeai
+

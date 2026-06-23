@@ -35,13 +35,48 @@
 8. [🚀 Running the System](#-running-the-system)
 9. [🧪 Unit Testing & Validation](#-unit-testing--validation)
 10. [📱 Flutter Mobile Client & Telemetry](#-flutter-mobile-client--telemetry)
-11. [⚔️ Comparative Advantages](#️-comparative-advantages)
+11. [☁️ Advanced Online Deployment Strategy](#-advanced-online-deployment-strategy-vercel-netlify--render)
+12. [⚔️ Comparative Advantages](#️-comparative-advantages)
 
 ---
 
 ## 🌟 What is MSA AI AGENT?
 
 **MSA AI AGENT** is a next‑generation **offline AI assistant and Software Engineering Agent** that runs locally on your machine and coordinates various specialized agents to execute system tasks, automate web browser actions, generate production-ready code, and control your mobile device over Wi‑Fi.
+
+### 🏗️ MSA AI Agent Architecture Diagram
+
+```mermaid
+graph TD
+    subgraph Mobile Device [Android / Flutter]
+        Flutter[Flutter Native Wrapper]
+        WebUI[Dashboard HTML/CSS/JS]
+        Telemetry[Battery, GPS, WiFi, Storage]
+        
+        Flutter -->|Hosts| WebUI
+        Flutter -->|Native Telemetry APIs| Telemetry
+        Telemetry -->|HTTP Post /mobile/status| WebUI
+    end
+
+    subgraph Host PC [Python Local Backend]
+        Server[Flask-SocketIO Server :5000]
+        STT[Vosk Local STT]
+        LLM[Llama-2 / DeepSeek Local GGUF]
+        DB[FAISS Vectors + SQLite RAG]
+        Control[Playwright Browser & ADB Control]
+
+        Server --> STT
+        Server --> LLM
+        Server --> DB
+        Server --> Control
+    end
+
+    WebUI -->|WebSocket / REST| Server
+    Server -->|WebSocket Status| WebUI
+    Control -->|TCP/IP Port 5555| Flutter
+    Flutter -->|ADB Client commands| Control
+```
+
 
 > [!IMPORTANT]
 > **100% local execution**: Speech Recognition (Vosk), LLM reasoning engines (Llama-2/DeepSeek GGUF or local Ollama), FAISS vector memory, and OpenCV vision models run locally on your CPU/GPU. No personal data or private code ever leaves your device.
@@ -231,6 +266,41 @@ WebViews do not natively support synchronous return types from JavaScript interf
 2. A script injected on page finish captures these requests and forwards them to Flutter's `webview_flutter` `JavaScriptChannel`.
 3. Flutter processes the requests asynchronously (e.g., retrieving GPS coordinates, reading battery, launching alarms).
 4. Flutter fires the result back into the WebView via `runJavaScript` to update the user interface dynamically.
+
+---
+
+## ☁️ Advanced Online Deployment Strategy (Vercel, Netlify & Render)
+
+To deploy the system online in a decoupled manner (frontend on static web CDN, backend on container hosting, and remote external APIs for model inference):
+
+```mermaid
+graph LR
+    subgraph Client Tier
+        App[Flutter Android App]
+    end
+
+    subgraph Static Web CDN [Vercel / Netlify]
+        Frontend[HTML / CSS / JS WebUI]
+    end
+
+    subgraph Container PaaS [Render]
+        Backend[Flask Server Docker]
+        Memory[(SQLite DB)]
+    end
+
+    subgraph Cloud SaaS APIs
+        Gemini[Google Gemini API]
+        Bless[Browserless.io CDP]
+    end
+
+    App -->|Loads Webview| Frontend
+    Frontend -->|WebSocket / HTTPS| Backend
+    Backend -->|LLM Inference| Gemini
+    Backend -->|Remote Scraping| Bless
+    Backend -->|Telemetry / Status| App
+```
+
+For detailed deployment roadmap, setup scripts, and configurations, refer to the [Advanced Deployment Analysis Report](file:///C:/Users/MD SADIQUE AMIN/.gemini/antigravity-ide/brain/7051c7b6-e6f6-41c1-8d77-cb9dc25b4dfd/msa_agent_analysis.md).
 
 ---
 

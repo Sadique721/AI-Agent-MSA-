@@ -9,7 +9,7 @@
  *   - Fonts / CDN assets       → Cache-first
  */
 
-const CACHE_VERSION = 'msa-v2.1';
+const CACHE_VERSION = 'msa-v2.2';
 const SHELL_CACHE   = `${CACHE_VERSION}-shell`;
 const CDN_CACHE     = `${CACHE_VERSION}-cdn`;
 
@@ -18,11 +18,12 @@ const SHELL_ASSETS = [
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',
+  '/socket.io.min.js',
 ];
 
+// FIX ISSUE-5: socket.io is now served locally — only Google Fonts remain as CDN asset
 const CDN_ASSETS = [
   'https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap',
-  'https://cdn.socket.io/4.7.5/socket.io.min.js',
 ];
 
 // ── INSTALL: Pre-cache app shell ─────────────────────────────────────────────

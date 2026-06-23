@@ -28,6 +28,11 @@ try:
 except ImportError:
     Llama = None
 
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
+
 # ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
@@ -93,22 +98,35 @@ class DecisionEngine:
     def __init__(self, model_path: str = "models/llm/llama-2-7b-chat.Q4_K_M.gguf"):
         model_full_path = os.path.join(PROJECT_ROOT, model_path)
         self.llm = None
+        self.provider = "fallback"
 
-        if Llama and os.path.exists(model_full_path):
+        # Check for Gemini API key first
+        self.gemini_key = os.environ.get("GEMINI_API_KEY")
+        if self.gemini_key and genai:
             try:
-                self.llm = Llama(model_path=model_full_path, n_ctx=2048, n_threads=4)
-                logger.info("LLaMA model loaded from %s", model_full_path)
+                genai.configure(api_key=self.gemini_key)
+                self.provider = "gemini"
+                logger.info("DecisionEngine using Cloud Provider: Google Gemini API")
             except Exception as e:
-                logger.error("LLaMA load failed: %s", e)
-        else:
-            logger.warning(
-                "LLM not found at %s or llama_cpp missing. "
-                "Decision Engine using smart keyword fallback.",
-                model_full_path,
-            )
+                logger.error("Failed to configure Gemini API: %s", e)
+
+        if self.provider == "fallback":
+            if Llama and os.path.exists(model_full_path):
+                try:
+                    self.llm = Llama(model_path=model_full_path, n_ctx=2048, n_threads=4)
+                    self.provider = "local"
+                    logger.info("LLaMA model loaded from %s", model_full_path)
+                except Exception as e:
+                    logger.error("LLaMA load failed: %s", e)
+            else:
+                logger.warning(
+                    "LLM not found at %s or llama_cpp missing. "
+                    "Decision Engine using smart keyword fallback.",
+                    model_full_path,
+                )
 
         self.profile = self._load_profile()
-        logger.info("DecisionEngine ready (LLM=%s).", "online" if self.llm else "offline/fallback")
+        logger.info("DecisionEngine ready (Provider=%s).", self.provider)
 
     # -----------------------------------------------------------------------
     def _load_profile(self) -> dict:
@@ -128,8 +146,15 @@ class DecisionEngine:
         if not user_input or not user_input.strip():
             return {"response": "Please say or type a command.", "action": "none", "parameters": {}}
 
-        # --- LLM path ---
-        if self.llm:
+        # --- Gemini Cloud path ---
+        if self.provider == "gemini":
+            result = self._gemini_decision(user_input, context)
+            if result:
+                result.setdefault("parameters", {})
+                return result
+
+        # --- LLM Local path ---
+        if self.provider == "local" and self.llm:
             result = self._llm_decision(user_input, context)
             if result:
                 result.setdefault("parameters", {})
@@ -137,6 +162,32 @@ class DecisionEngine:
 
         # --- Smart keyword fallback ---
         return self._keyword_decision(user_input)
+
+    # -----------------------------------------------------------------------
+    def _gemini_decision(self, user_input: str, context: list) -> dict | None:
+        """Use Google Gemini API for decision. Returns None on failure so fallback can run."""
+        prompt = f"""You are MSA, an AI assistant. User: {self.profile.get('name')}, Role: {self.profile.get('role')}.
+Context: {context}
+Command: {user_input}
+
+Respond ONLY with a JSON object:
+{{
+  "response": "<short reply in English or Hinglish>",
+  "action": "<one of: open_app|shutdown|restart|mobile_open_app|mobile_make_call|mobile_set_alarm|automation|internet_search|vision|location|none>",
+  "parameters": {{}}
+}}"""
+        try:
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            response = model.generate_content(prompt)
+            text = response.text.strip()
+            start, end = text.find("{"), text.rfind("}") + 1
+            if 0 <= start < end:
+                data = json.loads(text[start:end])
+                data.setdefault("parameters", {})
+                return data
+        except Exception as e:
+            logger.error("Gemini decision error: %s", e)
+        return None
 
     # -----------------------------------------------------------------------
     def _llm_decision(self, user_input: str, context: list) -> dict | None:

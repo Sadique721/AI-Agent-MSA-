@@ -31,6 +31,7 @@ import sys
 
 from flask import Flask, request, jsonify, send_from_directory
 from flask_socketio import SocketIO, emit
+from config import SECRET_KEY as _CONFIG_SECRET_KEY
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -62,7 +63,8 @@ app = Flask(
     static_folder=os.path.join(PROJECT_ROOT, "ui"),
     template_folder=os.path.join(PROJECT_ROOT, "ui"),
 )
-app.config["SECRET_KEY"] = "msa-secret-key-local-only"
+# FIX ISSUE-3: Use SECRET_KEY from config (reads MSA_SECRET_KEY env var)
+app.config["SECRET_KEY"] = _CONFIG_SECRET_KEY
 
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
@@ -176,6 +178,18 @@ def serve_service_worker():
     )
     resp.headers["Service-Worker-Allowed"] = "/"
     resp.headers["Cache-Control"]           = "no-cache"
+    return resp
+
+
+@app.route("/socket.io.min.js")
+def serve_socket_io_js():
+    """Serve the offline Socket.IO v4.7.5 client JS file."""
+    resp = send_from_directory(
+        os.path.join(PROJECT_ROOT, "ui"),
+        "socket.io.min.js",
+        mimetype="application/javascript",
+    )
+    resp.headers["Cache-Control"] = "public, max-age=31536000"
     return resp
 
 
@@ -947,7 +961,9 @@ def api_code_project():
 # ---------------------------------------------------------------------------
 # POST /api/code/test — Generate test suites
 # ---------------------------------------------------------------------------
+# FIX BUG-12: Flutter client was updated to call /api/code/tests — add alias
 @app.route("/api/code/test", methods=["POST"])
+@app.route("/api/code/tests", methods=["POST"])
 def api_code_test():
     """Generate unit test suites for given source code."""
     try:
