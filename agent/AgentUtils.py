@@ -53,7 +53,8 @@ def setup_logger(name: str, level: int = logging.INFO) -> logging.Logger:
 
 _INTENT_MAP: Dict[str, List[str]] = {
     "open_app":          ["open", "launch", "start", "run", "execute"],
-    "internet_search":   ["search", "find", "lookup", "google", "browse", "what is", "who is", "how to"],
+    "memory_recall":     ["remember", "recall", "yesterday", "last time", "memory", "history", "what did i say", "what did i ask"],
+    "internet_search":   ["search", "find", "lookup", "google", "browse", "what is", "who is", "how to", "news", "latest", "weather", "current", "what", "who", "how", "explain", "pdf"],
     "shutdown":          ["shutdown", "shut down", "power off", "turn off"],
     "restart":           ["restart", "reboot", "reset"],
     "get_profile":       ["my profile", "who am i", "about me", "my details", "my info"],
@@ -64,6 +65,13 @@ _INTENT_MAP: Dict[str, List[str]] = {
     "automation":        ["automate", "click", "type", "press", "scroll", "move mouse"],
     "vision":            ["capture", "screenshot", "see", "vision", "look", "camera", "detect"],
     "location":          ["location", "where am i", "gps", "navigate", "map"],
+    # Coding agent mappings
+    "code_generation":   ["create code", "generate code", "write code", "build component", "make code", "boilerplate", "angular", "react", "html", "css"],
+    "debugging":         ["debug", "fix error", "resolve issue", "solve", "troubleshoot", "crash", "compile"],
+    "code_review":       ["review", "solid check", "audit code", "check quality"],
+    "explain_code":      ["explain code", "explain this code", "how does this work", "read code", "understanding code"],
+    "refactor_code":     ["refactor", "optimize code", "clean code", "simplify"],
+    "test_generation":   ["test", "tests", "unit test", "pytest", "junit"],
     "none":              [],
 }
 

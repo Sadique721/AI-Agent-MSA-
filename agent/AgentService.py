@@ -591,8 +591,8 @@ class AgentService:
                 if llm_response:
                     response = llm_response
                 else:
-                    # Fallback to presenting the result directly if offline/no LLM
-                    response = f"Here is what I found:\n\n{exec_result}"
+                    # Fallback to presenting synthesized context instead of raw snippets
+                    response = self.engine._nlp_summarize_fallback(user_input, exec_result)
             elif action == "none":
                 # General conversational request — combine user profile, context, and query
                 profile_context = ""
@@ -620,8 +620,10 @@ class AgentService:
                 if llm_response:
                     response = llm_response
                 else:
-                    if lang_res and lang_res.get("response"):
-                        response = lang_res.get("response")
+                    context_source = "\n".join(retrieved_rag)
+                    if profile_context:
+                        context_source += f"\nOwner profile details: {profile_context}"
+                    response = self.engine._nlp_summarize_fallback(user_input, context_source)
             
             # If no response generated yet, fallback to template
             if not response:

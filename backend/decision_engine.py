@@ -69,6 +69,7 @@ def _open_app_handler(kw):
 _FALLBACK_RESPONSES = {
     "open_app":        _open_app_handler,
     "internet_search": lambda kw: (f"Searching for '{' '.join(kw)}' on the web.", {"query": " ".join(kw)}),
+    "memory_recall":   lambda kw: (f"Recalling memory for: {' '.join(kw)}", {"query": " ".join(kw)}),
     "shutdown":        lambda kw: ("Shutting down the system. Goodbye!", {}),
     "restart":         lambda kw: ("Restarting the system now.", {}),
     "get_profile":     lambda kw: ("Fetching your profile information.", {}),
@@ -79,6 +80,13 @@ _FALLBACK_RESPONSES = {
     "automation":      lambda kw: ("Running automation task.", {"task": " ".join(kw)}),
     "vision":          lambda kw: ("Activating camera for visual detection.", {}),
     "location":        lambda kw: ("Fetching your current location.", {}),
+    # Coding intents fallbacks
+    "code_generation":  lambda kw: (f"Generating code for: {' '.join(kw)}.", {"prompt": " ".join(kw)}),
+    "debugging":        lambda kw: (f"Debugging: {' '.join(kw)}.", {"logs": " ".join(kw)}),
+    "code_review":      lambda kw: (f"Reviewing code: {' '.join(kw)}.", {"code": " ".join(kw)}),
+    "explain_code":     lambda kw: (f"Explaining code: {' '.join(kw)}.", {"code": " ".join(kw)}),
+    "refactor_code":    lambda kw: (f"Refactoring code: {' '.join(kw)}.", {"code": " ".join(kw)}),
+    "test_generation":  lambda kw: (f"Generating tests: {' '.join(kw)}.", {"code": " ".join(kw)}),
     "none":            lambda kw: (None, {}),
 }
 
@@ -313,3 +321,76 @@ Respond ONLY with a JSON object:
                 logger.error("Dynamic Gemini text generation failed: %s", e)
 
         return None
+
+    def _nlp_summarize_fallback(self, query: str, context_text: str) -> str:
+        """
+        Extremely robust offline NLP summarizer.
+        Rank sentences from context based on overlap with query keywords
+        and present them as a cohesive markdown response.
+        Also parses conversational greetings and identity requests directly.
+        """
+        import re
+        lower_query = query.lower().strip().replace("?", "").replace("!", "")
+        
+        # Conversational greetings and identity router
+        if lower_query in ("hi", "hello", "hey", "hola", "greetings", "hey msa"):
+            user_name = self.profile.get("name", "Md Sadique Amin")
+            role = self.profile.get("role", "Software Engineer")
+            return f"Hello {user_name}! I am MSA, your advanced offline-first AI Assistant. How can I assist you with your {role} projects today?"
+        
+        if lower_query in ("who are you", "what is your name", "tell me about yourself", "who is msa"):
+            return "I am MSA, your personal intelligent AI Assistant. I can execute system commands, search the web, index files into Hybrid RAG, and assist with coding, compilation, and debugging."
+
+        if "what did i ask yesterday" in lower_query or "what did i say" in lower_query:
+            if not context_text or context_text.strip() == "[]" or context_text.strip() == "":
+                return "I searched your conversation logs but found no past queries recorded."
+            # Clean and present retrieved memory logs
+            clean_logs = context_text.replace("[", "").replace("]", "").replace("'", "")
+            return f"Based on your local conversation memory, here is what we discussed recently:\n\n{clean_logs}"
+
+        if not context_text or not context_text.strip() or context_text.strip() == "[]":
+            return f"I searched local memory and web sources for '{query}' but found no specific details. Try: 'open notepad', 'latest AI news', or check your connection."
+        
+        # Split text into sentences
+        sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', context_text)
+        sentences = [s.strip() for s in sentences if len(s.strip()) > 15]
+        
+        # Extract query keywords
+        query_words = set(re.findall(r'\b\w{3,}\b', query.lower()))
+        # Filter stop words
+        from agent.AgentUtils import _STOP_WORDS
+        query_words = query_words - _STOP_WORDS
+        
+        # Score sentences
+        scored_sentences = []
+        for s in sentences:
+            s_lower = s.lower()
+            overlap = sum(1 for w in query_words if w in s_lower)
+            # Give slight weight to first sentences or sentences containing numbers
+            first_sentence_bonus = 0.2 if s.startswith(tuple("ABCDEFGHIJKLMNOPQRSTUVWXYZ")) else 0.0
+            has_numbers_bonus = 0.3 if any(c.isdigit() for c in s) else 0.0
+            score = overlap + first_sentence_bonus + has_numbers_bonus
+            scored_sentences.append((score, s))
+            
+        # Sort by score descending
+        scored_sentences.sort(key=lambda x: x[0], reverse=True)
+        
+        # Take top 4 unique sentences
+        seen = set()
+        top_sentences = []
+        for score, s in scored_sentences:
+            if s.lower() not in seen and len(top_sentences) < 4:
+                seen.add(s.lower())
+                # Clean up any bad unicode characters
+                clean_s = s.encode('ascii', 'ignore').decode('ascii')
+                top_sentences.append(clean_s)
+                
+        if not top_sentences:
+            # Fallback to first few sentences
+            top_sentences = [s.encode('ascii', 'ignore').decode('ascii') for s in sentences[:3]]
+            
+        response = f"Here is what I found for '{query}':\n\n"
+        for s in top_sentences:
+            response += f"- {s}\n"
+        response += f"\n*(Synthesized offline via local NLP fallback engine)*"
+        return response
