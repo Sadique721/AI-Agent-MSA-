@@ -61,8 +61,20 @@ function startBackend() {
 
 function killBackend() {
   if (pyProcess) {
-    logToFile('Stopping Python backend server...');
-    pyProcess.kill('SIGINT');
+    logToFile('Stopping Python backend server and all child processes...');
+    try {
+      const { exec } = require('child_process');
+      exec(`taskkill /F /PID ${pyProcess.pid} /T`, (err) => {
+        if (err) {
+          logToFile(`taskkill failed, falling back to process kill: ${err.message}`);
+          if (pyProcess) pyProcess.kill();
+        } else {
+          logToFile(`Successfully terminated process tree of PID ${pyProcess.pid}`);
+        }
+      });
+    } catch (e) {
+      if (pyProcess) pyProcess.kill();
+    }
     pyProcess = null;
   }
 }
