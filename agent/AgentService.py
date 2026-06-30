@@ -608,11 +608,21 @@ class AgentService:
                     except Exception:
                         pass
 
+                history_str = ""
+                if isinstance(context, list):
+                    for turn in context:
+                        if isinstance(turn, dict):
+                            history_str += f"{turn.get('role', 'user').capitalize()}: {turn.get('content', '')}\n"
+                        else:
+                            history_str += f"{turn}\n"
+                else:
+                    history_str = str(context)
+
                 prompt = (
                     f"You are MSA, an advanced AI Assistant. {lang_instruction}\n"
                     f"User Profile: {profile_context}\n"
                     f"Retrieved Knowledge:\n" + "\n".join(f"- {x}" for x in retrieved_rag) + "\n\n"
-                    f"Conversation History:\n{context}\n\n"
+                    f"Conversation History:\n{history_str}\n"
                     f"User Query: {user_input}\n\n"
                     f"Response:"
                 )
