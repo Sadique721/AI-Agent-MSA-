@@ -396,7 +396,7 @@ graph TD
   subgraph V1_0_V2_0 [V1.0 - V2.0: Core Assistant]
     Vosk[Vosk Speech-to-Text] --> FlaskServer[Flask Web Server :5000]
     FlaskServer --> RuleMatch[Rule-based Intent Parser]
-    FlutterClient[Flutter Mobile App] -->|Device Status Status| FlaskServer
+    FlutterClient[Flutter Mobile App] -->|Device Status| FlaskServer
   end
 
   subgraph V3_0_V4_0 [V3.0 - V4.0: Cognitive Agent]
