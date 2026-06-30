@@ -168,6 +168,12 @@ def serve_ui():
     return send_from_directory(os.path.join(PROJECT_ROOT, "ui"), "index.html")
 
 
+@app.route("/canvas")
+def serve_canvas_ui():
+    """Serve the V5.0 spatial canvas HTML."""
+    return send_from_directory(os.path.join(PROJECT_ROOT, "ui"), "canvas.html")
+
+
 @app.route("/voice")
 @app.route("/msa")
 def serve_voice():

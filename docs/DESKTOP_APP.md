@@ -1,10 +1,29 @@
-# Desktop Application Integration — MSA AI Agent V4.5
+# Electron Desktop Overlay Specification — MSA V5.0
 
-Details Electron shell configurations, global hotkeys, and system tray operations.
+This document defines the spatial client configuration and key listeners in MSA V5.0.
 
-## Shell Features
+---
 
-- **Frameless Overlay Window**: Spawns transparent UI canvas overlays.
-- **Global Shortcut**: Registers `Ctrl+K` to toggle dashboard visibility.
-- **System Tray**: Minimizes to tray on close, keeping background daemon active.
-- **IPC Bridge**: Relays workspace file picker prompts and clipboard copy actions.
+## 1. Window Transparency & Frame
+
+The Electron client shell is configured to support an overlay window:
+```javascript
+mainWindow = new BrowserWindow({
+  width: 1200,
+  height: 800,
+  transparent: true,
+  frame: false,
+  webPreferences: {
+    nodeIntegration: true,
+    contextIsolation: false
+  }
+});
+```
+
+---
+
+## 2. Global hotkeys & System Tray
+
+- **Global toggle:** The global hotkey `Ctrl+K` toggles window visibility instantly.
+- **Close Action:** Clicking the window close button hides the window to the System Tray instead of quitting the application.
+- **IPC Clipboard Bridges:** Exposes clipboard read and write calls to the React frontend.

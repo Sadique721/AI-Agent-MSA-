@@ -1,19 +1,32 @@
-# Architecture Specification — MSA AI Agent V4.5
+# Architecture Specification — MSA V5.0
 
-This document details the enterprise system layout, service topologies, and structural boundaries of the local-first Multi-Agent System.
+This document defines the high-level architecture of MSA AI Agent V5.0, detailing how the FastAPI Gateway, LangGraph StateGraph, and local desktop frontend coordinate.
 
-## Subsystems Layout
+---
 
-```mermaid
-graph TD
-    User([User]) -->|Desktop Window| Desktop[Electron Client]
-    Desktop -->|WebSockets| Gateway[Flask-SocketIO Server]
-    Gateway -->|Context| AgentService[AgentService Orchestrator]
-    AgentService -->|Intent| Reason[ReasoningEngine]
-    AgentService -->|Steps| Planner[PlannerAgent]
-    AgentService -->|Execute| Tools[Tool Registry]
-    AgentService -->|Validate| Validator[ValidatorAgent]
+## 1. High-Level Design
+
+The MSA V5.0 codebase is organized as a modular monorepo:
+
+```
+msa_agent/
+├── agent/                # LangGraph nodes and StateGraph workflow
+├── ai_core/              # LiteLLM and AI routing engine
+├── backend/              # Gateway servers, security managers, and workspace managers
+├── config/               # Schema-validated environment YAML config files
+├── prompts/              # Decoupled agent prompt templates
+├── frontend-desktop/     # React 19 + Electron desktop overlay client
+└── tests/                # Complete regression test suite
 ```
 
-## Service Registration
-All helper agents register inside the central `AgentService` dependency container to avoid circular dependency cycles and memory leaks.
+---
+
+## 2. Multi-Agent Coordination Flow
+
+Every user prompt undergoes structural processing through 7 pipeline stages:
+
+```
+[Intent Detection] ──► [Memory Recall] ──► [KG Lookup] ──► [RAG Search]
+                        └──► [Tool Call] ──► [LLM Generate] ──► [Self-Critique]
+```
+- Each node falls back gracefully if optional resources (such as Neo4j or Qdrant) are unavailable.

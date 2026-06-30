@@ -1,20 +1,33 @@
-# Execution Pipeline — MSA AI Agent V4.5
+# LangGraph Execution Pipeline — MSA V5.0
 
-Details the sequential path of input processing, execution loops, and validation checks.
+This document describes the compilation and execution characteristics of the LangGraph StateGraph pipeline.
 
-## Flow Sequences
+---
 
-```mermaid
-sequenceDiagram
-    User->>API: Send Request
-    API->>LanguageManager: Normalize Dialect (Hinglish/English)
-    API->>RAGMemory: Augment Semantic Context
-    API->>ReasoningEngine: Risk Analysis & Cognitive Intent
-    API->>Planner: Generate Plan Steps
-    loop Execution & Validation
-        API->>ToolRegistry: Run Step
-        ToolRegistry-->>Validator: Check Result
-    end
-    API->>LLMManager: Generate Final Output
-    LLMManager->>User: Stream token-by-token
+## 1. Graph State Definition
+
+The execution state is tracked within `AgentState` typed dictionaries:
+```python
+class AgentState(TypedDict):
+    user_input: str
+    intent: str
+    memory_context: str
+    rag_context: str
+    tool_summary: str
+    llm_response: str
+    response: str
 ```
+
+---
+
+## 2. Dynamic Routing Nodes
+
+Nodes are executed sequentially within a directed acyclic graph compiled by the workflow loader:
+```python
+graph.add_node("intent_detection", node_intent_detection)
+graph.add_node("memory_recall", node_memory_recall)
+...
+graph.add_edge("intent_detection", "memory_recall")
+```
+
+If any step raises an unhandled exception, it is caught at the coordinator level, saving the exception to the state `error` field and terminating the flow gracefully.

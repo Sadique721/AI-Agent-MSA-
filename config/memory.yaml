@@ -1,0 +1,10 @@
+# config/memory.yaml
+memory:
+  backend: "sqlite"
+  context_window: 10
+  summary_threshold: 20
+  max_context_tokens: 4096
+  ttl_seconds: 86400
+  similarity_threshold: 0.75
+
+# config/rag.yaml is separate

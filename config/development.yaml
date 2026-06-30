@@ -1,0 +1,84 @@
+# config/development.yaml
+# Development environment configuration
+
+app:
+  name: "MSA AI Agent V5.0"
+  version: "5.0.0"
+  environment: "development"
+  debug: true
+  log_level: "DEBUG"
+
+server:
+  flask_host: "0.0.0.0"
+  flask_port: 5000
+  fastapi_host: "0.0.0.0"
+  fastapi_port: 8000
+  secret_key: "msa-dev-secret-change-in-production"
+  cors_origins: ["*"]
+  reload: true
+
+database:
+  sqlite_path: "data/memory/msa.db"
+  postgresql_url: ""  # Leave empty to use SQLite fallback
+  redis_url: "redis://localhost:6379/0"
+  redis_ttl_seconds: 3600
+
+kafka:
+  bootstrap_servers: "localhost:9092"
+  group_id: "msa-agent-dev"
+  topics:
+    incoming_requests: "msa.incoming-requests"
+    agent_events: "msa.agent-events"
+    response_stream: "msa.response-stream"
+
+neo4j:
+  uri: "bolt://localhost:7687"
+  user: "neo4j"
+  password: "password"
+  database: "msa_dev"
+
+qdrant:
+  host: "localhost"
+  port: 6333
+  collection: "msa_knowledge_dev"
+
+minio:
+  endpoint: "localhost:9000"
+  access_key: "minioadmin"
+  secret_key: "minioadmin"
+  bucket: "msa-artifacts-dev"
+
+ollama:
+  base_url: "http://localhost:11434"
+  default_model: "llama3.2:3b"
+  timeout: 120
+
+litellm:
+  fallback_models:
+    - "ollama/llama3.2:3b"
+    - "ollama/deepseek-r1:1.5b"
+  cache_enabled: true
+  cache_ttl: 300
+
+agent:
+  context_window: 10
+  max_retries: 3
+  retry_delay: 1.0
+  stream_timeout: 60
+  max_tool_calls: 5
+
+paths:
+  project_root: "."
+  models_dir: "models"
+  data_dir: "data"
+  logs_dir: "data/logs"
+  uploads_dir: "uploads"
+  artifacts_dir: "data/artifacts"
+  backups_dir: "data/backups"
+  plugins_dir: "plugins/installed"
+  prompts_dir: "prompts"
+  config_dir: "config"
+
+encryption:
+  enabled: true
+  key_file: "data/encryption_key"

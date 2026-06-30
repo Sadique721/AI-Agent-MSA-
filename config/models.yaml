@@ -1,0 +1,112 @@
+# config/models.yaml
+# AI model routing table — maps task types to model chains
+
+# ── Default Model ─────────────────────────────────────────────────────────────
+default_model: "ollama/llama3.2:3b"
+default_embedding_model: "nomic-embed-text"
+
+# ── Reasoning Modes ───────────────────────────────────────────────────────────
+reasoning_modes:
+  fast:
+    description: "Low latency, small model"
+    primary: "ollama/llama3.2:1b"
+    fallback: "ollama/phi3:mini"
+    max_tokens: 512
+    temperature: 0.3
+
+  balanced:
+    description: "Default mode — quality vs speed"
+    primary: "ollama/llama3.2:3b"
+    fallback: "ollama/mistral:7b"
+    max_tokens: 2048
+    temperature: 0.7
+
+  deep_thinking:
+    description: "Long chain-of-thought reasoning"
+    primary: "ollama/deepseek-r1:7b"
+    fallback: "ollama/llama3.1:8b"
+    max_tokens: 8192
+    temperature: 0.8
+    enable_cot: true
+
+  research:
+    description: "Heavy RAG + web search"
+    primary: "ollama/llama3.1:8b"
+    fallback: "ollama/mistral:7b"
+    max_tokens: 4096
+    temperature: 0.6
+    enable_rag: true
+    enable_web_search: true
+
+  coding:
+    description: "Specialized code model"
+    primary: "ollama/deepseek-coder-v2:16b"
+    fallback: "ollama/codellama:7b"
+    max_tokens: 4096
+    temperature: 0.2
+
+  debug:
+    description: "Error analysis and fixing"
+    primary: "ollama/deepseek-r1:7b"
+    fallback: "ollama/llama3.1:8b"
+    max_tokens: 4096
+    temperature: 0.1
+    enable_cot: true
+
+  architect:
+    description: "High-level system design"
+    primary: "ollama/llama3.1:8b"
+    fallback: "ollama/mistral:7b"
+    max_tokens: 6144
+    temperature: 0.8
+
+  autonomous:
+    description: "Multi-agent iterative refinement"
+    primary: "ollama/llama3.1:8b"
+    fallback: "ollama/mistral:7b"
+    max_tokens: 8192
+    temperature: 0.7
+    enable_reflection: true
+    max_iterations: 5
+
+# ── Task-Type Routing ─────────────────────────────────────────────────────────
+task_routing:
+  CODING:         { reasoning_mode: "coding" }
+  DEBUGGING:      { reasoning_mode: "debug" }
+  RESEARCH:       { reasoning_mode: "research" }
+  GENERAL_QA:     { reasoning_mode: "balanced" }
+  CREATIVE:       { reasoning_mode: "balanced" }
+  MATH:           { reasoning_mode: "deep_thinking" }
+  ARCHITECTURE:   { reasoning_mode: "architect" }
+  VISION:         { reasoning_mode: "balanced" }
+  SUMMARIZATION:  { reasoning_mode: "fast" }
+  AUTONOMOUS:     { reasoning_mode: "autonomous" }
+
+# ── Cloud Providers (optional fallbacks) ──────────────────────────────────────
+cloud_providers:
+  openai:
+    enabled: false
+    api_key_env: "OPENAI_API_KEY"
+    default_model: "gpt-4o-mini"
+  anthropic:
+    enabled: false
+    api_key_env: "ANTHROPIC_API_KEY"
+    default_model: "claude-3-5-haiku-20241022"
+  gemini:
+    enabled: false
+    api_key_env: "GOOGLE_API_KEY"
+    default_model: "gemini-1.5-flash"
+  groq:
+    enabled: false
+    api_key_env: "GROQ_API_KEY"
+    default_model: "llama3-8b-8192"
+
+# ── Embedding Models ──────────────────────────────────────────────────────────
+embeddings:
+  local:
+    model: "sentence-transformers/all-MiniLM-L6-v2"
+    dimensions: 384
+    device: "cpu"
+  ollama:
+    model: "nomic-embed-text"
+    dimensions: 768

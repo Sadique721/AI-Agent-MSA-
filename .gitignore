@@ -67,3 +67,13 @@ tools/flutter/
 
 # Release and compiled APKs
 *.apk
+
+# Desktop Node Modules & builds
+frontend-desktop/node_modules/
+frontend-desktop/dist/
+
+# Database files
+data/backups/
+*.db
+*.faiss
+memory/msa_vectors_meta.json

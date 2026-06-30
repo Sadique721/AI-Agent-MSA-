@@ -1,0 +1,56 @@
+# config/features.yaml
+# Feature flags — set to true to enable optional heavy services.
+# During development, keep Kafka, Neo4j, Qdrant, etc. OFF for fast startup.
+
+# ── Event Bus ────────────────────────────────────────────────────────────────
+enable_kafka: false          # Apache Kafka (falls back to asyncio.Queue)
+enable_nats: false           # NATS lightweight messaging fallback
+
+# ── Knowledge Graph ──────────────────────────────────────────────────────────
+enable_neo4j: false          # Neo4j (falls back to networkx in-memory graph)
+
+# ── Vector DB ────────────────────────────────────────────────────────────────
+enable_qdrant: false         # Qdrant (falls back to FAISS)
+enable_milvus: false         # Milvus alternative
+
+# ── Object Storage ───────────────────────────────────────────────────────────
+enable_minio: false          # MinIO (falls back to local filesystem)
+
+# ── Workflow Orchestration ───────────────────────────────────────────────────
+enable_temporal: false       # Temporal long-running workflows
+enable_celery: false         # Celery background task queue (falls back to threading)
+
+# ── AI/ML Features ───────────────────────────────────────────────────────────
+enable_vision: false         # OpenCV + Tesseract OCR screen analysis
+enable_speech: true          # Whisper STT + Kokoro TTS
+enable_bert_intent: false    # Fine-tuned BERT intent detection (falls back to regex)
+enable_onnx: false           # ONNX Runtime accelerated inference
+
+# ── Application Features ─────────────────────────────────────────────────────
+enable_artifact_engine: true     # Claude-style live artifacts
+enable_plugin_system: true       # Plugin SDK and marketplace
+enable_background_agents: true   # Background indexer/watcher/sync agents
+enable_workspace_system: true    # Multi-workspace and project isolation
+enable_persona_system: true      # Multiple AI personas
+enable_context_engine: true      # Desktop awareness (clipboard, active window)
+enable_timeline: true            # Conversation timeline and branching
+enable_slash_commands: true      # /fix /explain /test /deploy etc.
+
+# ── Observability ────────────────────────────────────────────────────────────
+enable_prometheus: false     # Prometheus metrics endpoint
+enable_opentelemetry: false  # Distributed tracing
+enable_sentry: false         # Crash reporting
+
+# ── DevOps ───────────────────────────────────────────────────────────────────
+enable_docker_tools: false   # Docker tool execution via MCP
+enable_kubernetes: false     # Kubernetes integration (Phase 3)
+
+# ── Security ─────────────────────────────────────────────────────────────────
+enable_vault: false          # HashiCorp Vault secret management
+enable_opa: false            # Open Policy Agent policy enforcement
+enable_jwt_auth: true        # JWT authentication on API endpoints
+enable_rate_limiting: true   # API rate limiting
+
+# ── Auto-Update & Backup ─────────────────────────────────────────────────────
+enable_auto_update: true     # Background update checker
+enable_auto_backup: true     # Periodic automatic backups

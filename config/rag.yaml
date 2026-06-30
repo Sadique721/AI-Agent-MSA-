@@ -1,0 +1,13 @@
+# config/rag.yaml
+rag:
+  backend: "faiss"             # "faiss" | "qdrant" | "hybrid"
+  bm25_weight: 0.4
+  dense_weight: 0.6
+  top_k: 10
+  rerank_top_k: 5
+  min_score: 0.5
+  chunk_size: 512
+  chunk_overlap: 50
+  embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
+  faiss_index_path: "data/memory/msa_vectors.faiss"
+  qdrant_collection: "msa_knowledge"

@@ -1,0 +1,103 @@
+# config/security.yaml
+# Security policies — per-tool permissions and zero-trust settings
+
+# ── API Authentication ────────────────────────────────────────────────────────
+api:
+  jwt_secret_env: "MSA_JWT_SECRET"
+  jwt_algorithm: "HS256"
+  jwt_expiry_hours: 24
+  api_key: "${MSA_API_KEY:-MSA_SECURE_123}"    # Change in production!
+  rate_limit_per_minute: 60
+  rate_limit_per_hour: 1000
+
+# ── Tool Permissions (per-tool sandboxing) ────────────────────────────────────
+tool_permissions:
+  filesystem:
+    read_allowed: true
+    write_allowed: true
+    allowed_paths:
+      - "data/"
+      - "uploads/"
+      - "plugins/"
+      - "prompts/"
+    denied_paths:
+      - "C:/Windows"
+      - "/etc"
+      - "/root"
+      - ".git/"
+      - ".venv/"
+    max_file_size_mb: 100
+
+  browser:
+    enabled: true
+    url_whitelist: []           # Empty = all URLs allowed
+    url_blacklist:
+      - "localhost"
+      - "127.0.0.1"
+      - "*.internal"
+    max_pages_per_session: 10
+    javascript_enabled: true
+    screenshot_allowed: true
+
+  terminal:
+    enabled: true
+    command_whitelist: []
+    command_blacklist:
+      - "rm -rf /"
+      - "format"
+      - "del /f /q /s C:\\"
+      - "shutdown"
+      - "reboot"
+    timeout_seconds: 30
+    sandbox: true
+
+  git:
+    enabled: true
+    push_allowed: false         # Require explicit user confirmation
+    force_push_blocked: true
+    allowed_repos: []           # Empty = all repos
+
+  docker:
+    enabled: false              # Disabled by default
+    privileged_blocked: true
+    host_network_blocked: true
+    allowed_images: []
+
+  clipboard:
+    read_allowed: true
+    write_allowed: true
+
+  camera:
+    enabled: false
+
+  microphone:
+    enabled: true               # For voice input
+
+  network:
+    external_calls_allowed: true
+    allowed_domains: []         # Empty = all
+    blocked_domains:
+      - "*.onion"
+
+# ── Encryption ────────────────────────────────────────────────────────────────
+encryption:
+  enabled: true
+  key_file: "data/encryption_key"
+  algorithm: "AES-256-GCM"
+  encrypt_memory: true
+  encrypt_artifacts: false
+
+# ── Audit Logging ─────────────────────────────────────────────────────────────
+audit:
+  enabled: true
+  log_all_tool_calls: true
+  log_llm_prompts: false        # Set true only in developer mode
+  log_file: "data/logs/audit.log"
+  retention_days: 90
+
+# ── Content Safety ────────────────────────────────────────────────────────────
+content_safety:
+  enabled: true
+  block_pii: false              # Block personally identifiable info
+  block_harmful: true           # Block clearly harmful outputs
+  max_output_length: 50000

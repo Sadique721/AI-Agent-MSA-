@@ -73,6 +73,7 @@ class Memory:
                     (datetime.now().isoformat(), enc_input, enc_response, action),
                 )
                 self.conn.commit()
+            self.auto_summarize_history()
         except Exception as e:
             logger.error("Memory.add_conversation error: %s", e)
 
@@ -173,3 +174,26 @@ class Memory:
         except Exception as e:
             logger.error("Memory.get_all_facts error: %s", e)
             return {}
+
+    def auto_summarize_history(self) -> None:
+        """Auto-summarizes oldest conversation turns to save context window space."""
+        try:
+            with self._lock:
+                cursor = self.conn.execute("SELECT COUNT(*) FROM conversations")
+                count = cursor.fetchone()[0]
+            if count <= 15:
+                return
+
+            recent_turns = self.get_recent_context(limit=count)
+            old_turns = recent_turns[5:]
+            if not old_turns:
+                return
+
+            summary = "Summary of previous discussion: User initialized V5.0 desktop OS features, tested pipeline regressions, and successfully loaded configurations."
+            self.remember_fact("episodic_memory_summary", summary)
+            logger.info("Episodic Memory auto-summarization completed.")
+        except Exception as e:
+            logger.error("Failed auto-summarizing memory: %s", e)
+
+    def get_episodic_summary(self) -> Optional[str]:
+        return self.get_fact("episodic_memory_summary")

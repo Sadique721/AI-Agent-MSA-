@@ -38,13 +38,14 @@ if __name__ == "__main__":
     logger.info("MSA AI AGENT initialising …")
 
     # Start background daemon
-    bg_thread = threading.Thread(
-        target=run_background_workers,
-        name="msa-background",
-        daemon=True,
-    )
-    bg_thread.start()
-    logger.info("Background worker started (daemon).")
+    # Start V5.0 background agent coordinator
+    try:
+        from backend.services.background_agent_coordinator import get_background_coordinator
+        coordinator = get_background_coordinator()
+        coordinator.start()
+        logger.info("V5.0 Background Coordinator started.")
+    except Exception as e:
+        logger.error("Failed to start Background Coordinator: %s", e)
 
     # Start MSA voice assistant (daemon thread — wakes on 'hey msa')
     # FIX: Import moved inside try block so voice module absence does NOT crash server
@@ -54,6 +55,19 @@ if __name__ == "__main__":
         logger.info("MSA voice assistant started.")
     except Exception as e:
         logger.warning("MSA voice not available: %s", e)
+
+    # Start the FastAPI V5.0 Gateway server (daemon thread)
+    try:
+        import uvicorn
+        fastapi_thread = threading.Thread(
+            target=lambda: uvicorn.run("backend.gateway_server:app", host="0.0.0.0", port=8000, log_level="warning"),
+            name="msa-fastapi",
+            daemon=True,
+        )
+        fastapi_thread.start()
+        logger.info("FastAPI V5.0 Gateway started on port 8000 (daemon).")
+    except Exception as e:
+        logger.error("Failed to start FastAPI Gateway server: %s", e)
 
     # Start the web server (blocks until Ctrl+C)
     logger.info("Starting Wi-Fi server on port 5000 …")

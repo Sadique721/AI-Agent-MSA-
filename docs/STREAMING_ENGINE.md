@@ -1,19 +1,26 @@
-# Streaming Engine — MSA AI Agent V4.5
+# SSE Streaming Engine — MSA V5.0
 
-Details token streaming, state payloads, and cursor animations.
+This document describes the Server-Sent Events (SSE) streaming engine in MSA AI Agent V5.0.
 
-## WebSocket Streaming Schema
+---
 
-- **Status Events**:
-  ```json
-  {"state": "thinking", "message": "Analyzing intent..."}
-  ```
-- **Token Events**:
-  ```json
-  {"token": "Hello"}
-  ```
-- **Completion Events**:
-  ```json
-  {"state": "completed"}
-  ```
-- **Cursor UI**: A pulsing vertical indigo block indicates active streaming.
+## 1. Streaming Protocol
+
+The gateway uses Server-Sent Events (SSE) via the `GET /api/v5/stream` endpoint.
+This allows the client to receive real-time updates containing token chunks and pipeline status changes over a single persistent HTTP connection.
+
+```
+Client ──► (HTTP Request) ──► Server
+Client ◄── (SSE Event: status: thinking) ◄── Server
+Client ◄── (SSE Event: token chunk) ◄── Server
+Client ◄── (SSE Event: completed payload) ◄── Server
+```
+
+---
+
+## 2. API Format
+
+All SSE packets use the `data:` prefix and carry stringified JSON objects:
+- **Status Event:** `data: {"type": "status", "state": "thinking", "message": "Analyzing context..."}`
+- **Token Event:** `data: {"type": "token", "content": "..."}`
+- **Complete Event:** `data: {"type": "completed", "response": "..."}`

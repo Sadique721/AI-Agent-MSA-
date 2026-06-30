@@ -1,0 +1,99 @@
+# config/agents.yaml
+# Per-agent configuration — timeouts, retries, behavior settings
+
+intent_agent:
+  enabled: true
+  method: "regex"               # "regex" | "bert" | "llm"
+  bert_model: "distilbert-base-uncased"
+  confidence_threshold: 0.7
+  fallback_intent: "GENERAL_QA"
+  timeout: 5.0
+  cache_results: true
+  cache_ttl: 60
+
+planner_agent:
+  enabled: true
+  max_steps: 10
+  max_retries: 3
+  retry_delay: 1.0
+  timeout: 30.0
+  reasoning_mode: "balanced"
+  enable_dag: true              # Build directed acyclic graph of steps
+  enable_replan: true
+
+memory_agent:
+  enabled: true
+  backend: "sqlite"             # "sqlite" | "postgresql" | "redis"
+  context_window: 10            # How many recent turns to include
+  summary_threshold: 20         # Summarize when history exceeds this
+  max_context_tokens: 4096
+  timeout: 10.0
+  similarity_threshold: 0.75
+
+knowledge_graph_agent:
+  enabled: true
+  backend: "networkx"           # "neo4j" | "networkx"
+  max_hops: 3                   # Graph traversal depth
+  max_results: 20
+  timeout: 15.0
+
+rag_agent:
+  enabled: true
+  backend: "faiss"              # "faiss" | "qdrant" | "hybrid"
+  bm25_weight: 0.4
+  dense_weight: 0.6
+  top_k: 10
+  rerank_top_k: 5
+  min_score: 0.5
+  timeout: 20.0
+  chunk_size: 512
+  chunk_overlap: 50
+
+tool_agent:
+  enabled: true
+  max_concurrent_tools: 3
+  timeout_per_tool: 30.0
+  sandbox_enabled: true
+  require_permission_check: true
+  allowed_domains: []           # Empty = all domains allowed
+  blacklisted_commands: ["rm -rf", "format", "del /f /q"]
+
+validator_agent:
+  enabled: true
+  hallucination_check: true
+  safety_check: true
+  citation_check: false         # Requires RAG context
+  min_quality_score: 0.6
+  timeout: 15.0
+
+llm_agent:
+  enabled: true
+  streaming: true
+  timeout: 120.0
+  max_retries: 3
+  retry_on_empty: true
+  fallback_to_cached: true
+  temperature_override: null    # null = use model default
+
+reflection_agent:
+  enabled: true
+  min_response_quality: 0.7
+  max_reflection_rounds: 2
+  timeout: 30.0
+  enable_in_modes: ["deep_thinking", "autonomous", "research"]
+
+background_agents:
+  indexer:
+    enabled: true
+    interval_seconds: 300       # Re-index every 5 minutes
+    watch_dirs: ["data", "uploads", "plugins"]
+  watcher:
+    enabled: true
+    debounce_ms: 500
+  memory_cleaner:
+    enabled: true
+    interval_seconds: 3600      # Every hour
+    max_age_days: 30
+  analytics:
+    enabled: true
+    flush_interval_seconds: 60

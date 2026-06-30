@@ -1,45 +1,65 @@
 {
   "name": "msa-agent-desktop-client",
-  "private": true,
-  "version": "4.0.0",
-  "main": "main.js",
+  "version": "5.0.0",
+  "description": "MSA AI Agent V5.0 — Anti-Gravity Desktop AI Operating System",
+  "main": "src/main/main.js",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently \"vite --port 3000\" \"electron .\"",
+    "vite:dev": "vite",
+    "electron:dev": "electron .",
     "build": "vite build",
+    "build:electron": "electron-builder",
     "preview": "vite preview",
-    "start": "electron .",
-    "dist": "electron-builder"
+    "start": "npm run dev"
   },
+  "keywords": ["ai", "desktop", "electron", "agent", "msa"],
+  "author": "Md Sadique Amin",
+  "license": "MIT",
   "dependencies": {
     "framer-motion": "^11.0.0",
+    "marked": "^12.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "zustand": "^4.5.0"
+    "zustand": "^4.5.0",
+    "mermaid": "^11.0.0",
+    "highlight.js": "^11.9.0",
+    "dompurify": "^3.1.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.0",
     "autoprefixer": "^10.4.0",
-    "electron": "^28.0.0",
+    "concurrently": "^8.2.0",
+    "electron": "^30.0.0",
     "electron-builder": "^24.0.0",
     "postcss": "^8.4.0",
-    "tailwindcss": "^4.0.0",
-    "vite": "^5.2.0"
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.4.0",
+    "vite": "^5.3.0"
   },
   "build": {
-    "appId": "com.msa.agent.client",
-    "productName": "MSA Agent",
+    "appId": "com.msa.aiagent",
+    "productName": "MSA AI Agent",
     "directories": {
       "output": "dist-electron"
     },
     "files": [
       "dist/**/*",
-      "main.js",
+      "src/main/**/*",
       "package.json"
     ],
     "win": {
-      "target": "nsis"
+      "target": [{"target": "nsis", "arch": ["x64"]}],
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon.icns"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/icon.png"
     }
   }
 }
