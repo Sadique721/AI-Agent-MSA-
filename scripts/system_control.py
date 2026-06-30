@@ -3,6 +3,8 @@ import subprocess
 
 def open_app(app_name: str) -> str:
     """Opens a system app or executable"""
+    import re
+    app_name = re.sub(r"[^a-zA-Z0-9\s\.\-_]", "", app_name)
     apps = {
         "calculator": "calc.exe",
         "notepad": "notepad.exe",
@@ -10,9 +12,9 @@ def open_app(app_name: str) -> str:
         "cmd": "cmd.exe",
         "settings": "start ms-settings:"
     }
-    app_name = app_name.lower()
-    if app_name in apps:
-        os.system(apps[app_name])
+    app_name_lower = app_name.lower()
+    if app_name_lower in apps:
+        os.system(apps[app_name_lower])
         return f"Opened {app_name}"
     else:
         # Generic fallback

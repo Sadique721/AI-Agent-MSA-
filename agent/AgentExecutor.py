@@ -82,21 +82,31 @@ class AgentExecutor:
 
     # ── System ─────────────────────────────────────────────────────────────
     def _open_app(self, params: Dict) -> str:
-        app = params.get("app", "notepad").lower().strip()
-        app_map = {
-            "notepad":    "notepad.exe",
-            "calculator": "calc.exe",
-            "browser":    "start msedge",
-            "chrome":     "start chrome",
-            "cmd":        "cmd.exe",
-            "settings":   "start ms-settings:",
-            "vs code":    "code",
-            "explorer":   "explorer.exe",
-        }
-        cmd = app_map.get(app, f"start {app}")
+        import re
+        import os as local_os
+        raw_app = params.get("app", "notepad").lower().strip()
+        # Sanitize app name to allow only alphanumeric, space, dot, dash, and underscore
+        app = re.sub(r"[^a-zA-Z0-9\s\.\-_]", "", raw_app)
+        
         try:
             if self._system == "Windows":
-                subprocess.Popen(cmd, shell=True)
+                # Safe Windows protocol / file opening using os.startfile (no shell interpreter)
+                if app == "browser":
+                    local_os.startfile("microsoft-edge:")
+                elif app == "settings":
+                    local_os.startfile("ms-settings:")
+                elif app == "chrome":
+                    local_os.startfile("chrome.exe")
+                elif app == "notepad":
+                    local_os.startfile("notepad.exe")
+                elif app == "calculator":
+                    local_os.startfile("calc.exe")
+                elif app == "vs code":
+                    local_os.startfile("code.cmd")
+                elif app == "cmd":
+                    local_os.startfile("cmd.exe")
+                else:
+                    local_os.startfile(app)
             elif self._system == "Darwin":
                 subprocess.Popen(["open", "-a", app])
             else:
@@ -107,23 +117,23 @@ class AgentExecutor:
             return f"Could not open {app}: {e}"
 
     def _shutdown(self, params: Dict) -> str:
-        delay = params.get("delay", 10)
         try:
+            delay = int(params.get("delay", 10))
             if self._system == "Windows":
-                os.system(f"shutdown /s /t {delay}")
+                subprocess.Popen(["shutdown", "/s", "/t", str(delay)])
             else:
-                os.system("shutdown now")
+                subprocess.Popen(["shutdown", "now"])
             return f"System will shut down in {delay} seconds."
         except Exception as e:
             return f"Shutdown failed: {e}"
 
     def _restart(self, params: Dict) -> str:
-        delay = params.get("delay", 10)
         try:
+            delay = int(params.get("delay", 10))
             if self._system == "Windows":
-                os.system(f"shutdown /r /t {delay}")
+                subprocess.Popen(["shutdown", "/r", "/t", str(delay)])
             else:
-                os.system("reboot")
+                subprocess.Popen(["reboot"])
             return f"System will restart in {delay} seconds."
         except Exception as e:
             return f"Restart failed: {e}"

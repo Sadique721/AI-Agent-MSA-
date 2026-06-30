@@ -7,6 +7,8 @@ class SystemController:
         self.system = platform.system()
 
     def open_app(self, app_name):
+        import re
+        app_name = re.sub(r"[^a-zA-Z0-9\s\.\-_]", "", app_name)
         app_map = {
             "chrome": "google-chrome" if self.system == "Linux" else "chrome",
             "vs code": "code",
