@@ -1,34 +1,36 @@
 /**
  * desktopApi.js
- * Tauri v2 native system APIs with automatic browser fallback simulation.
+ * Electron native system APIs with browser fallback simulation.
  */
-let tauriApi = null;
+let ipcRenderer = null;
+let clipboard = null;
 
 try {
-  if (window.__TAURI_INTERNALS__) {
-    tauriApi = import('@tauri-apps/api');
+  if (window.require) {
+    const electron = window.require('electron');
+    ipcRenderer = electron.ipcRenderer;
+    clipboard = electron.clipboard;
   }
 } catch (e) {
-  console.warn("Not running in Tauri shell. Enabling browser mock mode.");
+  console.warn("Not running in Electron shell. Enabling browser mock mode.");
 }
 
 export async function getActiveWindowTitle() {
-  if (tauriApi) {
+  if (ipcRenderer) {
     try {
-      const { invoke } = await tauriApi;
-      return await invoke("get_active_window_title");
+      // In Electron, we can request the main process to fetch active window or return window title
+      return document.title || "MSA Agent Desktop Client";
     } catch (e) {
-      return "Tauri Host App Window";
+      return "MSA Agent Desktop Client";
     }
   }
-  return "Google Chrome (Simulation)";
+  return "MSA Agent Client (Simulation)";
 }
 
 export async function readClipboardText() {
-  if (tauriApi) {
+  if (clipboard) {
     try {
-      const { clipboard } = await tauriApi;
-      return await clipboard.readText();
+      return clipboard.readText();
     } catch (e) {
       return "";
     }
@@ -41,10 +43,9 @@ export async function readClipboardText() {
 }
 
 export async function writeClipboardText(text) {
-  if (tauriApi) {
+  if (clipboard) {
     try {
-      const { clipboard } = await tauriApi;
-      await clipboard.writeText(text);
+      clipboard.writeText(text);
       return true;
     } catch (e) {
       return false;
