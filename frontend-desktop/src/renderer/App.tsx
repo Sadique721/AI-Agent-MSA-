@@ -87,7 +87,7 @@ async function sendMessage(
   } catch {
     // Fallback to Flask
     onStage('generating', 'Connecting to backend...')
-    const resp = await fetch(`${API_BASE}/api/command`, {
+    const resp = await fetch(`${API_BASE}/api/execute`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ command, persona }),
@@ -155,6 +155,27 @@ const MessageBubble = React.memo(({ message }: { message: any }) => {
         )}
       </span>
     </motion.div>
+  )
+})
+
+// ── Message List Component ────────────────────────────────────────────────────
+const MessageList = React.memo(({ bottomRef }: { bottomRef: React.RefObject<HTMLDivElement> }) => {
+  const messages = useChatStore(useCallback(state => state.messages, []))
+
+  useEffect(() => {
+    const isStreaming = messages.some(m => m.streaming)
+    bottomRef.current?.scrollIntoView({ behavior: isStreaming ? 'auto' : 'smooth' })
+  }, [messages, bottomRef])
+
+  return (
+    <div className="messages-inner">
+      <AnimatePresence>
+        {messages.map(msg => (
+          <MessageBubble key={msg.id} message={msg} />
+        ))}
+      </AnimatePresence>
+      <div ref={bottomRef} />
+    </div>
   )
 })
 
@@ -261,19 +282,22 @@ const Sidebar = ({ onNewChat }: { onNewChat: () => void }) => (
 
 // ── Main App ──────────────────────────────────────────────────────────────────
 export default function App() {
-  const { messages, stage, addMessage, appendToken, finalizeMessage, setStage, clearMessages } = useChatStore()
-  const { currentPersona, setPersona } = useSettingsStore()
+  const hasMessages = useChatStore(useCallback(state => state.messages.length > 0, []))
+  const stage = useChatStore(useCallback(state => state.stage, []))
+  const addMessage = useChatStore(useCallback(state => state.addMessage, []))
+  const appendToken = useChatStore(useCallback(state => state.appendToken, []))
+  const finalizeMessage = useChatStore(useCallback(state => state.finalizeMessage, []))
+  const setStage = useChatStore(useCallback(state => state.setStage, []))
+  const clearMessages = useChatStore(useCallback(state => state.clearMessages, []))
+
+  const currentPersona = useSettingsStore(useCallback(state => state.currentPersona, []))
+  const setPersona = useSettingsStore(useCallback(state => state.setPersona, []))
 
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const assistantMsgIdRef = useRef<string | null>(null)
-
-  // Auto-scroll
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
 
   // Auto-resize textarea
   useEffect(() => {
@@ -299,24 +323,40 @@ export default function App() {
 
     setStage({ state: 'thinking', message: 'Processing request...' })
 
+    let tokenBuffer = ''
+    const flushInterval = setInterval(() => {
+      if (tokenBuffer) {
+        appendToken(aId, tokenBuffer)
+        tokenBuffer = ''
+      }
+    }, 50)
+
     try {
       const { response } = await sendMessage(
         query,
         currentPersona,
         (token) => {
-          appendToken(aId, token)
+          tokenBuffer += token
         },
         (state, message) => {
           setStage({ state: state as any, message })
-          // Update the message's stage indicator
-          useChatStore.setState(s => ({
-            messages: s.messages.map(m => m.id === aId ? { ...m, stage: state } : m)
-          }))
+          useChatStore.setState(s => {
+            const idx = s.messages.findIndex(m => m.id === aId)
+            if (idx === -1) return s
+            const updated = [...s.messages]
+            updated[idx] = { ...updated[idx], stage: state }
+            return { messages: updated }
+          })
         },
       )
-      finalizeMessage(aId, { stage: undefined })
+      clearInterval(flushInterval)
+      if (tokenBuffer) {
+        appendToken(aId, tokenBuffer)
+      }
+      finalizeMessage(aId, { content: response, stage: undefined })
       setStage({ state: 'idle', message: 'Ready' })
     } catch (err: any) {
+      clearInterval(flushInterval)
       finalizeMessage(aId, {
         content: `**Error:** ${err.message || 'Connection failed. Ensure the backend is running.'}`,
         streaming: false,
@@ -411,14 +451,7 @@ export default function App() {
               </div>
             </motion.div>
           ) : (
-            <div className="messages-inner">
-              <AnimatePresence>
-                {messages.map(msg => (
-                  <MessageBubble key={msg.id} message={msg} />
-                ))}
-              </AnimatePresence>
-              <div ref={bottomRef} />
-            </div>
+            <MessageList bottomRef={bottomRef} />
           )}
         </div>
 

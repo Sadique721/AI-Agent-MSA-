@@ -41,11 +41,17 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   appendToken: (id, token) => {
-    set(state => ({
-      messages: state.messages.map(m =>
-        m.id === id ? { ...m, content: m.content + token, streaming: true } : m
-      )
-    }))
+    set(state => {
+      const idx = state.messages.findIndex(m => m.id === id)
+      if (idx === -1) return state
+      const updated = [...state.messages]
+      updated[idx] = {
+        ...updated[idx],
+        content: updated[idx].content + token,
+        streaming: true
+      }
+      return { messages: updated }
+    })
   },
 
   finalizeMessage: (id, extras) => {

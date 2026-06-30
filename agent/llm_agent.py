@@ -109,9 +109,12 @@ class LLMAgent:
         if cache_key in self._cache:
             cached_text = self._cache[cache_key]
             if stream_callback:
-                for word in cached_text.split():
-                    stream_callback(word + " ")
-                    time.sleep(0.01)
+                import re
+                chunks = re.split(r'(\s+)', cached_text)
+                for chunk in chunks:
+                    if chunk:
+                        stream_callback(chunk)
+                        time.sleep(0.005)
             return LLMResponse(cached_text, "cache", cached=True, duration_ms=(time.time() - start) * 1000)
 
         if status_callback:
@@ -140,9 +143,12 @@ class LLMAgent:
             status_callback("generating", "Using intelligent simulation (no LLM available)")
         fallback_text = self._smart_simulate(prompt, task_type)
         if stream_callback:
-            for word in fallback_text.split():
-                stream_callback(word + " ")
-                time.sleep(0.015)
+            import re
+            chunks = re.split(r'(\s+)', fallback_text)
+            for chunk in chunks:
+                if chunk:
+                    stream_callback(chunk)
+                    time.sleep(0.005)
         self._cache[cache_key] = fallback_text
         return LLMResponse(fallback_text, "simulation", duration_ms=(time.time() - start) * 1000)
 
@@ -195,9 +201,12 @@ class LLMAgent:
             if not text:
                 return None
             if stream_callback:
-                for word in text.split():
-                    stream_callback(word + " ")
-                    time.sleep(0.01)
+                import re
+                chunks = re.split(r'(\s+)', text)
+                for chunk in chunks:
+                    if chunk:
+                        stream_callback(chunk)
+                        time.sleep(0.005)
             return LLMResponse(text.strip(), "legacy_manager")
         except Exception as e:
             logger.warning("Legacy LLM call failed: %s", e)

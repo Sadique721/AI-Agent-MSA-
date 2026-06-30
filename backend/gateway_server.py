@@ -60,7 +60,7 @@ except Exception:
 
 try:
     from backend.decision_engine import DecisionEngine
-    _engine = DecisionEngine(_memory) if _memory else None
+    _engine = DecisionEngine() if _memory else None
 except Exception:
     _engine = None  # type: ignore
 

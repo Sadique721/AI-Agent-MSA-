@@ -321,6 +321,14 @@ def node_llm_generation(state: AgentState) -> AgentState:
             state["llm_response"] = cached_resp
             state["llm_model"] = "semantic_cache"
             state.setdefault("timings", {})["llm_ms"] = _now_ms() - t0
+            stream_cb = state.get("stream_callback")
+            if stream_cb:
+                import re
+                chunks = re.split(r'(\s+)', cached_resp)
+                for chunk in chunks:
+                    if chunk:
+                        stream_cb(chunk)
+                        time.sleep(0.005)
             return state
     except Exception as e:
         logger.debug("Semantic cache lookup failed: %s", e)
