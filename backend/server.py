@@ -268,6 +268,25 @@ _dq_handler.setFormatter(logging.Formatter(
 logging.getLogger().addHandler(_dq_handler)
 
 
+@app.route("/api/media", methods=["GET"])
+def api_media():
+    """Retrieve and serve local media files securely."""
+    try:
+        from flask import send_file
+        path_param = request.args.get("path")
+        if not path_param:
+            return jsonify({"status": "error", "message": "path is required"}), 400
+        
+        # Ensure path is absolute
+        abs_path = os.path.abspath(path_param)
+        if not os.path.exists(abs_path):
+            return jsonify({"status": "error", "message": f"File not found: {abs_path}"}), 404
+            
+        return send_file(abs_path)
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 @app.route("/api/logs", methods=["GET"])
 def api_logs():
     """Return the last N log lines for the VS Code-style in-app console."""

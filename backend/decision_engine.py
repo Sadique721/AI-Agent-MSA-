@@ -193,12 +193,12 @@ class DecisionEngine(BaseService):
         query_lower = user_input.lower()
         if any(k in query_lower for k in keywords):
             response = result.get("response", "")
-            if "media://" not in response:
+            if "api/media" not in response:
                 profile_card = """
 <div style="background: linear-gradient(135deg, rgba(30, 30, 50, 0.95), rgba(15, 15, 30, 0.95)); border: 1px solid rgba(139, 92, 246, 0.45); border-radius: 16px; padding: 24px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5); backdrop-filter: blur(12px); color: #f1f5f9; font-family: 'Segoe UI', -apple-system, sans-serif; max-width: 620px; margin: 20px auto; border-top: 4px solid #8b5cf6;">
   <div style="display: flex; align-items: center; gap: 24px; border-bottom: 1px solid rgba(255, 255, 255, 0.12); padding-bottom: 20px; margin-bottom: 20px;">
     <div style="position: relative;">
-      <img src="media://d:/My Self Details/Programs/AI/msa_agent/data/memory/user_picture.jpg" style="width: 110px; height: 110px; border-radius: 50%; border: 3px solid #8b5cf6; box-shadow: 0 0 20px rgba(139, 92, 246, 0.7); object-fit: cover;" />
+      <img src="http://localhost:8000/api/media?path=d:/My Self Details/Programs/AI/msa_agent/data/memory/user_picture.jpg" style="width: 110px; height: 110px; border-radius: 50%; border: 3px solid #8b5cf6; box-shadow: 0 0 20px rgba(139, 92, 246, 0.7); object-fit: cover;" />
       <span style="position: absolute; bottom: 8px; right: 8px; background: #10b981; width: 16px; height: 16px; border-radius: 50%; border: 3.5px solid #1e1e32;" title="Founder & CEO"></span>
     </div>
     <div>
