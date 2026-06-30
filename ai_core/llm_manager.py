@@ -15,6 +15,22 @@ class LLMManager:
     def __init__(self, ollama_url: str = "http://localhost:11434", default_model: str = "llama3"):
         self.ollama_url = ollama_url
         self.default_model = default_model
+        
+        # Load from models.yaml dynamically
+        try:
+            import yaml
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            config_path = os.path.join(base_dir, "config", "models.yaml")
+            if os.path.exists(config_path):
+                with open(config_path, "r", encoding="utf-8") as f:
+                    cfg = yaml.safe_load(f)
+                    val = cfg.get("default_model", "ollama/qwen2.5:0.5b")
+                    if val.startswith("ollama/"):
+                        val = val[7:]
+                    self.default_model = val
+        except Exception as e:
+            logger.debug("Failed loading models.yaml dynamically in LLMManager: %s", e)
+            
         self.circuit_broken = False
         self.failures = 0
         self.max_failures = 3
@@ -66,7 +82,7 @@ class LLMManager:
                     headers={"Content-Type": "application/json"}
                 )
                 if stream_callback:
-                    with urllib.request.urlopen(req, timeout=5.0) as response:
+                    with urllib.request.urlopen(req, timeout=30.0) as response:
                         full_text = ""
                         for line in response:
                             if line:
@@ -77,7 +93,7 @@ class LLMManager:
                         self.failures = 0
                         return full_text.strip()
                 else:
-                    with urllib.request.urlopen(req, timeout=5.0) as response:
+                    with urllib.request.urlopen(req, timeout=30.0) as response:
                         res_data = json.loads(response.read().decode())
                         self.failures = 0
                         return res_data.get("response", "").strip()

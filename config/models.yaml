@@ -2,22 +2,22 @@
 # AI model routing table — maps task types to model chains
 
 # ── Default Model ─────────────────────────────────────────────────────────────
-default_model: "ollama/llama3.2:3b"
+default_model: "ollama/qwen2.5:0.5b"
 default_embedding_model: "nomic-embed-text"
 
 # ── Reasoning Modes ───────────────────────────────────────────────────────────
 reasoning_modes:
   fast:
     description: "Low latency, small model"
-    primary: "ollama/llama3.2:1b"
-    fallback: "ollama/phi3:mini"
+    primary: "ollama/qwen2.5:0.5b"
+    fallback: "ollama/qwen2.5:0.5b"
     max_tokens: 512
     temperature: 0.3
 
   balanced:
     description: "Default mode — quality vs speed"
-    primary: "ollama/llama3.2:3b"
-    fallback: "ollama/mistral:7b"
+    primary: "ollama/qwen2.5:0.5b"
+    fallback: "ollama/qwen2.5:0.5b"
     max_tokens: 2048
     temperature: 0.7
 
