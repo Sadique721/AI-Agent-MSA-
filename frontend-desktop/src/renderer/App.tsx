@@ -420,7 +420,7 @@ export default function App() {
 
         {/* Messages */}
         <div className="messages-container">
-          {messages.length === 0 ? (
+          {!hasMessages ? (
             <motion.div
               className="empty-state"
               initial={{ opacity: 0, y: 20 }}
