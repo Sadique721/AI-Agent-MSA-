@@ -1713,7 +1713,15 @@ def handle_audio(data):
         return
 
     if _agent_service:
-        result = _agent_service.process_input(text)
+        def stream_cb(token):
+            emit("token", {"token": token})
+        def status_cb(state, message):
+            emit("status", {"state": state, "message": message})
+
+        status_cb("thinking", "Analyzing input...")
+        result = _agent_service.process_input(text, stream_callback=stream_cb, status_callback=status_cb)
+        status_cb("completed", "Response completed.")
+
         emit("response", {
             "text":       result.get("response", ""),
             "action":     result.get("action", "none"),
@@ -1749,7 +1757,15 @@ def handle_text_command(data):
         return
 
     if _agent_service:
-        result = _agent_service.process_input(command)
+        def stream_cb(token):
+            emit("token", {"token": token})
+        def status_cb(state, message):
+            emit("status", {"state": state, "message": message})
+
+        status_cb("thinking", "Analyzing input...")
+        result = _agent_service.process_input(command, stream_callback=stream_cb, status_callback=status_cb)
+        status_cb("completed", "Response completed.")
+
         emit("response", {
             "text":       result.get("response", ""),
             "action":     result.get("action", "none"),

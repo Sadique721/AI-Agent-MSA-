@@ -17,8 +17,9 @@ Upgraded pipeline:
 
 import logging
 import os
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Callable
 
+from ai_core.llm_manager import LLMManager
 from agent.AgentMemory import AgentMemory
 from agent.AgentExecutor import AgentExecutor
 from config import (
@@ -68,6 +69,7 @@ class AgentService:
         self.engine   = decision_engine
         self.memory   = AgentMemory(memory)
         self.executor = AgentExecutor()
+        self.llm_manager = LLMManager()
 
         # ── Phase-1 subsystems ──
         self.language_manager = None
@@ -346,7 +348,12 @@ class AgentService:
 
     # ── Main pipeline ─────────────────────────────────────────────────────────
 
-    def process_input(self, user_input: str) -> Dict[str, Any]:
+    def process_input(
+        self,
+        user_input: str,
+        stream_callback: Optional[Callable[[str], None]] = None,
+        status_callback: Optional[Callable[[str, str], None]] = None
+    ) -> Dict[str, Any]:
         """
         Phase-2 upgraded pipeline:
           1. Language detection & Hinglish normalization
@@ -371,6 +378,8 @@ class AgentService:
             }
 
         # ── Step 1: Language detection & Hinglish normalization ──────────────
+        if status_callback:
+            status_callback("thinking", "Analyzing language and intent...")
         language = "english"
         lang_res = {}
         if ENABLE_HINGLISH_ENGINE and self.language_manager:
@@ -381,6 +390,8 @@ class AgentService:
                 logger.error("LanguageEngine error: %s", e)
 
         # ── Step 2: RAG Memory context augmentation ──────────────────────────
+        if status_callback:
+            status_callback("searching", "Searching vector database & memory...")
         context = self.memory.get_context(limit=5)
         rag_ctx = {}
         if ENABLE_RAG_MEMORY and self.rag_memory:
@@ -392,6 +403,8 @@ class AgentService:
                 logger.error("RAGMemory recall error: %s", e)
 
         # ── Step 3: ReasoningEngine analysis ────────────────────────────────
+        if status_callback:
+            status_callback("thinking", "Analyzing intent & cognitive graphs...")
         reasoning = None
         if ENABLE_REASONING_ENGINE and self.reasoning_engine:
             try:
@@ -430,6 +443,8 @@ class AgentService:
         steps       = []
 
         if ENABLE_PLANNER and self.planner:
+            if status_callback:
+                status_callback("planning", "Generating execution blueprint...")
             try:
                 steps = self.planner.plan(user_input, context)
             except Exception as e:
@@ -451,6 +466,8 @@ class AgentService:
                     t_name   = step["tool"]
                     t_params = step["params"]
                     logger.info("  Step %d: tool=%s params=%s", step["step"], t_name, t_params)
+                    if status_callback:
+                        status_callback("running_tool", f"Running {t_name}...")
                     res = registry.execute(t_name, t_params)
                     results.append({
                         "step":   step["step"],
@@ -555,6 +572,8 @@ class AgentService:
 
             tool_name = registry.suggest_tool(action)
             if tool_name:
+                if status_callback:
+                    status_callback("running_tool", f"Running {tool_name}...")
                 exec_result = registry.execute(tool_name, params)
                 # Single-step validation
                 if ENABLE_VALIDATOR and self.validator and reasoning:
@@ -580,6 +599,8 @@ class AgentService:
                 lang_instruction = "Respond in clear English."
 
             if action in ("internet_search", "browser_search", "memory_recall") and exec_result:
+                if status_callback:
+                    status_callback("generating", "Synthesizing retrieved context...")
                 prompt = (
                     f"You are MSA, an advanced AI Assistant. {lang_instruction}\n"
                     f"Answer the user query using the retrieved context below. Be direct, clear, and verified.\n\n"
@@ -587,12 +608,7 @@ class AgentService:
                     f"Retrieved Content:\n{exec_result}\n\n"
                     f"Answer:"
                 )
-                llm_response = self.engine.generate_text(prompt)
-                if llm_response:
-                    response = llm_response
-                else:
-                    # Fallback to presenting synthesized context instead of raw snippets
-                    response = self.engine._nlp_summarize_fallback(user_input, exec_result)
+                response = self.llm_manager.generate(prompt, stream_callback=stream_callback)
             elif action == "none":
                 # General conversational request — combine user profile, context, and query
                 profile_context = ""
@@ -618,6 +634,8 @@ class AgentService:
                 else:
                     history_str = str(context)
 
+                if status_callback:
+                    status_callback("generating", "Generating reply...")
                 prompt = (
                     f"You are MSA, an advanced AI Assistant. {lang_instruction}\n"
                     f"User Profile: {profile_context}\n"
@@ -626,14 +644,7 @@ class AgentService:
                     f"User Query: {user_input}\n\n"
                     f"Response:"
                 )
-                llm_response = self.engine.generate_text(prompt)
-                if llm_response:
-                    response = llm_response
-                else:
-                    context_source = "\n".join(retrieved_rag)
-                    if profile_context:
-                        context_source += f"\nOwner profile details: {profile_context}"
-                    response = self.engine._nlp_summarize_fallback(user_input, context_source)
+                response = self.llm_manager.generate(prompt, stream_callback=stream_callback)
             
             # If no response generated yet, fallback to template
             if not response:

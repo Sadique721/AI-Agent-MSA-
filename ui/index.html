@@ -243,10 +243,49 @@
     socket.on('connected', d => addMsg(d.message, 'ai'));
     
     let chatCount = 0;
+    let activeStreamingDiv = null;
+    let accumulatedText = "";
+    let activeAction = null;
+
+    socket.on('status', d => {
+      if (d.state === 'completed') {
+        removeTyping();
+        activeStreamingDiv = null;
+        accumulatedText = "";
+        refreshSysInfo();
+        refreshStatus();
+        loadHistory();
+      } else if (d.state === 'generating') {
+        removeTyping();
+        activeStreamingDiv = addMsg("", 'ai');
+        accumulatedText = "";
+      } else {
+        showTyping(d.message || d.state);
+      }
+    });
+
+    socket.on('token', d => {
+      if (activeStreamingDiv) {
+        accumulatedText += d.token;
+        activeStreamingDiv.innerHTML = parseCustomMarkdown(accumulatedText) + '<span class="inline-block w-1.5 h-3 bg-indigo-400 ml-1 animate-pulse"></span>';
+        const area = document.getElementById('chat-area');
+        area.scrollTop = area.scrollHeight;
+      }
+    });
+
     socket.on('response', d => {
       removeTyping();
       const action = d.action && d.action !== 'none' ? d.action : null;
-      addMsg(d.text, 'ai', action);
+      if (activeStreamingDiv) {
+        let body = parseCustomMarkdown(d.text);
+        if (action) {
+          body += `<div class="mt-2.5"><span class="px-2 py-0.5 bg-indigo-950/80 border border-indigo-500/30 rounded text-[9px] font-bold text-indigo-400 tracking-wider">⚡ ${action.toUpperCase()}</span></div>`;
+        }
+        activeStreamingDiv.innerHTML = body;
+        activeStreamingDiv = null;
+      } else {
+        addMsg(d.text, 'ai', action);
+      }
       chatCount++;
       const chatsEl = document.getElementById('inf-chats');
       if (chatsEl) chatsEl.textContent = chatCount;
@@ -298,6 +337,7 @@
     function addMsg(text, role, action) {
       const area = document.getElementById('chat-area');
       const container = document.createElement('div');
+      let targetEl = null;
       
       if (role === 'user') {
         container.className = "flex gap-4 p-4 rounded-2xl bg-zinc-800/40 border border-zinc-700/30 max-w-2xl ml-auto justify-end";
@@ -322,21 +362,28 @@
           </div>
           <div class="flex-1 space-y-1">
             <div class="text-xs font-bold text-indigo-400">MSA System Assistant</div>
-            <div class="text-xs text-zinc-300 leading-relaxed">${messageBody}</div>
+            <div class="text-xs text-zinc-300 leading-relaxed msg-body-stream">${messageBody}</div>
           </div>
         `;
+        targetEl = container.querySelector('.msg-body-stream');
       }
       
       area.appendChild(container);
       area.scrollTop = area.scrollHeight;
+      return targetEl;
     }
 
-    function showTyping() {
+    function showTyping(message) {
+      removeTyping();
       const area = document.getElementById('chat-area');
       const div = document.createElement('div');
-      div.className = 'typing-indicator flex gap-1.5 p-3.5 bg-zinc-900/40 border border-zinc-800/50 rounded-2xl w-20 justify-center align-middle';
+      div.className = 'typing-indicator flex gap-3 items-center px-4 py-2.5 bg-zinc-900/40 border border-zinc-800/50 rounded-2xl w-fit';
       div.id = 'typing-indicator';
-      div.innerHTML = '<span></span><span></span><span></span>';
+      
+      const dots = '<span class="flex gap-1"><span></span><span></span><span></span></span>';
+      const label = message ? `<span class="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">${message}</span>` : '';
+      
+      div.innerHTML = dots + label;
       area.appendChild(div);
       area.scrollTop = area.scrollHeight;
     }
