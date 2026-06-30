@@ -26,17 +26,18 @@
 ## 📖 Table of Contents
 
 1. [🌟 What is MSA AI AGENT?](#-what-is-msa-ai-agent)
-2. [🔥 Core Features](#-core-features)
-3. [🧠 Technology Stack](#-technology-stack)
-4. [📁 Project Structure](#-project-structure)
-5. [⚙️ Installation Guide](#️-installation-guide)
-6. [🔐 Voice Training (Siamese Network)](#-voice-training-siamese-network)
-7. [💻 Coding Agent (Phase 3 Upgrade)](#-coding-agent-phase-3-upgrade)
-8. [🚀 Running the System](#-running-the-system)
-9. [🧪 Unit Testing & Validation](#-unit-testing--validation)
-10. [📱 Flutter Mobile Client & Telemetry](#-flutter-mobile-client--telemetry)
-11. [☁️ Advanced Online Deployment Strategy](#-advanced-online-deployment-strategy-vercel-netlify--render)
-12. [⚔️ Comparative Advantages](#️-comparative-advantages)
+2. [🏗️ Enterprise Hybrid RAG Architecture](#️-enterprise-hybrid-rag-architecture)
+3. [🔥 Core Features](#-core-features)
+4. [🧠 Technology Stack](#-technology-stack)
+5. [📁 Project Structure](#-project-structure)
+6. [⚙️ Installation Guide](#️-installation-guide)
+7. [🔐 Voice Training (Siamese Network)](#-voice-training-siamese-network)
+8. [💻 Coding Agent (Phase 3 Upgrade)](#-coding-agent-phase-3-upgrade)
+9. [🚀 Running the System](#-running-the-system)
+10. [🧪 Unit Testing & Validation](#-unit-testing--validation)
+11. [📱 Flutter Mobile Client & Telemetry](#-flutter-mobile-client--telemetry)
+12. [☁️ Advanced Online Deployment Strategy](#-advanced-online-deployment-strategy-vercel-netlify--render)
+13. [⚔️ Comparative Advantages](#️-comparative-advantages)
 
 ---
 
@@ -77,9 +78,90 @@ graph TD
     Flutter -->|ADB Client commands| Control
 ```
 
-
 > [!IMPORTANT]
 > **100% local execution**: Speech Recognition (Vosk), LLM reasoning engines (Llama-2/DeepSeek GGUF or local Ollama), FAISS vector memory, and OpenCV vision models run locally on your CPU/GPU. No personal data or private code ever leaves your device.
+
+---
+
+## 🏗️ Enterprise Hybrid RAG Architecture
+
+The platform integrates a production-grade, modular, offline-first Hybrid Retrieval-Augmented Generation (RAG) system:
+
+```mermaid
+graph TD
+    subgraph Communication [Communication Layer]
+        API["REST APIs / Socket.IO WebSockets"]
+    end
+
+    subgraph Reasoning [Agent Reasoning Tier]
+        Planner["Planner Agent (Decision Loop & Intent-Aware Routing)"]
+        Validator["Validator Agent (Fact Verification & Citation Check)"]
+    end
+
+    subgraph Routing [Retrieval Orchestrator]
+        Retriever["Hybrid Retriever (Vector + BM25)"]
+        QP["Query Processor (Expansion / Rewrite / Multi-Query)"]
+        Compressor["Context Compressor (Token-Budget Packing)"]
+    end
+
+    subgraph Specialized [Extraction Engines]
+        CodeRAG["Code RAG Integration (AST & Symbols)"]
+        GraphRAG["Graph RAG Integration (Entities & Relations)"]
+        MultiRAG["Multimedia RAG (Image / Video / Audio Timeline)"]
+    end
+
+    subgraph Ingestion [Ingestion & Processing Layer]
+        Watcher["Filesystem Watcher (watchdog / polling)"]
+        Indexer["Incremental Indexer"]
+        Chunker["Parent-Child Hierarchical Chunker"]
+        Parsers["AST / OCR / Speech-to-Text Parsers"]
+    end
+
+    subgraph Persistence [Persistence & Acceleration Layer]
+        VDB["FAISS / VectorDB Adapter"]
+        MetaStore["SQLite Metadata Store"]
+        GraphDB["SQLite Graph DB"]
+        LRUCache["LRU Performance Caches (Embeddings / Rewrites)"]
+    end
+
+    API --> Planner
+    Planner --> Retriever
+    Retriever --> QP
+    QP --> Specialized
+    Specialized --> Chunker
+    Chunker --> Parsers
+    Parsers --> Watcher
+    Watcher --> Indexer
+    Indexer --> VDB
+    Indexer --> MetaStore
+    Indexer --> GraphDB
+    
+    Retriever --> Compressor
+    Compressor --> Validator
+    Validator --> API
+    
+    Retriever -.-> LRUCache
+```
+
+### Proposed Architecture Subsystems:
+
+*   **REST APIs / WebSockets**: Exposes endpoints (`/rag/query`, `/rag/query/rewrite`, `/rag/query/expand`, etc.) and triggers realtime indexing and search progress sockets.
+*   **Planner Agent (Decision Loop)**: Conducts intent-aware RAG selection (deciding between Code, Graph, Image, Video, Audio, or Memory).
+*   **Validator Agent (Citation & Hallucination Check)**: Computes fact consistency scores and maps claims to original document citations.
+*   **Query Processor**: Performs typographical correction, synonymous keyword expansions, and multi-query variant generation.
+*   **Hybrid Retriever**: Blends FAISS dense vectors and SQLite BM25 sparse matches via Reciprocal Rank Fusion (RRF) and Cross-Encoder reranking.
+*   **Graph RAG Integration (Entities & Relations)**: Builds a semantic SQLite Graph DB, extracting entities/edges with automatic regex fallbacks.
+*   **Code RAG Integration (AST & Symbols)**: Compiles structural definitions for Python, Java, JS, TS, Go, Rust, Kotlin, Dart, SQL, etc., mapping symbol imports and exports.
+*   **Multimedia RAG (Image / Video / Audio)**: Extracts timeline events, frame segmentation (OpenCV), PIL metadata, and transcripts.
+*   **Filesystem Watcher**: Listens to directories to trigger background index synchronization.
+*   **Incremental Indexer**: Detects document deletions and updates without re-embedding the whole library.
+*   **Parent-Child Hierarchical Chunker**: Maps smaller child search vectors to comprehensive parent chunks, preventing infinite loops.
+*   **AST / OCR / Speech-to-Text Parsers**: Parses programming structures, screen pixels, and microphone sound feeds.
+*   **FAISS / VectorDB Adapter**: Abstract adapter supporting FAISS, Chroma, and Qdrant database engines.
+*   **SQLite Metadata Store**: Manages chunk indexes, document properties, and file states.
+*   **SQLite Graph DB**: Houses Knowledge Graph nodes and multi-hop traversal relationships.
+*   **LRU Performance Caches**: Thread-safe caching of embeddings and search rewrites.
+*   **Context Compressor**: Deduplicates redundant snippets and packs context to match LLM token budgets.
 
 ---
 
@@ -154,7 +236,7 @@ msa_agent/
 │   ├── test_coding_memory.py
 │   ├── test_coding_validator.py
 │   ├── test_stacktrace_analyzer.py
-│   └── ... (419 passing tests)
+│   └── test_enterprise_rag.py # 🧪 Hybrid RAG test suite
 ├── 📄 config.py               # Central environment configurations
 ├── 📄 main.py                 # Main backend orchestrator launcher
 ├── 📄 HOW_TO_USE.txt          # Quick start developer manual
@@ -245,7 +327,7 @@ python -m pytest --ignore=test_api.py
 ```
 
 > [!TIP]
-> This suite includes **419 automated test cases** checking the AST parser, coding validator compiler checks, refactor engines, RAG database storage, and LLM retry logics. Ensure you maintain 100% pass rates on modification.
+> This suite includes **433 automated test cases** checking the AST parser, coding validator compiler checks, refactor engines, RAG database storage, and LLM retry logics. Ensure you maintain 100% pass rates on modification.
 
 ---
 

@@ -93,14 +93,58 @@ class PlannerAgent:
             if t.get("enabled", True):
                 tools_summary += f"- {t['name']}: {t['description']} (params: {list(t['params'].keys())})\n"
 
+        # ── Classify Query Intent for RAG Routing ──
+        need_code_rag = any(w in user_input.lower() for w in ["class", "function", "method", "code", "implementation", "py", "js", "ts", "java", "import", "ast", "compile"])
+        need_graph_rag = any(w in user_input.lower() for w in ["relation", "relationship", "connection", "hierarchy", "network", "dependencies", "graph", "traversal", "node"])
+        need_image_rag = any(w in user_input.lower() for w in ["image", "picture", "png", "jpg", "ocr", "diagram", "screenshot", "visual"])
+        need_video_rag = any(w in user_input.lower() for w in ["video", "mp4", "clip", "frame", "timeline", "scene", "segment"])
+        need_audio_rag = any(w in user_input.lower() for w in ["audio", "mp3", "wav", "sound", "voice", "speaker", "speech", "transcript"])
+
+        logger.info(
+            "PlannerAgent Intent classification: Code=%s Graph=%s Image=%s Video=%s Audio=%s",
+            need_code_rag, need_graph_rag, need_image_rag, need_video_rag, need_audio_rag
+        )
+
+        rag_context_str = ""
+        try:
+            from knowledge.retriever import HybridRetriever
+            from knowledge.context_builder import ContextBuilder
+            retriever = HybridRetriever()
+            cb = ContextBuilder()
+
+            # Set specific metadata filter based on RAG type
+            filters = {}
+            if need_code_rag:
+                filters["document_type"] = "code"
+            elif need_image_rag:
+                filters["document_type"] = "image"
+            elif need_video_rag:
+                filters["document_type"] = "video"
+            elif need_audio_rag:
+                filters["document_type"] = "audio"
+
+            chunks = retriever.retrieve(
+                user_input,
+                top_k=3,
+                enable_graph=need_graph_rag,
+                filters=filters if filters else None
+            )
+            rag_res = cb.build_context(chunks)
+            rag_context_str = rag_res.get("context_str", "")
+        except Exception as e:
+            logger.warning("PlannerAgent: RAG context retrieval failed (%s)", e)
+
         prompt = f"""You are the MSA Planner Agent. Break down the user's task into sequential steps using these tools:
 {tools_summary}
 User Task: {user_input}
 Context: {context}
+"""
+        if rag_context_str:
+            prompt += f"\nRetrieved Knowledge Context:\n{rag_context_str}\n"
 
-Respond ONLY with a JSON array of steps:
+        prompt += """\nRespond ONLY with a JSON array of steps:
 [
-  {{"step": 1, "tool": "tool_name", "action": "action_name", "params": {{...}}}}
+  {"step": 1, "tool": "tool_name", "action": "action_name", "params": {...}}
 ]"""
         try:
             output = self._llm(prompt, max_tokens=512, temperature=0.2, stop=["\n\n"])

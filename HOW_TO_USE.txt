@@ -20,9 +20,9 @@ CORE TECHNOLOGIES:
 * Dart & Flutter SDK (Mobile application platform wrapper replacing legacy Kotlin)
 * Llama-cpp-python / Ollama (Quantized GGUF LLM execution for local reasoning)
 * Vosk Speech API (Offline Speech-to-Text conversion)
-* Sentence-Transformers (Offline text embeddings using all-MiniLM-L6-v2)
-* FAISS (Vector database for semantic RAG memory storage)
-* SQLite (Encrypted SQL database for conversation metadata and history storage)
+* Sentence-Transformers (Offline text embeddings using all-MiniLM-L6-v2) & BAAI Cross-Encoder for reranking
+* FAISS (Vector database for dense semantic retrieval)
+* SQLite (Encrypted/local SQL database for sparse BM25 indexing, metadata, and history storage)
 * OpenCV (Offline computer vision for temple-matching and screen automation)
 * Android Debug Bridge (ADB over TCP/IP for local device hardware control)
 
@@ -140,6 +140,13 @@ The dashboard client communicates with the server via WebSockets and REST:
 * POST /api/code/stacktrace - Parses raw exception stacks and generates rank-ordered bug fixes.
 * POST /mobile/capabilities - Uploads device statistics.
 
+RAG SYSTEM ENDPOINTS:
+* POST /rag/upload          - Uploads a document to the server.
+* POST /rag/index           - Triggers semantic sentence chunking and vector indexing (emits real-time progress via socketio 'rag_indexing_progress').
+* POST /rag/search          - Query hybrid dense + sparse retrieval (RRF) with reranking.
+* POST /rag/delete          - Deletes parsed document files and chunks from RAG storage.
+* GET /rag/stats            - Retrieves statistical details of indexed documents.
+
 SECURITY PROTOCOL:
 * All requests are authenticated on local network interfaces using the secure key:
   Header: X-MSA-Key: MSA_SECURE_123
@@ -147,8 +154,8 @@ SECURITY PROTOCOL:
 --------------------------------------------------------------------------------
 7. RUNNING TESTS
 --------------------------------------------------------------------------------
-The project contains 419 unit and integration tests verifying compiling mechanisms, 
-AST parsing, RAG FAISS recall, and multi-step plan replanning.
+The project contains 425 core unit and integration tests verifying compiling mechanisms, 
+AST parsing, hybrid RAG (FAISS + SQLite BM25 + RRF), and multi-step plan replanning.
 To verify integrity, run:
-  > python -m pytest --ignore=test_api.py
+  > python -m pytest tests/ --ignore=tests/test_browser_agent.py
 ================================================================================

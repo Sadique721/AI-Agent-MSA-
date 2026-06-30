@@ -501,8 +501,16 @@ class AgentService:
             final_validation = None
             if ENABLE_VALIDATOR and self.validator and reasoning:
                 try:
+                    retrieved_chunks = []
+                    if ENABLE_RAG_MEMORY and self.rag_memory:
+                        try:
+                            self.rag_memory._ensure_init()
+                            retrieved_chunks = self.rag_memory.retriever.retrieve(user_input, top_k=5)
+                        except Exception as ex:
+                            logger.warning("AgentService: failed to fetch RAG chunks for validation (%s)", ex)
+
                     final_validation = self.validator.validate_final_output(
-                        results, reasoning.get("goal", user_input)
+                        results, reasoning.get("goal", user_input), retrieved_chunks
                     )
                     logger.info(
                         "Final validation: grade=%s score=%.2f",

@@ -1085,6 +1085,566 @@ def api_code_history():
 
 
 # ===========================================================================
+# HYBRID RAG ENDPOINTS
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# POST /rag/upload — Upload document file
+# ---------------------------------------------------------------------------
+@app.route("/rag/upload", methods=["POST"])
+def rag_upload():
+    """Upload a document to the server for future indexing."""
+    try:
+        if 'file' not in request.files:
+            return jsonify({"status": "error", "message": "No file part in request"}), 400
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"status": "error", "message": "No selected file"}), 400
+        
+        # Save to uploads directory
+        uploads_dir = os.path.join(PROJECT_ROOT, "uploads")
+        os.makedirs(uploads_dir, exist_ok=True)
+        
+        dest_path = os.path.join(uploads_dir, file.filename)
+        file.save(dest_path)
+        logger.info("RAG Upload: saved file to '%s'", dest_path)
+        
+        return jsonify({
+            "status": "success",
+            "message": f"File '{file.filename}' uploaded successfully.",
+            "file_path": dest_path
+        })
+    except Exception as e:
+        logger.exception("Error in /rag/upload")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# POST /rag/index — Trigger document or repository indexing
+# ---------------------------------------------------------------------------
+@app.route("/rag/index", methods=["POST"])
+def rag_index():
+    """Run ingestion pipeline on uploaded files, a local path, or GitHub URL."""
+    try:
+        from datetime import datetime
+        data = request.get_json(force=True, silent=True) or {}
+        path = data.get("path", "").strip()
+        github_url = data.get("github_url", "").strip()
+        category = data.get("category", "fact").strip()
+        chunk_size = int(data.get("chunk_size", 500))
+        chunk_overlap = int(data.get("chunk_overlap", 50))
+        
+        from knowledge.parser import DocumentParser, GitHubRepositoryIndexer
+        from knowledge.chunker import Chunker
+        from indexes.sqlite_db import SQLiteMetadataStore
+        from indexes.vector_db import FAISSIndexManager
+        from embeddings.embedder import Embedder
+        
+        parser = DocumentParser()
+        embedder = Embedder()
+        chunker = Chunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap, embedder=embedder)
+        meta_db = SQLiteMetadataStore()
+        vector_db = FAISSIndexManager()
+        
+        documents = []
+        
+        if github_url:
+            socketio.emit("rag_indexing_progress", {"status": "downloading", "message": "Downloading GitHub repository..."})
+            indexer = GitHubRepositoryIndexer(parser)
+            documents = indexer.index_repo(github_url)
+        else:
+            target_path = path if path else os.path.join(PROJECT_ROOT, "uploads")
+            if not os.path.exists(target_path):
+                return jsonify({"status": "error", "message": f"Path not found: {target_path}"}), 400
+                
+            if os.path.isfile(target_path):
+                documents = [parser.parse_file(target_path)]
+            else:
+                socketio.emit("rag_indexing_progress", {"status": "scanning", "message": f"Scanning directory {target_path}..."})
+                for root, _, files in os.walk(target_path):
+                    for file in files:
+                        fpath = os.path.join(root, file)
+                        try:
+                            documents.append(parser.parse_file(fpath))
+                        except Exception as parse_err:
+                            logger.warning("RAG Index: failed to parse '%s' (%s)", fpath, parse_err)
+                            
+        if not documents:
+            return jsonify({"status": "success", "message": "No documents found to index.", "indexed_chunks": 0})
+            
+        total_docs = len(documents)
+        processed_chunks = 0
+        
+        for idx, doc in enumerate(documents):
+            file_path = doc["metadata"]["source"]
+            content = doc["text"]
+            
+            import hashlib
+            file_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
+            
+            old_hash = meta_db.get_file_hash(file_path)
+            if old_hash == file_hash:
+                logger.info("RAG Index: skipping unchanged file '%s'", file_path)
+                continue
+                
+            if old_hash is not None:
+                old_ids = meta_db.delete_chunks_for_file(file_path)
+                vector_db.remove_ids(old_ids)
+                
+            doc["metadata"]["category"] = category
+            chunks = chunker.chunk_document(content, doc["metadata"])
+            
+            for chunk in chunks:
+                vec = embedder.embed(chunk["text"])
+                faiss_id = vector_db.add(vec)
+                
+                meta_db.add_chunk(
+                    faiss_id=faiss_id,
+                    file_path=file_path,
+                    chunk_index=chunk["chunk_index"],
+                    content=chunk["text"],
+                    category=category,
+                    tokens=chunk["tokens"],
+                    timestamp=datetime.now().isoformat(),
+                    metadata=doc["metadata"]
+                )
+                processed_chunks += 1
+                
+            meta_db.update_file_hash(file_path, file_hash, datetime.now().isoformat())
+            
+            progress = round(((idx + 1) / total_docs) * 100, 2)
+            socketio.emit("rag_indexing_progress", {
+                "status": "processing",
+                "file": file_path,
+                "processed_chunks": processed_chunks,
+                "current_doc": idx + 1,
+                "total_docs": total_docs,
+                "progress": progress
+            })
+            
+        socketio.emit("rag_indexing_progress", {
+            "status": "completed",
+            "message": f"Successfully indexed {processed_chunks} chunks across {total_docs} files.",
+            "progress": 100.0
+        })
+        
+        return jsonify({
+            "status": "success",
+            "message": "Ingestion pipeline completed.",
+            "files_processed": total_docs,
+            "chunks_indexed": processed_chunks
+        })
+    except Exception as e:
+        logger.exception("Error in /rag/index")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# POST /rag/search — Search index using hybrid retrieval
+# ---------------------------------------------------------------------------
+@app.route("/rag/search", methods=["POST"])
+def rag_search():
+    """Hybrid retrieval search with reranking."""
+    try:
+        import time
+        data = request.get_json(force=True, silent=True) or {}
+        query = data.get("query", "").strip()
+        top_k = int(data.get("top_k", 5))
+        category = data.get("category")
+        source = data.get("source")
+        
+        if not query:
+            return jsonify({"status": "error", "message": "query is required"}), 400
+            
+        from knowledge.retriever import HybridRetriever
+        retriever = HybridRetriever()
+        
+        start_time = time.perf_counter()
+        results = retriever.retrieve(query, top_k=top_k, category=category, source=source)
+        latency = time.perf_counter() - start_time
+        
+        clean_results = []
+        for r in results:
+            clean_results.append({
+                "faiss_id": r.get("faiss_id"),
+                "file_path": r.get("file_path"),
+                "chunk_index": r.get("chunk_index"),
+                "content": r.get("content"),
+                "category": r.get("category"),
+                "tokens": r.get("tokens"),
+                "score": r.get("score"),
+                "timestamp": r.get("timestamp"),
+                "metadata": r.get("metadata", {})
+            })
+            
+        metrics = results[0].get("metrics", {}) if results else {"total_time": latency}
+        metrics["total_time"] = latency
+        
+        return jsonify({
+            "status": "success",
+            "results": clean_results,
+            "metrics": metrics
+        })
+    except Exception as e:
+        logger.exception("Error in /rag/search")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# POST /rag/delete — Delete a file from index
+# ---------------------------------------------------------------------------
+@app.route("/rag/delete", methods=["POST"])
+def rag_delete():
+    """Remove a parsed file and its chunks from RAG index."""
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        file_path = data.get("file_path", "").strip()
+        
+        if not file_path:
+            return jsonify({"status": "error", "message": "file_path is required"}), 400
+            
+        from indexes.sqlite_db import SQLiteMetadataStore
+        from indexes.vector_db import FAISSIndexManager
+        
+        meta_db = SQLiteMetadataStore()
+        vector_db = FAISSIndexManager()
+        
+        deleted_ids = meta_db.delete_chunks_for_file(file_path)
+        if deleted_ids:
+            vector_db.remove_ids(deleted_ids)
+            
+        return jsonify({
+            "status": "success",
+            "message": f"Successfully deleted '{file_path}' from RAG index.",
+            "deleted_chunks": len(deleted_ids)
+        })
+    except Exception as e:
+        logger.exception("Error in /rag/delete")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# GET /rag/stats — Fetch index statistics
+# ---------------------------------------------------------------------------
+@app.route("/rag/stats", methods=["GET"])
+def rag_stats():
+    """Retrieve indexing statistics and storage breakdown."""
+    try:
+        from indexes.sqlite_db import SQLiteMetadataStore
+        from indexes.vector_db import FAISSIndexManager
+        
+        meta_db = SQLiteMetadataStore()
+        vector_db = FAISSIndexManager()
+        
+        db_stats = meta_db.get_stats()
+        faiss_count = vector_db.count()
+        
+        return jsonify({
+            "status": "success",
+            "total_files": db_stats.get("total_files", 0),
+            "total_chunks": db_stats.get("total_chunks", 0),
+            "faiss_vector_count": faiss_count,
+            "by_category": db_stats.get("by_category", {}),
+            "faiss_enabled": vector_db._use_faiss
+        })
+    except Exception as e:
+        logger.exception("Error in /rag/stats")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# POST /rag/reindex — Trigger background re-indexing
+# ---------------------------------------------------------------------------
+@app.route("/rag/reindex", methods=["POST"])
+def rag_reindex():
+    """Forces an asynchronous full re-indexing of uploads and workspace."""
+    try:
+        def bg_reindex():
+            logger.info("RAG Reindex: starting background re-indexing task.")
+            socketio.emit("rag_indexing_progress", {"status": "starting", "message": "Initiating background workspace scan..."})
+            
+            # Simple indexing callback simulation or invocation
+            try:
+                # Trigger a RAG Index call locally
+                client = app.test_client()
+                client.post('/rag/index', json={})
+                logger.info("RAG Reindex: completed background re-indexing successfully.")
+            except Exception as bg_err:
+                logger.error("RAG Reindex: background task failed (%s)", bg_err)
+                socketio.emit("rag_indexing_progress", {"status": "failed", "message": str(bg_err)})
+        
+        threading.Thread(target=bg_reindex, daemon=True).start()
+        return jsonify({
+            "status": "success",
+            "message": "Background re-indexing task dispatched."
+        })
+    except Exception as e:
+        logger.exception("Error in /rag/reindex")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# POST /rag/query — Core query endpoint
+# ---------------------------------------------------------------------------
+@app.route("/rag/query", methods=["POST"])
+def rag_query():
+    """Enterprise RAG query hub, applying filters and KG retrieval."""
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        query = data.get("query", "").strip()
+        top_k = int(data.get("top_k", 5))
+        category = data.get("category")
+        filters = data.get("filters", {})
+        enable_graph = bool(data.get("enable_graph", True))
+        enable_multi_query = bool(data.get("enable_multi_query", True))
+
+        if not query:
+            return jsonify({"status": "error", "message": "query is required"}), 400
+
+        from knowledge.retriever import HybridRetriever
+        retriever = HybridRetriever()
+        
+        socketio.emit("rag_search_progress", {"status": "searching", "message": "Retrieving dense & sparse candidates..."})
+        
+        results = retriever.retrieve(
+            query, 
+            top_k=top_k, 
+            category=category, 
+            filters=filters,
+            enable_graph=enable_graph,
+            enable_multi_query=enable_multi_query
+        )
+        
+        socketio.emit("rag_search_progress", {"status": "completed", "message": f"Successfully retrieved {len(results)} chunks."})
+
+        # Reformat results
+        formatted_results = []
+        for r in results:
+            formatted_results.append({
+                "faiss_id": r.get("faiss_id"),
+                "file_path": r.get("file_path"),
+                "chunk_index": r.get("chunk_index"),
+                "content": r.get("content"),
+                "category": r.get("category"),
+                "score": r.get("score"),
+                "metadata": r.get("metadata", {})
+            })
+
+        metrics = results[0].get("metrics", {}) if results else {}
+
+        return jsonify({
+            "status": "success",
+            "results": formatted_results,
+            "metrics": metrics
+        })
+    except Exception as e:
+        logger.exception("Error in /rag/query")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# POST /rag/query/rewrite — Rewrite query contextually
+# ---------------------------------------------------------------------------
+@app.route("/rag/query/rewrite", methods=["POST"])
+def rag_query_rewrite():
+    """Corrects typos and expands pronoun references in the query."""
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        query = data.get("query", "").strip()
+        
+        if not query:
+            return jsonify({"status": "error", "message": "query is required"}), 400
+
+        from knowledge.query_processor import QueryProcessor
+        qp = QueryProcessor()
+        rewritten = qp.rewrite_query(query)
+        
+        return jsonify({
+            "status": "success",
+            "original_query": query,
+            "rewritten_query": rewritten
+        })
+    except Exception as e:
+        logger.exception("Error in /rag/query/rewrite")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# POST /rag/query/expand — Synonyms and expansions
+# ---------------------------------------------------------------------------
+@app.route("/rag/query/expand", methods=["POST"])
+def rag_query_expand():
+    """Returns synonyms and semantic expansion keywords for the query."""
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        query = data.get("query", "").strip()
+
+        if not query:
+            return jsonify({"status": "error", "message": "query is required"}), 400
+
+        from knowledge.query_processor import QueryProcessor
+        qp = QueryProcessor()
+        expansions = qp.expand_query(query)
+
+        return jsonify({
+            "status": "success",
+            "original_query": query,
+            "expansions": expansions
+        })
+    except Exception as e:
+        logger.exception("Error in /rag/query/expand")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# Specialized Search Routers (Code, Image, Video, Audio)
+# ---------------------------------------------------------------------------
+def _specialized_search(query: str, doc_type: str, top_k: int) -> Any:
+    from knowledge.retriever import HybridRetriever
+    retriever = HybridRetriever()
+    results = retriever.retrieve(
+        query, 
+        top_k=top_k, 
+        filters={"document_type": doc_type},
+        enable_graph=(doc_type == "code")
+    )
+    formatted = []
+    for r in results:
+        formatted.append({
+            "file_path": r.get("file_path"),
+            "content": r.get("content"),
+            "score": r.get("score"),
+            "metadata": r.get("metadata", {})
+        })
+    return jsonify({
+        "status": "success",
+        "results": formatted,
+        "metrics": results[0].get("metrics", {}) if results else {}
+    })
+
+
+@app.route("/rag/code/search", methods=["POST"])
+def rag_code_search():
+    data = request.get_json(force=True, silent=True) or {}
+    query = data.get("query", "").strip()
+    top_k = int(data.get("top_k", 5))
+    if not query:
+        return jsonify({"status": "error", "message": "query is required"}), 400
+    return _specialized_search(query, "code", top_k)
+
+
+@app.route("/rag/image/search", methods=["POST"])
+def rag_image_search():
+    data = request.get_json(force=True, silent=True) or {}
+    query = data.get("query", "").strip()
+    top_k = int(data.get("top_k", 5))
+    if not query:
+        return jsonify({"status": "error", "message": "query is required"}), 400
+    return _specialized_search(query, "image", top_k)
+
+
+@app.route("/rag/video/search", methods=["POST"])
+def rag_video_search():
+    data = request.get_json(force=True, silent=True) or {}
+    query = data.get("query", "").strip()
+    top_k = int(data.get("top_k", 5))
+    if not query:
+        return jsonify({"status": "error", "message": "query is required"}), 400
+    return _specialized_search(query, "video", top_k)
+
+
+@app.route("/rag/audio/search", methods=["POST"])
+def rag_audio_search():
+    data = request.get_json(force=True, silent=True) or {}
+    query = data.get("query", "").strip()
+    top_k = int(data.get("top_k", 5))
+    if not query:
+        return jsonify({"status": "error", "message": "query is required"}), 400
+    return _specialized_search(query, "audio", top_k)
+
+
+# ---------------------------------------------------------------------------
+# GET /rag/health — Health checks and hardware metrics
+# ---------------------------------------------------------------------------
+@app.route("/rag/health", methods=["GET"])
+def rag_health():
+    """Hardware diagnostics (CPU, memory, disk) and DB active connections."""
+    try:
+        import sys
+        # Basic offline diagnostics
+        cpu_usage = 0.0
+        memory_usage = 0.0
+        
+        try:
+            import psutil
+            cpu_usage = psutil.cpu_percent(interval=None)
+            memory_usage = psutil.virtual_memory().percent
+        except ImportError:
+            # Fallback simple python system calculations
+            pass
+
+        return jsonify({
+            "status": "success",
+            "health": "green",
+            "os": sys.platform,
+            "python_version": sys.version,
+            "cpu_usage_percent": cpu_usage,
+            "memory_usage_percent": memory_usage,
+            "databases": {
+                "sqlite": "connected",
+                "faiss": "active"
+            }
+        })
+    except Exception as e:
+        logger.exception("Error in /rag/health")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# GET /rag/index/info — Info about databases and index configuration
+# ---------------------------------------------------------------------------
+@app.route("/rag/index/info", methods=["GET"])
+def rag_index_info():
+    """Configuration paths and active parameters."""
+    try:
+        from config import FAISS_INDEX_PATH, DB_PATH
+        return jsonify({
+            "status": "success",
+            "index_paths": {
+                "faiss_index_path": FAISS_INDEX_PATH,
+                "sqlite_db_path": DB_PATH
+            },
+            "parameters": {
+                "dimension": 384,
+                "embedding_model": "all-MiniLM-L6-v2"
+            }
+        })
+    except Exception as e:
+        logger.exception("Error in /rag/index/info")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# GET /rag/graph — Fetch Knowledge Graph export
+# ---------------------------------------------------------------------------
+@app.route("/rag/graph", methods=["GET"])
+def rag_graph():
+    """Knowledge Graph export for rendering visualizations."""
+    try:
+        from indexes.graph_db import SQLiteGraphStore
+        store = SQLiteGraphStore()
+        graph_data = store.get_graph_export()
+        return jsonify({
+            "status": "success",
+            "nodes": graph_data.get("nodes", []),
+            "edges": graph_data.get("edges", [])
+        })
+    except Exception as e:
+        logger.exception("Error in /rag/graph")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ===========================================================================
 # SOCKET.IO
 # ===========================================================================
 

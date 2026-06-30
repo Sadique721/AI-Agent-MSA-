@@ -15,12 +15,17 @@ Usage:
     # → numpy float32 array shape (384,)
 """
 
+import os
 import hashlib
 import logging
 import re
 from typing import List, Optional
 
 import numpy as np
+
+# Force offline mode for Hugging Face hub / transformers to prevent network hanging
+os.environ["TRANSFORMERS_OFFLINE"] = "1"
+os.environ["HF_HUB_OFFLINE"] = "1"
 
 logger = logging.getLogger("msa.memory.embedding")
 

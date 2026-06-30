@@ -16,6 +16,7 @@ and the retry counter is below MAX_REPLAN_RETRIES.
 
 import logging
 import re
+import numpy as np
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("msa.agent.validator")
@@ -203,22 +204,10 @@ class Validator:
         self,
         results: List[Dict[str, Any]],
         goal: str,
+        retrieved_context_chunks: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
         """
-        Final holistic validation of the overall task output.
-
-        Args:
-            results: Full list of step result dicts.
-            goal:    The extracted goal string from ReasoningEngine.
-
-        Returns:
-            {
-              "valid":    bool,
-              "score":    float,
-              "grade":    str,   # A | B | C | F
-              "feedback": str,
-              "summary":  str,
-            }
+        Final holistic validation of the overall task output, including hallucination checks.
         """
         if not results:
             return {
@@ -242,6 +231,24 @@ class Validator:
             relevance_bonus = min(overlap / len(goal_words), 0.3)
             score = min(score + relevance_bonus, 1.0)
 
+        # Hallucination Check
+        hallucination_result = None
+        citation_result = None
+        if retrieved_context_chunks:
+            combined_result_text = "\n".join(str(item.get("result", "")) for item in results)
+            
+            # A. Check for Hallucinations
+            hallucination_result = self.validate_hallucinations(combined_result_text, retrieved_context_chunks)
+            if not hallucination_result["valid"]:
+                penalty = 0.25 * len(hallucination_result["hallucinated_sentences"])
+                score = max(0.0, score - penalty)
+
+            # B. Check for Citation Quality
+            citation_result = self.validate_citations(combined_result_text, retrieved_context_chunks)
+            if not citation_result["valid"]:
+                penalty = 0.1 * len(citation_result["invalid_citations"])
+                score = max(0.0, score - penalty)
+
         # Grade
         if score >= 0.85:
             grade, feedback = "A", "Excellent — task completed successfully."
@@ -251,6 +258,11 @@ class Validator:
             grade, feedback = "C", "Partial success — some steps failed, results may be incomplete."
         else:
             grade, feedback = "F", "Task failed — most steps did not complete successfully."
+
+        if hallucination_result and not hallucination_result["valid"]:
+            feedback += f" WARNING: Detected potential hallucinations: {hallucination_result['reason']}"
+        if citation_result and not citation_result["valid"]:
+            feedback += f" WARNING: Citation mismatch: {citation_result['reason']}"
 
         summary_parts = [
             f"Goal: {goal[:80]}",
@@ -270,6 +282,135 @@ class Validator:
             "grade":    grade,
             "feedback": feedback,
             "summary":  " | ".join(summary_parts),
+            "hallucinations": hallucination_result,
+            "citations": citation_result
+        }
+
+    def validate_citations(
+        self,
+        response_text: str,
+        retrieved_context_chunks: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """
+        Validates citation quality and calculates citation confidence score.
+        Checks if cited filenames in text actually exist in retrieved contexts.
+        """
+        import os
+        if not response_text or not retrieved_context_chunks:
+            return {"valid": True, "score": 1.0, "invalid_citations": [], "reason": "No context or response to check."}
+
+        # Find cited files in text
+        potential_citations = set(re.findall(r"\b[\w\-]+\.(?:py|txt|pdf|docx|js|ts|json|md|go|rs|html)\b", response_text))
+        if not potential_citations:
+            return {"valid": True, "score": 1.0, "invalid_citations": [], "reason": "No explicit file citations detected."}
+
+        valid_sources = set()
+        for chunk in retrieved_context_chunks:
+            fpath = chunk.get("file_path", chunk.get("metadata", {}).get("source", ""))
+            if fpath:
+                valid_sources.add(os.path.basename(fpath).lower())
+
+        invalid_citations = []
+        valid_count = 0
+        for cite in potential_citations:
+            if cite.lower() in valid_sources:
+                valid_count += 1
+            else:
+                invalid_citations.append(cite)
+
+        total_citations = len(potential_citations)
+        citation_score = valid_count / total_citations if total_citations > 0 else 1.0
+        is_valid = len(invalid_citations) == 0
+
+        return {
+            "valid": is_valid,
+            "score": round(citation_score, 4),
+            "invalid_citations": invalid_citations,
+            "total_citations": total_citations,
+            "reason": f"Validated {valid_count}/{total_citations} cited files."
+        }
+
+    def validate_hallucinations(
+        self,
+        response_text: str,
+        retrieved_context_chunks: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """
+        Validate whether the response text contains hallucinations against retrieved context chunks.
+        Splits response into sentences, embeds them, and checks if each sentence has a matching support
+        chunk (similarity >= 0.25).
+        """
+        if not response_text or not retrieved_context_chunks:
+            return {
+                "valid": True,
+                "score": 1.0,
+                "hallucinated_sentences": [],
+                "reason": "No context or response to check."
+            }
+
+        # Lazy load embedder to compute similarity
+        try:
+            from embeddings.embedder import Embedder
+            embedder = Embedder()
+        except Exception as e:
+            logger.warning("Validator: failed to load embedder for hallucination check (%s)", e)
+            return {
+                "valid": True,
+                "score": 1.0,
+                "hallucinated_sentences": [],
+                "reason": "Embedder unavailable."
+            }
+
+        # Split response into sentences
+        sentence_end = re.compile(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?|\!)\s+')
+        sentences = [s.strip() for s in sentence_end.split(response_text) if len(s.strip()) > 10]
+        if not sentences:
+            return {
+                "valid": True,
+                "score": 1.0,
+                "hallucinated_sentences": [],
+                "reason": "No significant sentences to check."
+            }
+
+        context_texts = [c.get("text", c.get("content", "")) for c in retrieved_context_chunks]
+        if not context_texts:
+            return {
+                "valid": True,
+                "score": 1.0,
+                "hallucinated_sentences": [],
+                "reason": "Empty context chunks."
+            }
+
+        # Embed sentences and context
+        s_vecs = embedder.embed_batch(sentences)
+        c_vecs = embedder.embed_batch(context_texts)
+
+        hallucinated = []
+        scores = []
+
+        for i, s_vec in enumerate(s_vecs):
+            # Compute cosine similarity with all context chunks (dot product for normalized vectors)
+            sims = [float(np.dot(s_vec, c_vec)) for c_vec in c_vecs]
+            max_sim = max(sims) if sims else 0.0
+            scores.append(max_sim)
+            
+            # If similarity with ALL chunks is very low (< 0.25), consider it a potential hallucination
+            if max_sim < 0.25:
+                hallucinated.append({
+                    "sentence": sentences[i],
+                    "max_similarity": round(max_sim, 4)
+                })
+
+        avg_support_score = sum(scores) / len(scores) if scores else 1.0
+        is_valid = len(hallucinated) == 0
+
+        reason = "All claims supported by retrieved context." if is_valid else f"Detected {len(hallucinated)} unsupported/hallucinated claim(s)."
+        
+        return {
+            "valid": is_valid,
+            "score": round(avg_support_score, 4),
+            "hallucinated_sentences": hallucinated,
+            "reason": reason
         }
 
     # ── Internal helpers ──────────────────────────────────────────────────────
