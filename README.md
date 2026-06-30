@@ -37,7 +37,8 @@
 10. [🧪 Unit Testing & Validation](#-unit-testing--validation)
 11. [📱 Flutter Mobile Client & Telemetry](#-flutter-mobile-client--telemetry)
 12. [☁️ Advanced Online Deployment Strategy](#-advanced-online-deployment-strategy-vercel-netlify--render)
-13. [⚔️ Comparative Advantages](#️-comparative-advantages)
+13. [📈 Evolution Timeline & Architecture Upgrades](#-evolution-timeline--architecture-upgrades-v10-to-v60)
+14. [⚔️ Comparative Advantages](#️-comparative-advantages)
 
 ---
 
@@ -383,6 +384,58 @@ graph LR
 ```
 
 For detailed deployment roadmap, setup scripts, and configurations, refer to the [Advanced Deployment Analysis Report](file:///C:/Users/MD SADIQUE AMIN/.gemini/antigravity-ide/brain/7051c7b6-e6f6-41c1-8d77-cb9dc25b4dfd/msa_agent_analysis.md).
+
+---
+
+## 📈 Evolution Timeline & Architecture Upgrades (V1.0 to V6.0)
+
+The MSA AI Agent has evolved from a simple voice-controlled offline helper into a high-performance, local-first enterprise AI Operating System.
+
+```mermaid
+graph TD
+  subgraph V1_0_V2_0 [V1.0 - V2.0: Core Assistant]
+    Vosk[Vosk Speech-to-Text] --> FlaskServer[Flask Web Server :5000]
+    FlaskServer --> RuleMatch[Rule-based Intent Parser]
+    FlutterClient[Flutter Mobile App] -->|Device Status Status| FlaskServer
+  end
+
+  subgraph V3_0_V4_0 [V3.0 - V4.0: Cognitive Agent]
+    FlaskServer --> CodingAgent[Autonomous Coding Agent]
+    CodingAgent --> AST[AST & Symbol Scrapers]
+    CodingAgent --> Stacktrace[Stacktrace Bug Fixer]
+    LangGraph[LangGraph Cognitive Orchestrator] --> FAISS[FAISS Vector Store Memory]
+  end
+
+  subgraph V5_0_V6_0 [V5.0 - V6.0: Local-First Enterprise OS]
+    ReactClient[Vite + React UI Client] -->|50ms Token Buffering| FastAPIGateway[FastAPI Gateway :8000]
+    FastAPIGateway --> AgentService[Agent Service Orchestrator]
+    AgentService --> LLMManager[LLM Manager Router]
+    LLMManager --> Ollama[Local Ollama Inference Engine :11434]
+    Ollama --> Qwen[Qwen 2.5 0.5B / DeepSeek Local LLM]
+  end
+```
+
+### Version Evolution History:
+
+#### 🟢 V1.0 - Offline Voice Foundations
+- **Features:** Vosk speech-to-text recognition, offline audio transcription, and a local Flask gateway.
+- **Intent Engine:** Direct keyword mapping to execute basic local system commands (e.g. open apps, show time).
+
+#### 🟢 V2.0 - Hybrid Context & Device Control
+- **Features:** Unified Flutter mobile app wrapper replaces Kotlin codebase.
+- **Telemetry:** Asynchronous JS bridge uploads battery status, Wifi, GPS location, and system info to host PC.
+
+#### 🟢 V3.0 - Autonomous Coding Engine (Phase 3)
+- **Features:** Scaffolding automation (Angular, React, Node, Spring Boot), AST compiler validator, logic refactoring engine, and regex stacktrace exception parsing.
+
+#### 🟢 V4.0 - Cognitive Core & Advanced RAG (Phase 4)
+- **Features:** LangGraph orchestrator node-based loops, FAISS semantic vector memory retrieval, query expansions, entity relations SQLite graph, and context compressor.
+
+#### 🟢 V5.0 - Enterprise UX & Parallel Gateways (Phase 5)
+- **Features:** Dual gateway servers (FastAPI Gateway alongside Flask backend), background agent coordinator, Zustand React rendering optimizer, and 50ms token stream throttling.
+
+#### 🟢 V6.0 - Local-First AI Inference & Health Validation (Phase 6)
+- **Features:** Complete local LLM routing via Ollama (`qwen2.5:0.5b` default), LiteLLM failover router, silent installers, and 30-second cold-start warm caching timeouts.
 
 ---
 
