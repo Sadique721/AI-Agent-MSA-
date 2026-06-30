@@ -551,6 +551,7 @@ class AgentService:
             action   = decision.get("action", "none")
             params   = decision.get("parameters", {})
             response = decision.get("response", "")
+            exec_result = ""
 
             tool_name = registry.suggest_tool(action)
             if tool_name:
@@ -568,8 +569,79 @@ class AgentService:
             elif action and action != "none":
                 exec_result = self.executor.execute(action, params)
 
-            if lang_res and lang_res.get("response"):
-                response = lang_res.get("response")
+            # RAG / Search / Conversation generation enhancement
+            # If search or retrieval tool was executed, pass its output directly to LLM to formulate response
+            lang_instruction = ""
+            if language == "hinglish":
+                lang_instruction = "Respond in Hinglish (mix of Hindi and English using Roman script)."
+            elif language == "hindi":
+                lang_instruction = "Respond in Hindi using Roman script."
+            else:
+                lang_instruction = "Respond in clear English."
+
+            if action in ("internet_search", "browser_search", "memory_recall") and exec_result:
+                prompt = (
+                    f"You are MSA, an advanced AI Assistant. {lang_instruction}\n"
+                    f"Answer the user query using the retrieved context below. Be direct, clear, and verified.\n\n"
+                    f"User Query: {user_input}\n"
+                    f"Retrieved Content:\n{exec_result}\n\n"
+                    f"Answer:"
+                )
+                llm_response = self.engine.generate_text(prompt)
+                if llm_response:
+                    response = llm_response
+                else:
+                    # Fallback to presenting the result directly if offline/no LLM
+                    response = f"Here is what I found:\n\n{exec_result}"
+            elif action == "none":
+                # General conversational request — combine user profile, context, and query
+                profile_context = ""
+                if hasattr(self.memory, "memory_agent") and self.memory.memory_agent:
+                    profile_context = str(self.memory.memory_agent.working_memory.get("owner_profile", {}))
+                
+                # Fetch RAG semantic context to answer general questions (e.g. explain this PDF, what is java)
+                retrieved_rag = []
+                if ENABLE_RAG_MEMORY and self.rag_memory:
+                    try:
+                        ret_data = self.rag_memory.get_augmented_context(user_input)
+                        retrieved_rag = [x["text"] for x in ret_data.get("semantic", [])]
+                    except Exception:
+                        pass
+
+                prompt = (
+                    f"You are MSA, an advanced AI Assistant. {lang_instruction}\n"
+                    f"User Profile: {profile_context}\n"
+                    f"Retrieved Knowledge:\n" + "\n".join(f"- {x}" for x in retrieved_rag) + "\n\n"
+                    f"Conversation History:\n{context}\n\n"
+                    f"User Query: {user_input}\n\n"
+                    f"Response:"
+                )
+                llm_response = self.engine.generate_text(prompt)
+                if llm_response:
+                    response = llm_response
+                else:
+                    if lang_res and lang_res.get("response"):
+                        response = lang_res.get("response")
+            
+            # If no response generated yet, fallback to template
+            if not response:
+                if lang_res and lang_res.get("response"):
+                    response = lang_res.get("response")
+                else:
+                    response = f"Processed request: {action}."
+
+            # Final validation check on dynamic single action response
+            if ENABLE_VALIDATOR and self.validator and reasoning:
+                try:
+                    ret_chunks = [{"content": exec_result}] if exec_result else []
+                    val_res = self.validator.validate_final_output(
+                        [{"step": 1, "tool": tool_name or "conversation", "result": response}],
+                        reasoning.get("goal", user_input),
+                        ret_chunks
+                    )
+                    validation = val_res
+                except Exception as ve:
+                    logger.warning("AgentService single action validation failed: %s", ve)
 
         # ── Step 8: Store turn in long-term memory ───────────────────────────
         self.memory.add_turn(user_input, response, action)

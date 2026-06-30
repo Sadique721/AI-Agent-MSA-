@@ -99,6 +99,8 @@ class DecisionEngine:
         model_full_path = os.path.join(PROJECT_ROOT, model_path)
         self.llm = None
         self.provider = "fallback"
+        self.ollama_url = "http://localhost:11434"
+        self.ollama_model = "llama2"
 
         # Check for Gemini API key first
         self.gemini_key = os.environ.get("GEMINI_API_KEY")
@@ -109,6 +111,22 @@ class DecisionEngine:
                 logger.info("DecisionEngine using Cloud Provider: Google Gemini API")
             except Exception as e:
                 logger.error("Failed to configure Gemini API: %s", e)
+
+        # Check for Ollama if no Gemini configured
+        if self.provider == "fallback":
+            try:
+                import urllib.request
+                import json
+                req = urllib.request.Request(f"{self.ollama_url}/api/tags")
+                with urllib.request.urlopen(req, timeout=1.0) as resp:
+                    tags = json.loads(resp.read().decode())
+                    models = tags.get("models", [])
+                    if models:
+                        self.ollama_model = models[0]["name"]
+                        self.provider = "ollama"
+                        logger.info("DecisionEngine using Local Provider: Ollama (model=%s)", self.ollama_model)
+            except Exception:
+                pass
 
         if self.provider == "fallback":
             if Llama and os.path.exists(model_full_path):
@@ -241,3 +259,57 @@ Respond ONLY with a JSON object:
             "action":     intent,
             "parameters": parameters,
         }
+
+    def generate_text(self, prompt: str) -> Optional[str]:
+        """Unified method to generate text using the active LLM provider."""
+        # 1. Gemini
+        if self.provider == "gemini":
+            try:
+                model = genai.GenerativeModel('gemini-1.5-flash')
+                response = model.generate_content(prompt)
+                return response.text.strip()
+            except Exception as e:
+                logger.error("Gemini text generation failed: %s", e)
+
+        # 2. Ollama
+        if self.provider == "ollama":
+            try:
+                import urllib.request
+                import json
+                payload = {
+                    "model": self.ollama_model,
+                    "prompt": prompt,
+                    "stream": False
+                }
+                req = urllib.request.Request(
+                    f"{self.ollama_url}/api/generate",
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"}
+                )
+                with urllib.request.urlopen(req, timeout=15.0) as response:
+                    res_data = json.loads(response.read().decode())
+                    return res_data.get("response", "").strip()
+            except Exception as e:
+                logger.error("Ollama text generation failed: %s", e)
+
+        # 3. LLaMA Local (llama.cpp)
+        if self.provider == "local" and self.llm:
+            try:
+                output = self.llm(prompt, max_tokens=512, temperature=0.7)
+                return output["choices"][0]["text"].strip()
+            except Exception as e:
+                logger.error("Local LLaMA text generation failed: %s", e)
+
+        # Dynamic check if Gemini key was set post-init
+        gemini_key = os.environ.get("GEMINI_API_KEY")
+        if gemini_key and genai:
+            try:
+                genai.configure(api_key=gemini_key)
+                self.provider = "gemini"
+                model = genai.GenerativeModel('gemini-1.5-flash')
+                response = model.generate_content(prompt)
+                return response.text.strip()
+            except Exception as e:
+                logger.error("Dynamic Gemini text generation failed: %s", e)
+
+        return None
