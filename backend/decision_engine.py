@@ -91,7 +91,9 @@ _FALLBACK_RESPONSES = {
 }
 
 
-class DecisionEngine:
+from infrastructure.service_registry import BaseService
+
+class DecisionEngine(BaseService):
     """
     Processes user commands into structured decision dicts.
 
@@ -104,6 +106,7 @@ class DecisionEngine:
     """
 
     def __init__(self, model_path: str = "models/llm/llama-2-7b-chat.Q4_K_M.gguf"):
+        super().__init__()
         model_full_path = os.path.join(PROJECT_ROOT, model_path)
         self.llm = None
         self.provider = "fallback"

@@ -16,16 +16,18 @@ from datetime import datetime
 from memory.rag_memory import RAGMemory
 from services.performance_cache import RAGPerformanceCache
 from indexes.sqlite_db import SQLiteMetadataStore
+from infrastructure.service_registry import BaseService
 
 logger = logging.getLogger("msa.agent.memory_agent")
 
 
-class MemoryAgent:
+class MemoryAgent(BaseService):
     """
     Enterprise Memory Agent orchestrating session-level and persistent memory tiers.
     """
 
     def __init__(self, sqlite_memory=None, cache=None):
+        super().__init__()
         self.rag = RAGMemory(sqlite_memory=sqlite_memory)
         self.cache = cache or RAGPerformanceCache()
         self.meta_store = SQLiteMetadataStore()
@@ -40,6 +42,16 @@ class MemoryAgent:
         
         self._load_owner_profile()
         logger.info("MemoryAgent initialized successfully.")
+
+    def start(self) -> None:
+        """Starts the MemoryAgent service."""
+        super().start()
+        logger.info("MemoryAgent service is running and active.")
+
+    def stop(self) -> None:
+        """Stops the MemoryAgent service."""
+        super().stop()
+        logger.info("MemoryAgent service has stopped.")
 
     def _load_owner_profile(self) -> None:
         """Loads profile configuration into working memory."""

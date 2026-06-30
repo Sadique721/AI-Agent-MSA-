@@ -90,31 +90,52 @@ _monitor: SystemMonitor = SystemMonitor()
 
 
 def _get_components():
-    """Thread-safe lazy initialisation of core components."""
+    """Thread-safe lazy initialisation of core components and V3.0 Enterprise Infrastructure."""
     global _stt, _engine, _mem, _sec, _agent_service
 
     if _stt is None:
+        logger.info("Initialising V3.0 Enterprise infrastructure container and services...")
+        from infrastructure.dependency_injection import Container
+        from infrastructure.service_registry import ServiceRegistry
+        from infrastructure.event_bus import EventBus
+        
+        container = Container()
+        registry = ServiceRegistry()
+        event_bus = EventBus()
+        event_bus.start()
+        container.register_instance(EventBus, event_bus)
+        container.register_instance(ServiceRegistry, registry)
+
         logger.info("Initialising STT, DecisionEngine, Security, Memory, AgentService …")
 
         try:
             _sec = Security()
+            container.register_instance(Security, _sec)
         except Exception as e:
             logger.error("Security init failed: %s", e)
 
         try:
             _stt = STT()
+            if _stt:
+                container.register_instance(STT, _stt)
         except Exception as e:
             logger.error("STT init failed: %s", e)
             _stt = None
 
         try:
             _engine = DecisionEngine()
+            if _engine:
+                container.register_instance(DecisionEngine, _engine)
+                registry.register("DecisionEngine", _engine)
+                _engine.start()
         except Exception as e:
             logger.error("DecisionEngine init failed: %s", e)
             _engine = None
 
         try:
             _mem = Memory(_sec) if _sec else None
+            if _mem:
+                container.register_instance(Memory, _mem)
         except Exception as e:
             logger.error("Memory init failed: %s", e)
             _mem = None
@@ -122,6 +143,14 @@ def _get_components():
         if _engine and _mem:
             try:
                 _agent_service = AgentService(_engine, _mem)
+                container.register_instance(AgentService, _agent_service)
+                
+                # Register MemoryAgent inside V3.0 service registry
+                if hasattr(_agent_service, "memory") and hasattr(_agent_service.memory, "memory_agent"):
+                    mem_agent = _agent_service.memory.memory_agent
+                    container.register_instance(mem_agent.__class__, mem_agent)
+                    registry.register("MemoryAgent", mem_agent)
+                    mem_agent.start()
             except Exception as e:
                 logger.error("AgentService init failed: %s", e)
                 _agent_service = None
