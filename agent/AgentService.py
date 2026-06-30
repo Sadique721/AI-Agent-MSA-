@@ -667,6 +667,55 @@ class AgentService:
                     logger.warning("AgentService single action validation failed: %s", ve)
 
         # ── Step 8: Store turn in long-term memory ───────────────────────────
+        # Inject Creator Profile Card if talking about Md Sadique Amin
+        keywords = ["md sadique amin", "sadique", "creator of msa", "who built msa", "who developed msa", "owner of msa", "tell me about myself"]
+        query_lower = user_input.lower()
+        if any(k in query_lower for k in keywords):
+            if "media://" not in response:
+                profile_card = """
+<div style="background: linear-gradient(135deg, rgba(30, 30, 50, 0.95), rgba(15, 15, 30, 0.95)); border: 1px solid rgba(139, 92, 246, 0.45); border-radius: 16px; padding: 24px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5); backdrop-filter: blur(12px); color: #f1f5f9; font-family: 'Segoe UI', -apple-system, sans-serif; max-width: 620px; margin: 20px auto; border-top: 4px solid #8b5cf6;">
+  <div style="display: flex; align-items: center; gap: 24px; border-bottom: 1px solid rgba(255, 255, 255, 0.12); padding-bottom: 20px; margin-bottom: 20px;">
+    <div style="position: relative;">
+      <img src="media://d:/My Self Details/Programs/AI/msa_agent/data/memory/user_picture.jpg" style="width: 110px; height: 110px; border-radius: 50%; border: 3px solid #8b5cf6; box-shadow: 0 0 20px rgba(139, 92, 246, 0.7); object-fit: cover;" />
+      <span style="position: absolute; bottom: 8px; right: 8px; background: #10b981; width: 16px; height: 16px; border-radius: 50%; border: 3.5px solid #1e1e32;" title="Founder & CEO"></span>
+    </div>
+    <div>
+      <h2 style="margin: 0; font-size: 26px; font-weight: 800; background: linear-gradient(to right, #a78bfa, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Md Sadique Amin</h2>
+      <p style="margin: 6px 0 0 0; color: #a78bfa; font-size: 13.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;">Founder, CEO, CTO & CMO</p>
+      <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 14px; font-weight: 550;">Full Stack Developer | AI Swarm Engineer | Data Scientist</p>
+    </div>
+  </div>
+
+  <div style="margin-bottom: 20px;">
+    <h3 style="margin: 0 0 10px 0; font-size: 16px; color: #f8fafc; border-left: 3px solid #f472b6; padding-left: 10px;">Executive Biography</h3>
+    <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #cbd5e1;">
+      <strong>Md Sadique Amin</strong> is a visionary Software Developer, AI Swarm Architect, and Data Scientist based in Begusarai, Bihar. Currently pursuing a BE in Computer Science and Engineering at GEC Patan (7.9 CGPA), he specializes in building scalable enterprise cloud infrastructure, advanced multi-agent cognitive systems, Spring Boot microservices, and hybrid RAG data pipelines. He is the principal architect of the MSA AI Agent OS client.
+    </p>
+  </div>
+
+  <div style="margin-bottom: 20px;">
+    <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #f8fafc; border-left: 3px solid #8b5cf6; padding-left: 10px;">Key Technical Armament</h3>
+    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+      <span style="background: rgba(139, 92, 246, 0.18); border: 1px solid rgba(139, 92, 246, 0.35); color: #d8b4fe; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Java / Spring Boot / Spring Cloud</span>
+      <span style="background: rgba(139, 92, 246, 0.18); border: 1px solid rgba(139, 92, 246, 0.35); color: #d8b4fe; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Python / PyTorch / TensorFlow</span>
+      <span style="background: rgba(139, 92, 246, 0.18); border: 1px solid rgba(139, 92, 246, 0.35); color: #d8b4fe; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">FastAPI / Django / Flask</span>
+      <span style="background: rgba(139, 92, 246, 0.18); border: 1px solid rgba(139, 92, 246, 0.35); color: #d8b4fe; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">React.js / Next.js / Electron</span>
+      <span style="background: rgba(139, 92, 246, 0.18); border: 1px solid rgba(139, 92, 246, 0.35); color: #d8b4fe; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Swarm Intelligence & Hybrid RAG</span>
+      <span style="background: rgba(139, 92, 246, 0.18); border: 1px solid rgba(139, 92, 246, 0.35); color: #d8b4fe; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Docker / AWS / Spark / Kafka</span>
+    </div>
+  </div>
+
+  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255, 255, 255, 0.12); padding-top: 18px; font-size: 12.5px; color: #94a3b8;">
+    <span>📍 Begusarai, Bihar, India</span>
+    <div style="display: flex; gap: 16px;">
+      <a href="https://myportfoliositesadique.netlify.app/" target="_blank" style="color: #c084fc; text-decoration: none; font-weight: 700; border-bottom: 1px dashed rgba(192, 132, 252, 0.5);">🌐 Portfolio</a>
+      <a href="https://github.com/Sadique721" target="_blank" style="color: #c084fc; text-decoration: none; font-weight: 700; border-bottom: 1px dashed rgba(192, 132, 252, 0.5);">🐙 GitHub</a>
+    </div>
+  </div>
+</div>
+"""
+                response = response + "\n\n" + profile_card
+
         self.memory.add_turn(user_input, response, action)
         if ENABLE_RAG_MEMORY and self.rag_memory:
             try:
