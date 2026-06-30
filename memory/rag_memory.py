@@ -207,8 +207,8 @@ class RAGMemory:
                     "score": r.get("score", 0.0),
                     "timestamp": r.get("timestamp", datetime.now().isoformat())
                 })
-            # Filter out very low score hits (RRF score threshold check)
-            semantic = [s for s in semantic if s.get("score", 0) >= 0.01]
+            # Keep all retrieved semantic matches
+            pass
         except Exception as e:
             logger.warning("RAGMemory semantic recall error: %s", e)
 
