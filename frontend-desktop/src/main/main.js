@@ -3,7 +3,7 @@ const path = require('path');
 const { pathToFileURL } = require('url');
 
 protocol.registerSchemesAsPrivileged([
-  { scheme: 'media', privileges: { secure: true, supportFetchAPI: true, bypassCSP: true, stream: true } }
+  { scheme: 'media', privileges: { secure: true, standard: true, corsEnabled: true, supportFetchAPI: true, bypassCSP: true, stream: true } }
 ]);
 const { spawn } = require('child_process');
 
@@ -182,8 +182,28 @@ function createTray() {
 
 app.on('ready', () => {
   protocol.handle('media', (request) => {
-    const filePath = decodeURIComponent(request.url.replace('media://', ''));
-    return net.fetch(pathToFileURL(filePath).toString());
+    try {
+      const urlStr = request.url;
+      logToFile(`Raw protocol request: ${urlStr}`);
+      
+      // Remove media:// or media:/
+      let rest = urlStr.replace(/^media:\/\/+/i, '');
+      rest = rest.replace(/^media:\/+/i, '');
+      let filePath = decodeURIComponent(rest);
+      
+      // Restore Windows drive colon if missing (e.g. "d/My Self Details" -> "d:/My Self Details")
+      if (filePath.match(/^[a-zA-Z]\//)) {
+        filePath = filePath[0] + ':' + filePath.substring(1);
+      }
+      
+      logToFile(`Serving file path: ${filePath}`);
+      const fileUrl = pathToFileURL(filePath).toString();
+      logToFile(`Formatted file URL: ${fileUrl}`);
+      return net.fetch(fileUrl);
+    } catch (e) {
+      logToFile(`Protocol error: ${e.message}`);
+      return new Response('Error loading file', { status: 500 });
+    }
   });
 
   startOllama();
