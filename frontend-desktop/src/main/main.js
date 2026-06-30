@@ -1,5 +1,10 @@
-const { app, BrowserWindow, globalShortcut, clipboard, Tray, Menu, ipcMain } = require('electron');
+const { app, BrowserWindow, globalShortcut, clipboard, Tray, Menu, ipcMain, protocol, net } = require('electron');
 const path = require('path');
+const { pathToFileURL } = require('url');
+
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'media', privileges: { secure: true, supportFetchAPI: true, bypassCSP: true, stream: true } }
+]);
 const { spawn } = require('child_process');
 
 let mainWindow;
@@ -164,6 +169,11 @@ function createTray() {
 }
 
 app.on('ready', () => {
+  protocol.handle('media', (request) => {
+    const filePath = decodeURIComponent(request.url.replace('media://', ''));
+    return net.fetch(pathToFileURL(filePath).toString());
+  });
+
   startOllama();
   startBackend();
   createWindow();

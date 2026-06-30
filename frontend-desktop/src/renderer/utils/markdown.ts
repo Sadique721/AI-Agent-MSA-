@@ -49,6 +49,7 @@ export function renderMarkdown(content: string): string {
     ADD_TAGS: ['pre', 'code', 'button'],
     ADD_ATTR: ['onclick', 'class', 'style'],
     ALLOW_DATA_ATTR: false,
+    ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel|data|media):|[^&:\/?#]*(?:[\/?#]|$))/i,
   })
 }
 
