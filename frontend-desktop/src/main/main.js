@@ -1,20 +1,110 @@
 const { app, BrowserWindow, globalShortcut, clipboard, Tray, Menu, ipcMain } = require('electron');
 const path = require('path');
+const { spawn } = require('child_process');
 
 let mainWindow;
 let tray = null;
 let isQuitting = false;
+let pyProcess = null;
+const fs = require('fs');
+
+function logToFile(msg) {
+  try {
+    const logDir = app.getPath('userData');
+    if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir, { recursive: true });
+    }
+    const logPath = path.join(logDir, 'msa-desktop.log');
+    fs.appendFileSync(logPath, `[${new Date().toISOString()}] ${msg}\n`);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+function startBackend() {
+  try {
+    const pyPath = 'd:\\My Self Details\\Programs\\AI\\msa_agent\\.venv\\Scripts\\python.exe';
+    const pyWorkingDir = 'd:\\My Self Details\\Programs\\AI\\msa_agent';
+    const scriptPath = 'main.py';
+
+    logToFile(`Starting Python backend server: ${pyPath} ${scriptPath} in ${pyWorkingDir}`);
+    
+    pyProcess = spawn(pyPath, [scriptPath], {
+      cwd: pyWorkingDir,
+      env: { ...process.env, MSA_AUTO_APPROVE: 'true' }
+    });
+
+    pyProcess.stdout.on('data', (data) => {
+      logToFile(`Backend stdout: ${data.toString().trim()}`);
+    });
+
+    pyProcess.stderr.on('data', (data) => {
+      logToFile(`Backend stderr: ${data.toString().trim()}`);
+    });
+
+    pyProcess.on('close', (code) => {
+      logToFile(`Backend process exited with code ${code}`);
+    });
+
+    pyProcess.on('error', (err) => {
+      logToFile(`Backend process error: ${err.message}`);
+    });
+  } catch (err) {
+    logToFile(`startBackend exception: ${err.message}`);
+  }
+}
+
+function killBackend() {
+  if (pyProcess) {
+    logToFile('Stopping Python backend server...');
+    pyProcess.kill('SIGINT');
+    pyProcess = null;
+  }
+}
+
+function startOllama() {
+  const ollamaPath = 'C:\\Users\\MD SADIQUE AMIN\\AppData\\Local\\Programs\\Ollama\\ollama.exe';
+  logToFile('Checking if Ollama is running...');
+  
+  const http = require('http');
+  const req = http.get('http://127.0.0.1:11434/api/tags', (res) => {
+    logToFile('Ollama is already running.');
+  });
+
+  req.on('error', (err) => {
+    logToFile('Ollama is not running. Starting Ollama daemon...');
+    try {
+      const fs = require('fs');
+      if (fs.existsSync(ollamaPath)) {
+        const ollamaProcess = spawn(ollamaPath, [], {
+          detached: true,
+          stdio: 'ignore'
+        });
+        ollamaProcess.unref();
+        logToFile('Ollama daemon started.');
+      } else {
+        logToFile(`Ollama executable not found at: ${ollamaPath}`);
+      }
+    } catch (e) {
+      logToFile(`Failed to start Ollama: ${e.message}`);
+    }
+  });
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    transparent: true,
-    frame: false,
+    transparent: false,
+    frame: true,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false
     }
+  });
+
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    logToFile(`[Console] ${message} (from ${sourceId}:${line})`);
   });
 
   // Load local build file or fallback dev server
@@ -40,7 +130,13 @@ function createWindow() {
 }
 
 function createTray() {
-  const iconPath = path.join(__dirname, '..', '..', 'ui', 'icon-192.png');
+  // Load icon from the same folder as the executable (outside ASAR)
+  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+  const iconPath = isDev 
+    ? path.join(__dirname, '..', '..', 'assets', 'icon.ico')
+    : path.join(path.dirname(app.getPath('exe')), 'icon.ico');
+  
+  logToFile(`Loading Tray icon from: ${iconPath}`);
   tray = new Tray(iconPath);
   
   const contextMenu = Menu.buildFromTemplate([
@@ -68,6 +164,8 @@ function createTray() {
 }
 
 app.on('ready', () => {
+  startOllama();
+  startBackend();
   createWindow();
   try {
     createTray();
@@ -91,6 +189,7 @@ app.on('ready', () => {
 
 app.on('before-quit', () => {
   isQuitting = true;
+  killBackend();
 });
 
 app.on('window-all-closed', function () {

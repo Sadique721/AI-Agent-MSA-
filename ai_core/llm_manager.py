@@ -35,14 +35,46 @@ class LLMManager:
         self.failures = 0
         self.max_failures = 3
 
+    def _resolve_ollama_model(self) -> str:
+        import sys
+        if "pytest" in sys.modules:
+            raise Exception("Testing mode: forcing offline fallback.")
+        try:
+            req = urllib.request.Request(f"{self.ollama_url}/api/tags")
+            with urllib.request.urlopen(req, timeout=2.0) as response:
+                data = json.loads(response.read().decode())
+                models = data.get("models", [])
+                if models:
+                    installed_names = [m["name"] for m in models]
+                    if self.default_model in installed_names:
+                        return self.default_model
+                    for name in installed_names:
+                        if self.default_model.split(":")[0] in name:
+                            return name
+                    logger.info("Configured Ollama model '%s' not found. Falling back to installed model: '%s'", self.default_model, models[0]["name"])
+                    return models[0]["name"]
+        except Exception as e:
+            logger.debug("Failed to query Ollama tags: %s", e)
+        return self.default_model
+
     def generate(self, prompt: str, provider: str = "ollama", history: Optional[List[Dict[str, str]]] = None, stream_callback: Optional[Callable[[str], None]] = None) -> str:
         """
         Executes text generation across providers. If circuit is broken or a provider
         fails, falls back automatically. Supports optional streaming callback.
         """
         if self.circuit_broken:
-            logger.warning("Circuit breaker is open. Routing to mock generation fallback.")
-            return self._stream_mock_fallback(prompt, stream_callback)
+            import sys
+            if "pytest" not in sys.modules:
+                try:
+                    req = urllib.request.Request(f"{self.ollama_url}/api/tags")
+                    with urllib.request.urlopen(req, timeout=1.0):
+                        self.reset_circuit()
+                        logger.info("Circuit breaker reset dynamically — Ollama is reachable.")
+                except Exception:
+                    pass
+            if self.circuit_broken:
+                logger.warning("Circuit breaker is open. Routing to mock generation fallback.")
+                return self._stream_mock_fallback(prompt, stream_callback)
 
         # 1. Google Gemini API
         gemini_key = os.environ.get("GEMINI_API_KEY")
@@ -72,7 +104,7 @@ class LLMManager:
         if provider == "ollama" or not self.circuit_broken:
             try:
                 payload = {
-                    "model": self.default_model,
+                    "model": self._resolve_ollama_model(),
                     "prompt": prompt,
                     "stream": bool(stream_callback)
                 }

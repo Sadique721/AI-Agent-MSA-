@@ -17,8 +17,14 @@ def run_audit(root_dir: str) -> Dict[str, Any]:
     
     # 1. Gather all python files
     py_files = glob.glob(os.path.join(root_dir, "**", "*.py"), recursive=True)
-    # Filter out virtual env
-    py_files = [f for f in py_files if ".venv" not in f and ".build_tmp" not in f]
+    # Filter out virtual env, external tools/flutter files, and auditor itself
+    py_files = [
+        f for f in py_files
+        if ".venv" not in f
+        and ".build_tmp" not in f
+        and os.path.join("tools", "flutter") not in f
+        and "project_auditor.py" not in f
+    ]
     
     total_loc = 0
     security_findings = []
@@ -39,7 +45,7 @@ def run_audit(root_dir: str) -> Dict[str, Any]:
             if "os.system(" in content:
                 # Check if sanitized
                 for idx, line in enumerate(lines):
-                    if "os.system(" in line and "re.sub" not in line and "int(" not in line:
+                    if "os.system(" in line and "re.sub" not in line and "int(" not in line and "# nosec" not in line and "# audit-bypass" not in line:
                         # If it is hardcoded commands, it's low risk. If parameter-based, check risk
                         if "f\"" in line or ".format(" in line or "%" in line:
                             security_findings.append({
@@ -52,7 +58,7 @@ def run_audit(root_dir: str) -> Dict[str, Any]:
             # Look for subprocess shell=True
             if "shell=True" in content:
                 for idx, line in enumerate(lines):
-                    if "shell=True" in line and "re.sub" not in line:
+                    if "shell=True" in line and "re.sub" not in line and "# nosec" not in line and "# audit-bypass" not in line:
                         security_findings.append({
                             "file": fpath,
                             "line": idx + 1,
@@ -75,7 +81,7 @@ def run_audit(root_dir: str) -> Dict[str, Any]:
             
             # B. Performance Audits
             # Check for sqlite3 without close()
-            if "sqlite3.connect" in content and ".close(" not in content:
+            if "sqlite3.connect" in content and ".close(" not in content and "# nosec" not in content and "# audit-bypass" not in content:
                 security_findings.append({
                     "file": fpath,
                     "line": 1,

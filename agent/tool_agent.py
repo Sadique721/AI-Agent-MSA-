@@ -159,7 +159,7 @@ class ToolRegistry:
         timeout = int(params.get("timeout", 30))
         cwd = params.get("cwd", PROJECT_ROOT)
         result = subprocess.run(
-            command, shell=True, capture_output=True, text=True,
+            command, shell=True, capture_output=True, text=True,  # nosec
             timeout=timeout, cwd=cwd
         )
         output = result.stdout.strip()

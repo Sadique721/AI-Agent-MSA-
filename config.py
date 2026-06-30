@@ -48,18 +48,29 @@ API_KEY          = "MSA_SECURE_123"   # Change this in production!
 # ── User Profile (safe internal storage — never sent to external APIs) ────────
 USER_PROFILE_DATA = {
     "name":            "Md Sadique Amin",
-    "role":            "Software Engineer",
+    "role":            "Full Stack Developer | AI Engineer | Data Scientist",
     "email":           "mdsadiqueamin721786@gmail.com",
-    "phone":           "9318302850",
-    "education":       "Diploma - MANUU Bangalore",
-    "current_study":   "B.Tech CSE (8th Semester) - GEC Patan",
+    "phone":           "+91 9318302850",
+    "education":       "BE (Computer Science) - Government Engineering College, Patan (7.9 CGPA) | Diploma (CS) - MANUU Polytechnic Bangalore (87.3%)",
+    "current_study":   "BE CSE - GEC Patan",
     "skills": [
-        "Java", "Spring Boot", "Servlet", "JSP",
-        "MySQL", "JDBC", "JavaScript",
-        "Python", "AI/ML", "Data Science"
+        "Java", "Spring Boot", "Spring Cloud", "Python", "Django", "Flask",
+        "React.js", "MySQL", "MongoDB", "PostgreSQL", "Machine Learning",
+        "Deep Learning", "NLP", "Computer Vision", "TensorFlow", "PyTorch",
+        "Docker", "Git", "AWS", "Apache Spark", "Kafka"
     ],
-    "project": "MSA AI Agent - Offline Multi Device AI Assistant"
+    "project":         "Entitykart E-commerce, Entitykart Microservices, AI Agent MSA System, Image Recognition AI, Sentiment Analysis NLP, Predictive Analytics Dashboard, Real-time Data Streaming"
 }
+
+# Try loading user profile JSON if exists, fallback to USER_PROFILE_DATA
+import json
+USER_PROFILE = USER_PROFILE_DATA
+if os.path.exists(USER_PROFILE_PATH):
+    try:
+        with open(USER_PROFILE_PATH, "r", encoding="utf-8") as f:
+            USER_PROFILE = json.load(f)
+    except Exception:
+        pass
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # NEW: Architecture Upgrade Feature Flags

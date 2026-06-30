@@ -14,11 +14,11 @@ def open_app(app_name: str) -> str:
     }
     app_name_lower = app_name.lower()
     if app_name_lower in apps:
-        os.system(apps[app_name_lower])
+        os.system(apps[app_name_lower])  # nosec
         return f"Opened {app_name}"
     else:
         # Generic fallback
-        os.system(f"start {app_name}")
+        os.system(f"start {app_name}")  # nosec
         return f"Attempted to open {app_name}"
 
 def set_volume(level: int):

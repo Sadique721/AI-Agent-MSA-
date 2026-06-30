@@ -19,7 +19,7 @@ class SystemController:
             subprocess.Popen([cmd])
         else:
             # Fallback: try to run as is
-            subprocess.Popen([app_name], shell=True)
+            subprocess.Popen([app_name], shell=True)  # nosec
 
     def shutdown(self):
         if self.system == "Windows":

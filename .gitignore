@@ -71,6 +71,7 @@ tools/flutter/
 # Desktop Node Modules & builds
 frontend-desktop/node_modules/
 frontend-desktop/dist/
+frontend-desktop/dist-electron/
 
 # Database files
 data/backups/

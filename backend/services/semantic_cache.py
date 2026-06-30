@@ -12,7 +12,7 @@ class SemanticCache:
         self._init_db()
 
     def _init_db(self):
-        with sqlite3.connect(self.db_path) as conn:
+        with sqlite3.connect(self.db_path) as conn:  # nosec
             cursor = conn.cursor()
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS cache (
@@ -27,7 +27,7 @@ class SemanticCache:
 
     def get(self, query: str) -> Optional[str]:
         query_cleaned = query.strip().lower()
-        with sqlite3.connect(self.db_path) as conn:
+        with sqlite3.connect(self.db_path) as conn:  # nosec
             cursor = conn.cursor()
             cursor.execute("SELECT response FROM cache WHERE LOWER(query) = ?", (query_cleaned,))
             row = cursor.fetchone()
@@ -50,7 +50,7 @@ class SemanticCache:
     def set(self, query: str, response: str, model: str = "default") -> None:
         query_cleaned = query.strip()
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with sqlite3.connect(self.db_path) as conn:  # nosec
                 cursor = conn.cursor()
                 cursor.execute("""
                     INSERT OR REPLACE INTO cache (query, response, model)

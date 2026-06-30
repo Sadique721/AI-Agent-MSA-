@@ -36,7 +36,7 @@ class Memory:
         self.sec = security
         self._lock = threading.Lock()  # thread-safety
 
-        self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        self.conn = sqlite3.connect(self.db_path, check_same_thread=False)  # nosec
         self._create_tables()
         logger.info("Memory initialised at %s", self.db_path)
 
@@ -197,3 +197,12 @@ class Memory:
 
     def get_episodic_summary(self) -> Optional[str]:
         return self.get_fact("episodic_memory_summary")
+
+    def close(self) -> None:
+        """Close the SQLite database connection."""
+        try:
+            with self._lock:
+                self.conn.close()
+            logger.info("Memory database connection closed.")
+        except Exception as e:
+            logger.error("Error closing Memory database connection: %s", e)

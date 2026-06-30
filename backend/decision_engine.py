@@ -304,6 +304,22 @@ Respond ONLY with a JSON object:
 
     def generate_text(self, prompt: str) -> Optional[str]:
         """Unified method to generate text using the active LLM provider."""
+        # Dynamic check if Ollama is online but was not ready at startup
+        if self.provider == "fallback":
+            try:
+                import urllib.request
+                import json
+                req = urllib.request.Request(f"{self.ollama_url}/api/tags")
+                with urllib.request.urlopen(req, timeout=1.0) as resp:
+                    tags = json.loads(resp.read().decode())
+                    models = tags.get("models", [])
+                    if models:
+                        self.ollama_model = models[0]["name"]
+                        self.provider = "ollama"
+                        logger.info("DecisionEngine switched to Ollama dynamically (model=%s)", self.ollama_model)
+            except Exception:
+                pass
+
         # 1. Gemini
         if self.provider == "gemini":
             try:

@@ -62,8 +62,18 @@ class RAGMemory:
         # Initialize core upgraded modules
         self.embedder = Embedder()
         self.reranker = Reranker()
-        self.vector_db = FAISSIndexManager()
-        self.metadata_db = SQLiteMetadataStore()
+        import sys
+        import os
+        if "pytest" in sys.modules:
+            import tempfile
+            temp_dir = tempfile.mkdtemp()
+            temp_faiss = os.path.join(temp_dir, "test_msa_vectors.faiss")
+            temp_db = os.path.join(temp_dir, "test_msa.db")
+            self.vector_db = FAISSIndexManager(index_path=temp_faiss)
+            self.metadata_db = SQLiteMetadataStore(db_path=temp_db)
+        else:
+            self.vector_db = FAISSIndexManager()
+            self.metadata_db = SQLiteMetadataStore()
         
         self.retriever = HybridRetriever(
             embedder=self.embedder,
