@@ -8,7 +8,7 @@
     "vite:dev": "vite",
     "electron:dev": "electron .",
     "build": "vite build",
-    "build:electron": "electron-builder",
+    "build:electron": "npm run build && electron-builder",
     "preview": "vite preview",
     "start": "npm run dev"
   },
