@@ -4,6 +4,7 @@ from backend.shared.operating_mode import get_operating_mode_manager, OperatingM
 from backend.backup.backup_service import get_backup_service
 from backend.auto_update.update_service import get_update_service
 from backend.services.background_agent_coordinator import get_background_coordinator
+from typing import List
 
 def test_operating_modes():
     mgr = get_operating_mode_manager()

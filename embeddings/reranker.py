@@ -9,7 +9,7 @@ Falls back to semantic score / BM25 combined scoring if Cross-Encoder fails or i
 import os
 import time
 import logging
-from typing import List, Dict, Any, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 # Force offline mode for Hugging Face hub / transformers to prevent network hanging
 os.environ["TRANSFORMERS_OFFLINE"] = "1"

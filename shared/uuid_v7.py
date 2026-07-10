@@ -1,6 +1,7 @@
 import os
 import time
 import uuid
+from typing import Sequence
 
 def generate_uuid_v7() -> uuid.UUID:
     """

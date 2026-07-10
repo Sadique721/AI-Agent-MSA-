@@ -17,7 +17,7 @@ Upgraded pipeline:
 
 import logging
 import os
-from typing import Dict, Any, List, Optional, Callable
+from typing import Any, Callable, Dict, List, Optional, Type
 
 from ai_core.llm_manager import LLMManager
 from agent.AgentMemory import AgentMemory

@@ -5,6 +5,7 @@ Central configuration for MSA AI Agent.
 All paths, ports, and settings are defined here — import this instead of hardcoding.
 """
 import os
+from typing import Set
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -43,14 +44,17 @@ CONTEXT_WINDOW   = 5    # How many past turns to include in context
 MAX_KEYWORDS     = 8
 
 # ── Security ─────────────────────────────────────────────────────────────────
-API_KEY          = "MSA_SECURE_123"   # Change this in production!
+# SECURITY: Never hardcode API keys. Always read from environment.
+API_KEY          = os.environ.get("MSA_API_KEY", "")  # Set MSA_API_KEY in .env
 
 # ── User Profile (safe internal storage — never sent to external APIs) ────────
+# NOTE: PII (email, phone) moved to environment variables / user_profile.json
+# Override via data/user_profile.json or set MSA_USER_EMAIL / MSA_USER_PHONE in .env
 USER_PROFILE_DATA = {
-    "name":            "Md Sadique Amin",
+    "name":            os.environ.get("MSA_USER_NAME", "Md Sadique Amin"),
     "role":            "Full Stack Developer | AI Engineer | Data Scientist",
-    "email":           "mdsadiqueamin721786@gmail.com",
-    "phone":           "+91 9318302850",
+    "email":           os.environ.get("MSA_USER_EMAIL", ""),  # Set in .env — never hardcode PII
+    "phone":           os.environ.get("MSA_USER_PHONE", ""),  # Set in .env — never hardcode PII
     "education":       "BE (Computer Science) - Government Engineering College, Patan (7.9 CGPA) | Diploma (CS) - MANUU Polytechnic Bangalore (87.3%)",
     "current_study":   "BE CSE - GEC Patan",
     "skills": [
@@ -131,3 +135,84 @@ EMBEDDING_MODEL   = "sentence-transformers/all-MiniLM-L6-v2"
 BROWSER_HEADLESS   = False          # False = visible browser window
 BROWSER_TYPE       = "chromium"     # chromium | firefox | webkit
 BROWSER_TIMEOUT_MS = 30000          # 30-second page load timeout
+
+# Vector Database Backend
+VECTOR_BACKEND = os.environ.get("MSA_VECTOR_BACKEND", "faiss")  # "faiss" (default) or "qdrant"
+
+# ── V7: Graph RAG (Neo4j — optional, fully local via Docker) ─────────────────
+# Set ENABLE_NEO4J=true only when you have Neo4j running locally.
+# If False (default), GraphRAGCore falls back to FAISS-only retrieval.
+ENABLE_NEO4J      = os.environ.get("ENABLE_NEO4J", "false").lower() == "true"
+NEO4J_URI         = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
+NEO4J_USER        = os.environ.get("NEO4J_USER", "neo4j")
+NEO4J_PASSWORD    = os.environ.get("NEO4J_PASSWORD", "")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# V7: Career Intelligence Platform
+# ═══════════════════════════════════════════════════════════════════════════════
+
+ENABLE_JOB_DISCOVERY     = True
+JOB_SOURCES              = ["linkedin", "indeed", "adzuna"]  # active sources
+ADZUNA_APP_ID            = os.environ.get("ADZUNA_APP_ID", "")
+ADZUNA_API_KEY           = os.environ.get("ADZUNA_API_KEY", "")
+JOOBLE_API_KEY           = os.environ.get("JOOBLE_API_KEY", "")
+JSEARCH_API_KEY          = os.environ.get("JSEARCH_API_KEY", "")  # RapidAPI JSearch
+JOB_SEARCH_LOCATION      = "India"
+JOB_SEARCH_DEFAULT_QUERY = "Software Engineer"
+RESUME_DIR               = os.path.join(PROJECT_ROOT, "data", "resumes")
+APPLICATIONS_DB          = os.path.join(PROJECT_ROOT, "data", "applications.db")
+RECRUITER_CRM_DB         = os.path.join(PROJECT_ROOT, "data", "recruiter_crm.db")
+COMPANY_BLACKLIST: list  = []          # list of company name strings to skip
+ATS_SCORE_THRESHOLD      = 0.60        # min ATS score to auto-queue job
+MATCH_SCORE_THRESHOLD    = 0.65        # min semantic match score to consider job
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# V8: Autonomous Application Engine
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# SAFETY: Set AUTO_APPLY_ENABLED=true only after thorough testing.
+# When False (default), each application requires explicit user confirmation.
+AUTO_APPLY_ENABLED       = os.environ.get("MSA_AUTO_APPLY", "false").lower() == "true"
+MAX_APPLICATIONS_PER_DAY = int(os.environ.get("MSA_MAX_APPLY_PER_DAY", "20"))
+EVIDENCE_DIR             = os.path.join(PROJECT_ROOT, "data", "evidence")
+APPLICATION_RETRY_LIMIT  = 3           # max attempts before marking as failed
+APPLICATION_RETRY_DELAY  = 5          # seconds between retries (exponential backoff base)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# V9: Recruiter CRM & Analytics
+# ═══════════════════════════════════════════════════════════════════════════════
+
+ENABLE_RECRUITER_CRM     = True
+ENABLE_CAREER_ANALYTICS  = True
+ENABLE_SELF_IMPROVEMENT  = True
+GMAIL_OAUTH_ENABLED      = False       # Set True only if Gmail API is configured
+ANALYTICS_REPORT_DIR     = os.path.join(PROJECT_ROOT, "data", "analytics")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Ollama — Local LLM Configuration
+# ═══════════════════════════════════════════════════════════════════════════════
+
+OLLAMA_BASE_URL          = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_EXE_PATH          = os.path.join(
+    os.environ.get("LOCALAPPDATA", ""),
+    "Programs", "Ollama", "ollama.exe"
+)
+
+# Primary model — qwen2.5:7b-instruct (best quality of installed models)
+OLLAMA_DEFAULT_MODEL     = os.environ.get("MSA_OLLAMA_MODEL", "qwen2.5:7b-instruct")
+
+# Fast model for quick responses / classification tasks
+OLLAMA_FAST_MODEL        = os.environ.get("MSA_OLLAMA_FAST_MODEL", "qwen2.5:0.5b")
+
+# Research / deep reasoning model
+OLLAMA_REASON_MODEL      = os.environ.get("MSA_OLLAMA_REASON_MODEL", "deepseek-r1:7b")
+
+# Embedding model (used by FAISS / semantic search)
+OLLAMA_EMBED_MODEL       = os.environ.get("MSA_OLLAMA_EMBED_MODEL", "nomic-embed-text:latest")
+
+# Timeouts
+OLLAMA_REQUEST_TIMEOUT   = int(os.environ.get("MSA_OLLAMA_TIMEOUT", "120"))  # seconds
+OLLAMA_STREAM            = True   # stream token-by-token to UI
+
+# Auto-start Ollama if not running (handled by startup scripts)
+OLLAMA_AUTO_START        = True

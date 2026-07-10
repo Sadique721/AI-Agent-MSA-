@@ -1,0 +1,83 @@
+# .dockerignore — MSA AI Agent
+# Prevents large/irrelevant files from being copied into Docker image
+# CRITICAL: Without this, 2x 157MB APKs + node_modules would be copied
+
+# ── Large binary files ────────────────────────────────────────────────────────
+*.apk
+*.ipa
+*.exe
+*.dmg
+*.AppImage
+
+# ── Build artifacts ───────────────────────────────────────────────────────────
+frontend-desktop/node_modules/
+frontend-desktop/dist/
+frontend-desktop/dist-electron/
+flutter_app/build/
+flutter_app/.dart_tool/
+flutter_app/.flutter-plugins
+flutter_app/.flutter-plugins-dependencies
+
+# ── Python ────────────────────────────────────────────────────────────────────
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ── Git ───────────────────────────────────────────────────────────────────────
+.git/
+.gitignore
+
+# ── IDE / Editor ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.codebuddy/
+*.swp
+*.swo
+
+# ── Environment / Secrets ─────────────────────────────────────────────────────
+.env
+.env.local
+.env.production
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+build_debug.log
+stdout.log
+stderr.log
+logs/
+
+# ── Data (local dev data — NOT for production image) ─────────────────────────
+data/memory/*.db
+data/memory/*.faiss
+data/memory/*.json
+data/logs/
+data/resumes/
+data/evidence/
+data/applications.db
+data/recruiter_crm.db
+indexes/
+
+# ── Models (downloaded at runtime, not baked in) ─────────────────────────────
+models/vosk/
+models/llm/
+
+# ── Temp/cache ────────────────────────────────────────────────────────────────
+.build_tmp/
+uploads/
+tmp/
+
+# ── Documentation (not needed in image) ──────────────────────────────────────
+*.md
+docs/
+FINAL_*.md
+HOW_TO_*.md
+PROJECT_AUDIT*.md
+MASTER_*.md

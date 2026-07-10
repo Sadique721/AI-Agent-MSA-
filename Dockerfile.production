@@ -1,0 +1,128 @@
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║          MSA AI Agent — Production Dockerfile (Multi-Stage)             ║
+# ║          Agent: MSA (Md Sadique Amin) — V6 Ultra Pro Max                ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+#
+# Services exposed by this image:
+#   • Flask Socket.IO Web Server  → port 5000
+#   • FastAPI V5 Enterprise Gateway → port 8000
+#
+# Modules included:
+#   agent/         — AgentService, Planner, ReasoningEngine, Validator,
+#                    LLM Agent, RAG Agent, Tool Agent, Knowledge Graph Agent
+#   ai_core/       — LLMManager, AIRouter, ParallelLLMRouter, AgentBus
+#   backend/       — Flask server, FastAPI gateway, decision_engine, vault,
+#                    health_monitor, MCP registry, background coordinator
+#   career/        — JobDiscovery, ResumeEngine, ApplicationEngine, RecruiterCRM
+#   knowledge/     — GraphRAG, CodeRAG, MultimediaRAG, Retriever, Parser
+#   automation/    — WorkflowEngine, ExecutionEngine
+#   voice/         — MSAVoice, STT, TTS, WakeWord (optional in container)
+#   browser_agent/ — Playwright Chromium browser automation
+#   vision/        — OpenCV-based computer vision
+#   gateway/       — API Gateway (FastAPI)
+#   auth/          — Auth server, PDP server
+#   config-service/— Dynamic config service
+#   services/      — Performance cache, security sandbox, watcher
+#   plugins/       — Plugin loader
+#   tools/         — Agent tools
+#   shared/        — Shared utilities
+#   memory/        — Memory subsystem
+#   embeddings/    — FAISS embedding engine
+#   prompts/       — Prompt templates
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 1: Builder — Install all Python dependencies
+# ─────────────────────────────────────────────────────────────────────────────
+FROM mcr.microsoft.com/playwright:v1.44.0-jammy AS builder
+
+WORKDIR /app
+
+# System build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-pip \
+    python3-dev \
+    build-essential \
+    portaudio19-dev \
+    libasound2-dev \
+    libpq-dev \
+    adb \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip and install Python dependencies
+# FIX: Install to /usr/local so non-root msauser can access at runtime
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir --upgrade pip \
+ && pip3 install --no-cache-dir --prefix=/usr/local -r requirements.txt
+
+# NOTE: mcr.microsoft.com/playwright base image already bundles Chromium.
+# Playwright install step intentionally removed — browsers are pre-installed in the base image.
+# The COPY --from=builder /root/.cache/ms-playwright in Stage 2 carries them to runtime.
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 2: Runtime — Slim production image
+# NOTE: Using playwright base image — Chromium is PRE-BUNDLED at /ms-playwright
+#       No need to copy browsers from builder stage (they're already here).
+# ─────────────────────────────────────────────────────────────────────────────
+FROM mcr.microsoft.com/playwright:v1.44.0-jammy AS runtime
+
+WORKDIR /app
+
+# Copy installed Python packages from /usr/local (accessible to all users)
+COPY --from=builder /usr/local /usr/local
+
+# Runtime system deps only (no build tools)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    portaudio19-dev \
+    libasound2 \
+    libpq5 \
+    adb \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy entire application source
+COPY . .
+
+# Create necessary runtime directories
+RUN mkdir -p \
+    /app/data/memory \
+    /app/data/logs \
+    /app/data/resumes \
+    /app/data/evidence \
+    /app/data/analytics \
+    /app/models/vosk \
+    /app/models/llm \
+    /app/models/speaker \
+    /app/uploads \
+    /app/indexes
+
+# ── Environment Defaults ──────────────────────────────────────────────────────
+ENV FLASK_ENV=production \
+    PORT=5000 \
+    FASTAPI_PORT=8000 \
+    MSA_AUTO_APPROVE=true \
+    OLLAMA_BASE_URL=http://host.docker.internal:11434 \
+    MSA_VECTOR_BACKEND=qdrant \
+    ENABLE_NEO4J=true \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
+# Non-root user for security
+# Playwright base image stores browsers at /ms-playwright (world-readable)
+RUN groupadd -r msauser && useradd -r -g msauser msauser \
+    && chown -R msauser:msauser /app
+USER msauser
+
+
+# Expose both servers
+EXPOSE 5000 8000
+
+# Healthcheck against FastAPI gateway
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+  CMD curl -f http://localhost:8000/health || curl -f http://localhost:5000/ || exit 1
+
+# Entry point — starts background coordinator + FastAPI + Flask (see main.py)
+CMD ["python3", "main.py"]

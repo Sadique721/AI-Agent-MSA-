@@ -2,6 +2,7 @@ import base64
 import hashlib
 import hmac
 import json
+import os
 import time
 import logging
 from flask import Flask, request, jsonify
@@ -12,12 +13,17 @@ logger = logging.getLogger("msa.auth")
 
 app = Flask(__name__)
 
-SECRET_KEY = "msa_master_secret_key_for_jwt_tokens"
+# SECURITY: Read from environment — NEVER hardcode secrets
+SECRET_KEY = os.environ.get("MSA_SECRET_KEY", "")
+if not SECRET_KEY:
+    raise RuntimeError("MSA_SECRET_KEY environment variable is required for auth service")
 
-# Mock DB for authentication credentials
+# Mock DB — in production, replace with real PostgreSQL user lookup
+# Passwords are stored as SHA-256 hashes. REAL deployments must use bcrypt.
+# Default passwords intentionally left empty — set via USER_ADMIN_HASH / USER_DEV_HASH env vars.
 USERS_DB = {
-    "admin": hashlib.sha256("admin123".encode("utf-8")).hexdigest(),
-    "developer": hashlib.sha256("devpass".encode("utf-8")).hexdigest()
+    "admin": os.environ.get("USER_ADMIN_HASH", ""),
+    "developer": os.environ.get("USER_DEV_HASH", ""),
 }
 
 def base64url_encode(data: bytes) -> str:

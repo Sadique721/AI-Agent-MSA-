@@ -10,7 +10,7 @@ import os
 import re
 import ast
 import glob
-from typing import Dict, Any, List
+from typing import Any, Dict, List, Type
 
 def run_audit(root_dir: str) -> Dict[str, Any]:
     print(f"Auditing project codebase under: {root_dir}")

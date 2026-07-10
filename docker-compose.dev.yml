@@ -1,0 +1,126 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  MSA AI Agent — Development Override (docker-compose.dev.yml)               ║
+# ║  Author: Md Sadique Amin (MSA) — V6 Ultra Pro Max                           ║
+# ║                                                                              ║
+# ║  Usage:                                                                      ║
+# ║    docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d     ║
+# ║                                                                              ║
+# ║  What this override does:                                                    ║
+# ║    ✓ Mounts source code as live volumes (hot reload / no rebuild needed)    ║
+# ║    ✓ Skips the LLM init chain wait (for faster startup in dev)              ║
+# ║    ✓ Sets debug/dev ENV flags on all services                               ║
+# ║    ✓ Disables healthcheck waits on startup (no wait for depends_on)         ║
+# ║    ✓ Enables Flask debug mode with auto-reload                               ║
+# ║    ✓ Enables Vite HMR dev server (replaces nginx frontend)                  ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+services:
+
+  # ── DEV: msa-agent — Live code mount + debug mode ────────────────────────────
+  msa-agent:
+    volumes:
+      - .:/app                      # Mount entire project (hot reload)
+      - msa_data:/app/data          # Keep data volume
+      - msa_models:/app/models      # Keep models volume
+      - msa_uploads:/app/uploads    # Keep uploads volume
+      - msa_indexes:/app/indexes    # Keep indexes volume
+    environment:
+      FLASK_ENV: development
+      FLASK_DEBUG: "1"
+      MSA_DEV_MODE: "true"
+      PYTHONUNBUFFERED: "1"
+      LOG_LEVEL: DEBUG
+    # Override healthcheck to be more lenient in dev
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || curl -sf http://localhost:5000/ || exit 1"]
+      interval: 30s
+      timeout: 15s
+      retries: 10
+      start_period: 60s
+
+  # ── DEV: msa-auth — Live code mount ──────────────────────────────────────────
+  msa-auth:
+    volumes:
+      - ./auth:/app/auth:ro          # Mount auth module only
+      - ./infrastructure:/app/infrastructure:ro
+    environment:
+      FLASK_ENV: development
+      FLASK_DEBUG: "1"
+      LOG_LEVEL: DEBUG
+
+  # ── DEV: msa-gateway — Live code mount ───────────────────────────────────────
+  msa-gateway:
+    volumes:
+      - ./gateway:/app/gateway:ro    # Mount gateway module only
+      - ./infrastructure:/app/infrastructure:ro
+    environment:
+      FLASK_ENV: development
+      LOG_LEVEL: DEBUG
+
+  # ── DEV: msa-config — Live code mount ────────────────────────────────────────
+  msa-config:
+    volumes:
+      - ./config-service:/app/config-service:ro
+      - ./infrastructure:/app/infrastructure:ro
+    environment:
+      FLASK_ENV: development
+      FLASK_DEBUG: "1"
+      LOG_LEVEL: DEBUG
+
+  # ── DEV: msa-career-api — Live code mount ────────────────────────────────────
+  msa-career-api:
+    volumes:
+      - .:/app                       # Mount entire project for career API
+      - msa_data:/app/data
+      - msa_models:/app/models
+    environment:
+      LOG_LEVEL: DEBUG
+
+  # ── DEV: msa-frontend — Vite dev server (replaces Nginx in dev) ──────────────
+  # Use Vite's built-in dev server with HMR instead of building and serving
+  msa-frontend:
+    build:
+      context: ./frontend-desktop
+      dockerfile: Dockerfile
+      target: builder               # Stop at builder stage (don't run nginx)
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "10080"]
+    ports:
+      - "10080:10080"
+    volumes:
+      - ./frontend-desktop/src:/app/src:ro          # HMR source mount
+      - ./frontend-desktop/index.html:/app/index.html:ro
+    environment:
+      VITE_API_URL: http://localhost:10500
+      VITE_FASTAPI_URL: http://localhost:10800
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:10080/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── DEV: Skip LLM init chain (use if models already pulled) ──────────────────
+  # Comment out the block below to re-enable the LLM startup chain in dev
+  ollama-check:
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "⚡ DEV MODE: Skipping Ollama wait (use prod compose for full chain)"
+        echo "   If LLM features fail → run: docker compose up ollama-check msa-llm-init"
+        exit 0
+
+  msa-llm-init:
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "⚡ DEV MODE: Skipping LLM model init"
+        exit 0
+
+  msa-rag-init:
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["echo", "⚡ DEV MODE: Skipping RAG init"]
+    # Override command to skip rag_healthcheck in dev
+    volumes:
+      - msa_data:/app/data
+      - msa_indexes:/app/indexes

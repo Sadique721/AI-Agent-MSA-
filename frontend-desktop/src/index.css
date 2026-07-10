@@ -1,9 +1,94 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-body {
+/* ── Global resets ── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
   margin: 0;
-  background-color: #09090b;
-  color: #ffffff;
-  overflow: hidden;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  padding: 0;
+  background: #0a0a0f;
+  color: #e4e4e7;
+  font-family: 'Inter', -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+code, pre, .font-mono { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #52525b; }
+
+/* ── Selection ── */
+::selection { background: rgba(99, 102, 241, 0.35); color: #fff; }
+
+/* ── Prose overrides (ReactMarkdown) ── */
+.prose { color: #d4d4d8; }
+.prose h1, .prose h2, .prose h3 { color: #f4f4f5; font-weight: 700; }
+.prose p { color: #a1a1aa; line-height: 1.7; }
+.prose code { background: rgba(99,102,241,0.12); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.25); border-radius: 4px; padding: 0.1em 0.4em; font-size: 0.82em; }
+.prose pre code { background: transparent; border: none; padding: 0; color: inherit; }
+.prose ul li::marker, .prose ol li::marker { color: #6366f1; }
+.prose blockquote { border-left-color: #6366f1; color: #71717a; }
+.prose a { color: #818cf8; text-decoration: none; }
+.prose a:hover { color: #a5b4fc; text-decoration: underline; }
+
+/* ── Animations ── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.04) 50%, transparent 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite;
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(99,102,241,0.3); }
+  50% { box-shadow: 0 0 20px rgba(99,102,241,0.6); }
+}
+
+.glow-active { animation: glow-pulse 2.5s ease-in-out infinite; }
+
+/* ── Glass utility ── */
+.glass {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.glass-dark {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.06);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+/* ── Focus ring ── */
+button:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 2px solid rgba(99,102,241,0.6);
+  outline-offset: 1px;
+}
+
+/* ── No-drag for electron ── */
+.no-drag { -webkit-app-region: no-drag; }
+.drag { -webkit-app-region: drag; }
+
+/* ── Tailwind bg/8 helper ── */
+.bg-white\/3 { background-color: rgba(255,255,255,0.03); }
+.bg-white\/4 { background-color: rgba(255,255,255,0.04); }
+.bg-white\/7 { background-color: rgba(255,255,255,0.07); }
+.bg-white\/8 { background-color: rgba(255,255,255,0.08); }
+.bg-white\/12 { background-color: rgba(255,255,255,0.12); }
+.hover\:bg-white\/6:hover { background-color: rgba(255,255,255,0.06); }
+.hover\:bg-white\/7:hover { background-color: rgba(255,255,255,0.07); }
+.hover\:bg-white\/8:hover { background-color: rgba(255,255,255,0.08); }

@@ -1,0 +1,238 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  MSA AI Agent — Production Hardening Override (docker-compose.prod.yml)     ║
+# ║  Author: Md Sadique Amin (MSA) — V6 Ultra Pro Max                           ║
+# ║                                                                              ║
+# ║  Usage:                                                                      ║
+# ║    docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d    ║
+# ║                                                                              ║
+# ║  What this override does:                                                    ║
+# ║    ✓ Adds CPU/memory resource limits and reservations                       ║
+# ║    ✓ Enforces restart: always (vs unless-stopped)                           ║
+# ║    ✓ Adds logging drivers with rotation to prevent disk fill                ║
+# ║    ✓ Restricts ports to 127.0.0.1 (localhost only — for reverse proxy)     ║
+# ║    ✓ Sets production log levels                                              ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+# ── Production Logging Config ─────────────────────────────────────────────────
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "50m"
+    max-file: "5"
+    compress: "true"
+
+services:
+
+  # ── PROD: postgres ────────────────────────────────────────────────────────────
+  postgres:
+    restart: always
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  # ── PROD: redis ───────────────────────────────────────────────────────────────
+  redis:
+    restart: always
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 768M
+        reservations:
+          memory: 256M
+
+  # ── PROD: qdrant ──────────────────────────────────────────────────────────────
+  qdrant:
+    restart: always
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          memory: 512M
+
+  # ── PROD: neo4j ───────────────────────────────────────────────────────────────
+  neo4j:
+    restart: always
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          memory: 1G
+
+  # ── PROD: minio ───────────────────────────────────────────────────────────────
+  minio:
+    restart: always
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # ── PROD: kafka ───────────────────────────────────────────────────────────────
+  kafka:
+    restart: always
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  # ── PROD: consul ──────────────────────────────────────────────────────────────
+  consul:
+    restart: always
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+
+  # ── PROD: vault ───────────────────────────────────────────────────────────────
+  vault:
+    restart: always
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+
+  # ── PROD: msa-agent ───────────────────────────────────────────────────────────
+  msa-agent:
+    restart: always
+    logging: *default-logging
+    environment:
+      FLASK_ENV: production
+      LOG_LEVEL: WARNING
+      MSA_DEV_MODE: "false"
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+
+  # ── PROD: msa-auth ────────────────────────────────────────────────────────────
+  msa-auth:
+    restart: always
+    logging: *default-logging
+    environment:
+      FLASK_ENV: production
+      LOG_LEVEL: WARNING
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # ── PROD: msa-gateway ─────────────────────────────────────────────────────────
+  msa-gateway:
+    restart: always
+    logging: *default-logging
+    environment:
+      LOG_LEVEL: WARNING
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # ── PROD: msa-career-api ──────────────────────────────────────────────────────
+  msa-career-api:
+    restart: always
+    logging: *default-logging
+    environment:
+      LOG_LEVEL: WARNING
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+
+  # ── PROD: msa-config ──────────────────────────────────────────────────────────
+  msa-config:
+    restart: always
+    logging: *default-logging
+    environment:
+      LOG_LEVEL: WARNING
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+
+  # ── PROD: msa-frontend (restrict to localhost for reverse proxy) ───────────────
+  msa-frontend:
+    restart: always
+    logging: *default-logging
+    ports:
+      - "127.0.0.1:10080:10080"    # Bind to localhost only — use nginx/traefik in front
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+
+  # ── PROD: msa-pwa ─────────────────────────────────────────────────────────────
+  msa-pwa:
+    restart: always
+    logging: *default-logging
+    ports:
+      - "127.0.0.1:10090:10090"    # Bind to localhost only
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+
+  # ── PROD: n8n ─────────────────────────────────────────────────────────────────
+  n8n:
+    restart: always
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # ── PROD: prometheus ──────────────────────────────────────────────────────────
+  prometheus:
+    restart: always
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # ── PROD: grafana ─────────────────────────────────────────────────────────────
+  grafana:
+    restart: always
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M

@@ -25,7 +25,7 @@ Usage:
 """
 
 import logging
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Set
 
 logger = logging.getLogger("msa.tools.registry")
 

@@ -28,8 +28,34 @@ function logToFile(msg) {
 
 function startBackend() {
   try {
-    const pyPath = 'd:\\My Self Details\\Programs\\AI\\msa_agent\\.venv\\Scripts\\python.exe';
-    const pyWorkingDir = 'd:\\My Self Details\\Programs\\AI\\msa_agent';
+    const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+    
+    // In dev mode, project root is 3 folders up from __dirname (src/main)
+    // In packaged app, project root is parent of app.getAppPath() or similar.
+    let pyWorkingDir = isDev 
+      ? path.resolve(__dirname, '..', '..', '..') 
+      : path.resolve(app.getAppPath(), '..');
+      
+    // Fallback search for main.py
+    if (!fs.existsSync(path.join(pyWorkingDir, 'main.py'))) {
+      const exeDir = path.dirname(app.getPath('exe'));
+      if (fs.existsSync(path.join(exeDir, 'main.py'))) {
+        pyWorkingDir = exeDir;
+      } else if (fs.existsSync(path.join(exeDir, '..', 'main.py'))) {
+        pyWorkingDir = path.join(exeDir, '..');
+      }
+    }
+
+    let pyPath = 'python'; // fallback to system python
+    const winVenv = path.join(pyWorkingDir, '.venv', 'Scripts', 'python.exe');
+    const unixVenv = path.join(pyWorkingDir, '.venv', 'bin', 'python');
+    
+    if (fs.existsSync(winVenv)) {
+      pyPath = winVenv;
+    } else if (fs.existsSync(unixVenv)) {
+      pyPath = unixVenv;
+    }
+
     const scriptPath = 'main.py';
 
     logToFile(`Starting Python backend server: ${pyPath} ${scriptPath} in ${pyWorkingDir}`);
@@ -80,7 +106,20 @@ function killBackend() {
 }
 
 function startOllama() {
-  const ollamaPath = 'C:\\Users\\MD SADIQUE AMIN\\AppData\\Local\\Programs\\Ollama\\ollama.exe';
+  let ollamaPath = 'ollama'; // default to system PATH
+  if (process.platform === 'win32') {
+    const localAppData = process.env.LOCALAPPDATA || path.join(process.env.USERPROFILE || '', 'AppData', 'Local');
+    const standardPath = path.join(localAppData, 'Programs', 'Ollama', 'ollama.exe');
+    if (fs.existsSync(standardPath)) {
+      ollamaPath = standardPath;
+    }
+  } else if (process.platform === 'darwin') {
+    const macPath = '/Applications/Ollama.app/Contents/Resources/ollama';
+    if (fs.existsSync(macPath)) {
+      ollamaPath = macPath;
+    }
+  }
+  
   logToFile('Checking if Ollama is running...');
   
   const http = require('http');
@@ -91,17 +130,12 @@ function startOllama() {
   req.on('error', (err) => {
     logToFile('Ollama is not running. Starting Ollama daemon...');
     try {
-      const fs = require('fs');
-      if (fs.existsSync(ollamaPath)) {
-        const ollamaProcess = spawn(ollamaPath, [], {
-          detached: true,
-          stdio: 'ignore'
-        });
-        ollamaProcess.unref();
-        logToFile('Ollama daemon started.');
-      } else {
-        logToFile(`Ollama executable not found at: ${ollamaPath}`);
-      }
+      const ollamaProcess = spawn(ollamaPath, [], {
+        detached: true,
+        stdio: 'ignore'
+      });
+      ollamaProcess.unref();
+      logToFile(`Ollama daemon started using executable: ${ollamaPath}`);
     } catch (e) {
       logToFile(`Failed to start Ollama: ${e.message}`);
     }

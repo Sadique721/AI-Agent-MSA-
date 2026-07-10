@@ -3,16 +3,23 @@ import json
 import logging
 import urllib.request
 import time
-from typing import Optional, Dict, Any, List, Callable
+from typing import Any, Callable, Dict, List, Optional, Type
 
 logger = logging.getLogger("msa.llm_manager")
+
+# Pull from config so the single source of truth is config.py
+try:
+    from config import OLLAMA_BASE_URL as _CFG_OLLAMA_URL, OLLAMA_DEFAULT_MODEL as _CFG_OLLAMA_MODEL
+except Exception:
+    _CFG_OLLAMA_URL   = "http://localhost:11434"
+    _CFG_OLLAMA_MODEL = "qwen2.5:7b-instruct"
 
 class LLMManager:
     """
     Enterprise LLM Manager with automatic routing, circuit breakers,
     retries, and token-by-token streaming fallback.
     """
-    def __init__(self, ollama_url: str = "http://localhost:11434", default_model: str = "llama3"):
+    def __init__(self, ollama_url: str = _CFG_OLLAMA_URL, default_model: str = _CFG_OLLAMA_MODEL):
         self.ollama_url = ollama_url
         self.default_model = default_model
         
@@ -30,6 +37,17 @@ class LLMManager:
                     self.default_model = val
         except Exception as e:
             logger.debug("Failed loading models.yaml dynamically in LLMManager: %s", e)
+
+        # Upgrade: Hardware-aware model selection fallback
+        try:
+            from scripts.hardware_profiler import recommend_model_tier
+            tier = recommend_model_tier()
+            # If default_model is still standard fallback/default, upgrade it
+            if self.default_model in ("llama3", "llama2", "qwen2.5:0.5b"):
+                self.default_model = tier["reasoning"]
+                logger.info("LLMManager dynamically set default model: %s", self.default_model)
+        except Exception as e:
+            logger.warning("Hardware profiler recommendation failed: %s", e)
             
         self.circuit_broken = False
         self.failures = 0
@@ -67,7 +85,7 @@ class LLMManager:
             if "pytest" not in sys.modules:
                 try:
                     req = urllib.request.Request(f"{self.ollama_url}/api/tags")
-                    with urllib.request.urlopen(req, timeout=1.0):
+                    with urllib.request.urlopen(req, timeout=5.0):
                         self.reset_circuit()
                         logger.info("Circuit breaker reset dynamically — Ollama is reachable.")
                 except Exception:
@@ -100,37 +118,75 @@ class LLMManager:
                 logger.error("Gemini routing failed: %s", e)
                 self._handle_failure()
 
-        # 2. Ollama Local Endpoint
+        # 2. Parallel Ollama Multi-Model Router (primary local path)
+        if provider in ("ollama", "parallel") or not self.circuit_broken:
+            try:
+                from ai_core.parallel_llm_router import get_router
+                router = get_router()
+                result = router.generate(
+                    prompt     = prompt,
+                    history    = history,
+                    stream_cb  = stream_callback,
+                )
+                logger.info(
+                    "[ParallelRouter] model=%s strategy=%s latency=%dms",
+                    result.get("model_used"), result.get("strategy"), result.get("latency_ms", 0)
+                )
+                self.failures = 0
+                return result["response"]
+            except Exception as e:
+                logger.warning("ParallelRouter failed, falling back to single-model: %s", e)
+
+        # 2b. Single-model Ollama fallback
         if provider == "ollama" or not self.circuit_broken:
             try:
+                model_name = self._resolve_ollama_model()
+
+                # Build messages array for multi-turn context
+                messages = []
+                if history:
+                    for h in history:
+                        messages.append({"role": h.get("role", "user"), "content": h.get("content", "")})
+                messages.append({"role": "user", "content": prompt})
+
                 payload = {
-                    "model": self._resolve_ollama_model(),
-                    "prompt": prompt,
-                    "stream": bool(stream_callback)
+                    "model": model_name,
+                    "messages": messages,
+                    "stream": bool(stream_callback),
+                    "options": {
+                        "temperature": 0.7,
+                        "num_predict": 2048,
+                        "num_ctx": 8192
+                    }
                 }
                 req = urllib.request.Request(
-                    f"{self.ollama_url}/api/generate",
+                    f"{self.ollama_url}/api/chat",
                     data=json.dumps(payload).encode("utf-8"),
                     headers={"Content-Type": "application/json"}
                 )
                 if stream_callback:
-                    with urllib.request.urlopen(req, timeout=30.0) as response:
+                    with urllib.request.urlopen(req, timeout=120.0) as response:
                         full_text = ""
                         for line in response:
-                            if line:
+                            if line.strip():
                                 chunk_data = json.loads(line.decode("utf-8"))
-                                chunk_text = chunk_data.get("response", "")
-                                full_text += chunk_text
-                                stream_callback(chunk_text)
+                                msg = chunk_data.get("message", {})
+                                chunk_text = msg.get("content", "")
+                                if chunk_text:
+                                    full_text += chunk_text
+                                    stream_callback(chunk_text)
+                                if chunk_data.get("done", False):
+                                    break
                         self.failures = 0
                         return full_text.strip()
                 else:
-                    with urllib.request.urlopen(req, timeout=30.0) as response:
+                    with urllib.request.urlopen(req, timeout=120.0) as response:
                         res_data = json.loads(response.read().decode())
+                        msg = res_data.get("message", {})
                         self.failures = 0
-                        return res_data.get("response", "").strip()
+                        return msg.get("content", "").strip()
             except Exception as e:
-                logger.error("Ollama routing failed: %s", e)
+                logger.error("Ollama /api/chat routing failed: %s", e)
                 self._handle_failure()
 
         # 3. Final Simulation Fallback

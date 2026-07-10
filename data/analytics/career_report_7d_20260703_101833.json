@@ -1,0 +1,21 @@
+{
+  "period_days": 7,
+  "generated_at": "2026-07-03T10:18:33.529430",
+  "funnel": {
+    "discovered": 0,
+    "queued": 1,
+    "applied": 0,
+    "interview": 0,
+    "rejected": 0,
+    "offer": 0
+  },
+  "rates": {
+    "total_applied": 0,
+    "total_responses": 0,
+    "response_rate": 0.0,
+    "interview_rate": 0.0,
+    "offer_rate": 0.0
+  },
+  "applied_in_period": 0,
+  "source_distribution": {}
+}

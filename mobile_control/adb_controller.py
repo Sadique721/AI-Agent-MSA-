@@ -1,3 +1,4 @@
+from typing import Set
 try:
     from adb_shell.adb_device import AdbDeviceTcp
     from adb_shell.auth import keygen

@@ -1,0 +1,16 @@
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  MSA API Gateway — Slim Requirements                                     ║
+# ║  Used by: infrastructure/docker/Dockerfile.gateway                       ║
+# ║                                                                           ║
+# ║  gateway/api_gateway.py imports:                                          ║
+# ║    flask, infrastructure.service_registry (BaseService only)             ║
+# ║    stdlib only: urllib, os, time, logging                                 ║
+# ║                                                                           ║
+# ║  Build time: ~20s  (vs full requirements.txt ~30min with CUDA)           ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+# ── Core Web Server ───────────────────────────────────────────────────────────
+flask>=3.0.0
+
+# ── Monitoring ────────────────────────────────────────────────────────────────
+psutil>=6.0.0

@@ -19,6 +19,7 @@ import json
 import logging
 import os
 import sys
+from typing import Optional, Type
 
 # ---------------------------------------------------------------------------
 # Optional LLM backend
@@ -111,7 +112,15 @@ class DecisionEngine(BaseService):
         self.llm = None
         self.provider = "fallback"
         self.ollama_url = "http://localhost:11434"
-        self.ollama_model = "llama2"
+        self.ollama_model = "qwen2.5:0.5b"
+
+        # Check hardware capacity and default to recommended chat model
+        try:
+            from scripts.hardware_profiler import recommend_model_tier
+            tier = recommend_model_tier()
+            self.ollama_model = tier["chat"]
+        except Exception:
+            self.ollama_model = "qwen2.5:0.5b"
 
         # Check for Gemini API key first
         self.gemini_key = os.environ.get("GEMINI_API_KEY")
@@ -129,11 +138,22 @@ class DecisionEngine(BaseService):
                 import urllib.request
                 import json
                 req = urllib.request.Request(f"{self.ollama_url}/api/tags")
-                with urllib.request.urlopen(req, timeout=1.0) as resp:
+                with urllib.request.urlopen(req, timeout=5.0) as resp:
                     tags = json.loads(resp.read().decode())
                     models = tags.get("models", [])
                     if models:
-                        self.ollama_model = models[0]["name"]
+                        installed_names = [m["name"] for m in models]
+                        if self.ollama_model in installed_names:
+                            pass
+                        else:
+                            match_found = False
+                            for name in installed_names:
+                                if self.ollama_model.split(":")[0] in name:
+                                    self.ollama_model = name
+                                    match_found = True
+                                    break
+                            if not match_found:
+                                self.ollama_model = models[0]["name"]
                         self.provider = "ollama"
                         logger.info("DecisionEngine using Local Provider: Ollama (model=%s)", self.ollama_model)
             except Exception:
@@ -172,72 +192,151 @@ class DecisionEngine(BaseService):
         Main entry point. Returns a decision dict with guaranteed keys:
             response, action, parameters
         """
-        result = None
         if not user_input or not user_input.strip():
-            result = {"response": "Please say or type a command.", "action": "none", "parameters": {}}
+            return {"response": "Please say or type a command.",
+                    "action": "none", "parameters": {}}
+
+        result = None
+
+        # ── Ollama branch (PRIMARY for local setups) ──────────────────────
+        if self.provider == "ollama":
+            result = self._ollama_decision(user_input, context)
+            if result:
+                result.setdefault("parameters", {})
+
+        # ── Gemini branch ─────────────────────────────────────────────────
         elif self.provider == "gemini":
             result = self._gemini_decision(user_input, context)
             if result:
                 result.setdefault("parameters", {})
+
+        # ── llama.cpp local branch ────────────────────────────────────────
         elif self.provider == "local" and self.llm:
             result = self._llm_decision(user_input, context)
             if result:
                 result.setdefault("parameters", {})
 
+        # ── Keyword fallback (only if all LLM paths failed) ───────────────
         if not result:
             result = self._keyword_decision(user_input)
             result.setdefault("parameters", {})
 
-        # Inject Creator Profile Card if talking about Md Sadique Amin
-        keywords = ["md sadique amin", "sadique", "creator of msa", "who built msa", "who developed msa", "owner of msa", "tell me about myself"]
-        query_lower = user_input.lower()
-        if any(k in query_lower for k in keywords):
-            response = result.get("response", "")
-            if "media:///" not in response:
-                profile_card = """
-<div style="background: linear-gradient(135deg, rgba(30, 30, 50, 0.95), rgba(15, 15, 30, 0.95)); border: 1px solid rgba(139, 92, 246, 0.45); border-radius: 16px; padding: 24px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5); backdrop-filter: blur(12px); color: #f1f5f9; font-family: 'Segoe UI', -apple-system, sans-serif; max-width: 620px; margin: 20px auto; border-top: 4px solid #8b5cf6;">
-  <div style="display: flex; align-items: center; gap: 24px; border-bottom: 1px solid rgba(255, 255, 255, 0.12); padding-bottom: 20px; margin-bottom: 20px;">
-    <div style="position: relative;">
-      <img src="media:///d:/My Self Details/Programs/AI/msa_agent/data/memory/user_picture.jpg" style="width: 110px; height: 110px; border-radius: 50%; border: 3px solid #8b5cf6; box-shadow: 0 0 20px rgba(139, 92, 246, 0.7); object-fit: cover;" />
-      <span style="position: absolute; bottom: 8px; right: 8px; background: #10b981; width: 16px; height: 16px; border-radius: 50%; border: 3.5px solid #1e1e32;" title="Founder & CEO"></span>
-    </div>
-    <div>
-      <h2 style="margin: 0; font-size: 26px; font-weight: 800; background: linear-gradient(to right, #a78bfa, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Md Sadique Amin</h2>
-      <p style="margin: 6px 0 0 0; color: #a78bfa; font-size: 13.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;">Founder, CEO, CTO & CMO</p>
-      <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 14px; font-weight: 550;">Full Stack Developer | AI Swarm Engineer | Data Scientist</p>
-    </div>
-  </div>
+        # ── Creator profile injection ──────────────────────────────────────
+        keywords = ["md sadique amin", "sadique", "creator of msa",
+                    "who built msa", "who developed msa", "owner of msa",
+                    "tell me about myself"]
+        if any(k in user_input.lower() for k in keywords):
+            if "media:///" not in result.get("response", ""):
+                from config import USER_PROFILE
+                profile_text = (
+                    f"**{USER_PROFILE.get('name', 'Md Sadique Amin')}**\n"
+                    f"Role: {USER_PROFILE.get('role', '')}\n"
+                    f"Education: {USER_PROFILE.get('education', '')}\n"
+                    f"Skills: {', '.join(USER_PROFILE.get('skills', []))}"
+                )
+                result["response"] = profile_text
 
-  <div style="margin-bottom: 20px;">
-    <h3 style="margin: 0 0 10px 0; font-size: 16px; color: #f8fafc; border-left: 3px solid #f472b6; padding-left: 10px;">Executive Biography</h3>
-    <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #cbd5e1;">
-      <strong>Md Sadique Amin</strong> is a visionary Software Developer, AI Swarm Architect, and Data Scientist based in Begusarai, Bihar. Currently pursuing a BE in Computer Science and Engineering at GEC Patan (7.9 CGPA), he specializes in building scalable enterprise cloud infrastructure, advanced multi-agent cognitive systems, Spring Boot microservices, and hybrid RAG data pipelines. He is the principal architect of the MSA AI Agent OS client.
-    </p>
-  </div>
-
-  <div style="margin-bottom: 20px;">
-    <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #f8fafc; border-left: 3px solid #8b5cf6; padding-left: 10px;">Key Technical Armament</h3>
-    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-      <span style="background: rgba(139, 92, 246, 0.18); border: 1px solid rgba(139, 92, 246, 0.35); color: #d8b4fe; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Java / Spring Boot / Spring Cloud</span>
-      <span style="background: rgba(139, 92, 246, 0.18); border: 1px solid rgba(139, 92, 246, 0.35); color: #d8b4fe; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Python / PyTorch / TensorFlow</span>
-      <span style="background: rgba(139, 92, 246, 0.18); border: 1px solid rgba(139, 92, 246, 0.35); color: #d8b4fe; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">FastAPI / Django / Flask</span>
-      <span style="background: rgba(139, 92, 246, 0.18); border: 1px solid rgba(139, 92, 246, 0.35); color: #d8b4fe; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">React.js / Next.js / Electron</span>
-      <span style="background: rgba(139, 92, 246, 0.18); border: 1px solid rgba(139, 92, 246, 0.35); color: #d8b4fe; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Swarm Intelligence & Hybrid RAG</span>
-      <span style="background: rgba(139, 92, 246, 0.18); border: 1px solid rgba(139, 92, 246, 0.35); color: #d8b4fe; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Docker / AWS / Spark / Kafka</span>
-    </div>
-  </div>
-
-  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255, 255, 255, 0.12); padding-top: 18px; font-size: 12.5px; color: #94a3b8;">
-    <span>📍 Begusarai, Bihar, India</span>
-    <div style="display: flex; gap: 16px;">
-      <a href="https://myportfoliositesadique.netlify.app/" target="_blank" style="color: #c084fc; text-decoration: none; font-weight: 700; border-bottom: 1px dashed rgba(192, 132, 252, 0.5);">🌐 Portfolio</a>
-      <a href="https://github.com/Sadique721" target="_blank" style="color: #c084fc; text-decoration: none; font-weight: 700; border-bottom: 1px dashed rgba(192, 132, 252, 0.5);">🐙 GitHub</a>
-    </div>
-  </div>
-</div>
-"""
-                result["response"] = response + "\n\n" + profile_card
         return result
+
+    def _ollama_decision(self, user_input: str, context: list) -> Optional[dict]:
+        """
+        Parallel multi-model Ollama decision:
+          • qwen2.5:0.5b  → fast intent/action classification
+          • qwen2.5:7b    → main response generation
+          • deepseek-r1   → complex reasoning (complex queries only)
+          • nomic-embed   → semantic similarity (handled by FAISS layer)
+        Returns None on total failure so keyword fallback can run.
+        """
+        import json as _json
+        import re as _re
+        import threading
+
+        system_content = (
+            "You are MSA AI Agent's decision engine. Analyze the user's request and respond "
+            "ONLY with a valid JSON object with exactly these keys:\n"
+            "  response: string (your helpful answer)\n"
+            "  action: one of: none, internet_search, memory_recall, generate_code, "
+            "debug_code, explain_code, open_app, system_control, screenshot\n"
+            "  parameters: object (e.g. {\"query\": \"...\"}  or {\"language\": \"python\"})\n"
+            "IMPORTANT: Output ONLY the JSON. No markdown, no explanation."
+        )
+
+        # Build history for context
+        history = []
+        for m in (context or [])[-5:]:
+            role = m.get("role", "user")
+            if role not in ("user", "assistant", "system"):
+                role = "user"
+            history.append({"role": role, "content": m.get("content", "")})
+
+        # ── Run parallel router ────────────────────────────────────────────────
+        try:
+            from ai_core.parallel_llm_router import get_router
+            router = get_router()
+            result = router.generate(
+                prompt   = user_input,
+                system   = system_content,
+                history  = history,
+            )
+            text = result.get("response", "").strip()
+            logger.info(
+                "[ParallelDecision] model=%s strategy=%s latency=%dms",
+                result.get("model_used"), result.get("strategy"), result.get("latency_ms", 0)
+            )
+        except Exception as e:
+            logger.warning("ParallelRouter decision failed, trying single-model: %s", e)
+            # Fallback to single direct call
+            import urllib.request as _urllib_request
+            try:
+                payload = {
+                    "model": self.ollama_model,
+                    "messages": [{"role": "system", "content": system_content}] + history + [{"role": "user", "content": user_input}],
+                    "stream": False,
+                    "options": {"temperature": 0.2, "num_predict": 512},
+                }
+                req = _urllib_request.Request(
+                    f"{self.ollama_url}/api/chat",
+                    data=_json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                )
+                with _urllib_request.urlopen(req, timeout=90.0) as resp:
+                    raw = _json.loads(resp.read().decode())
+                    text = raw.get("message", {}).get("content", "").strip()
+            except Exception as e2:
+                logger.warning("_ollama_decision single-model also failed: %s", e2)
+                return None
+
+        # ── Parse JSON from response ───────────────────────────────────────────
+        try:
+            match = _re.search(r'\{.*\}', text, _re.DOTALL)
+            if match:
+                data       = _json.loads(match.group())
+                action     = str(data.get("action", "none"))
+                parameters = data.get("parameters", {})
+
+                try:
+                    from tools.schema_validator import validate_tool_call
+                    validated_params = validate_tool_call(action, parameters)
+                    if validated_params is None and action != "none":
+                        action, parameters = "none", {}
+                    else:
+                        parameters = validated_params or {}
+                except Exception as ex:
+                    logger.debug("validate_tool_call failed: %s", ex)
+
+                return {
+                    "response":   str(data.get("response", "")),
+                    "action":     action,
+                    "parameters": parameters,
+                }
+            else:
+                # Model gave prose answer instead of JSON — wrap it
+                return {"response": text, "action": "none", "parameters": {}}
+        except Exception as e:
+            logger.warning("_ollama_decision JSON parse failed: %s", e)
+        return None
+
+
 
     # -----------------------------------------------------------------------
     def _gemini_decision(self, user_input: str, context: list) -> dict | None:
@@ -357,7 +456,7 @@ Respond ONLY with a JSON object:
                 import urllib.request
                 import json
                 req = urllib.request.Request(f"{self.ollama_url}/api/tags")
-                with urllib.request.urlopen(req, timeout=1.0) as resp:
+                with urllib.request.urlopen(req, timeout=5.0) as resp:
                     tags = json.loads(resp.read().decode())
                     models = tags.get("models", [])
                     if models:
@@ -391,7 +490,7 @@ Respond ONLY with a JSON object:
                     data=json.dumps(payload).encode("utf-8"),
                     headers={"Content-Type": "application/json"}
                 )
-                with urllib.request.urlopen(req, timeout=15.0) as response:
+                with urllib.request.urlopen(req, timeout=90.0) as response:
                     res_data = json.loads(response.read().decode())
                     return res_data.get("response", "").strip()
             except Exception as e:

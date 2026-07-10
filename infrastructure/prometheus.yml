@@ -1,0 +1,84 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # ── MSA Agent Flask (internal port 5000) ──────────────────────────────────────
+  - job_name: 'msa-agent-flask'
+    static_configs:
+      - targets: ['msa-agent:5000']
+    metrics_path: '/metrics'
+
+  # ── MSA Agent FastAPI (internal port 8000) ────────────────────────────────────
+  - job_name: 'msa-agent-fastapi'
+    static_configs:
+      - targets: ['msa-agent:8000']
+    metrics_path: '/api/v5/metrics'
+
+  # ── MSA Gateway Service (internal port 8080) ──────────────────────────────────
+  # Service name in docker-compose: msa-gateway
+  - job_name: 'msa-gateway'
+    static_configs:
+      - targets: ['msa-gateway:8080']
+    metrics_path: '/metrics'
+
+  # ── MSA Auth Service (internal port 8081) ─────────────────────────────────────
+  # Service name in docker-compose: msa-auth
+  - job_name: 'msa-auth'
+    static_configs:
+      - targets: ['msa-auth:8081']
+    metrics_path: '/metrics'
+
+  # ── MSA Career API (internal port 8082) ───────────────────────────────────────
+  # Service name in docker-compose: msa-career-api
+  - job_name: 'msa-career-api'
+    static_configs:
+      - targets: ['msa-career-api:8082']
+    metrics_path: '/metrics'
+
+  # ── MSA Config Service (internal port 8083) ───────────────────────────────────
+  # Service name in docker-compose: msa-config
+  - job_name: 'msa-config'
+    static_configs:
+      - targets: ['msa-config:8083']
+    metrics_path: '/metrics'
+
+  # ── Frontend Desktop (Nginx — internal port 10080) ────────────────────────────
+  # FIX: Service name was 'msa-frontend-desktop' → actual name is 'msa-frontend'
+  - job_name: 'msa-frontend'
+    static_configs:
+      - targets: ['msa-frontend:10080']
+    metrics_path: '/health'
+
+  # ── Frontend PWA (Nginx — internal port 10090) ────────────────────────────────
+  # FIX: Service name was 'msa-frontend-pwa' → actual name is 'msa-pwa'
+  - job_name: 'msa-pwa'
+    static_configs:
+      - targets: ['msa-pwa:10090']
+    metrics_path: '/health'
+
+  # ── N8N Automation (internal port 5678) ───────────────────────────────────────
+  # Service name in docker-compose: n8n
+  - job_name: 'n8n'
+    static_configs:
+      - targets: ['n8n:5678']
+    metrics_path: '/metrics'
+
+  # ── Qdrant Vector DB (internal port 6333) ─────────────────────────────────────
+  # Service name in docker-compose: qdrant
+  - job_name: 'qdrant'
+    static_configs:
+      - targets: ['qdrant:6333']
+    metrics_path: '/metrics'
+
+  # ── Redis (requires redis_exporter sidecar for real metrics) ──────────────────
+  # To enable: add redis-exporter service and point here
+  # - job_name: 'redis-exporter'
+  #   static_configs:
+  #     - targets: ['redis-exporter:9121']
+
+  # ── PostgreSQL (requires postgres_exporter sidecar for real metrics) ──────────
+  # To enable: add postgres-exporter service and point here
+  # - job_name: 'postgres-exporter'
+  #   static_configs:
+  #     - targets: ['postgres-exporter:9187']

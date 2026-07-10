@@ -7,7 +7,7 @@ Provides templates and rule-based generation, with optional LLM integration.
 
 import json
 import logging
-from typing import Dict, Any, List
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("msa.coding.generator")
 

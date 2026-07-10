@@ -1,62 +1,101 @@
 /**
  * apiClient.js
- * WebSocket wrapper connecting to the V4.0 Enterprise API Gateway.
+ * Real Socket.IO client connecting to MSA Flask-SocketIO backend on port 5000.
+ * Replaces the broken raw-WebSocket gateway client that targeted port 8080.
  */
-export class GatewayWebSocketClient {
-  constructor(url = "ws://localhost:8080/stream") {
-    this.url = url;
-    this.ws = null;
+import { io } from 'socket.io-client';
+
+const BACKEND_URL = 'http://localhost:5000';
+
+export class MSASocketClient {
+  constructor() {
+    this.socket = null;
     this.onMessageCallbacks = [];
     this.onConnectCallbacks = [];
     this.onDisconnectCallbacks = [];
+    this.onTokenCallbacks = [];
+    this.onStatusCallbacks = [];
+    this.onChunkCallbacks = [];
+    this._isConnected = false;
   }
 
   connect() {
-    try {
-      this.ws = new WebSocket(this.url);
-      
-      this.ws.onopen = () => {
-        console.log("WebSocket connected to Gateway.");
-        this.onConnectCallbacks.forEach(cb => cb());
-      };
-      
-      this.ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          this.onMessageCallbacks.forEach(cb => cb(data));
-        } catch (e) {
-          console.warn("Received non-JSON message: ", event.data);
-        }
-      };
-      
-      this.ws.onclose = () => {
-        console.log("WebSocket disconnected.");
-        this.onDisconnectCallbacks.forEach(cb => cb());
-        // Auto-reconnect after 3 seconds
-        setTimeout(() => this.connect(), 3000);
-      };
-    } catch (err) {
-      console.error("WebSocket connection failure:", err);
+    if (this.socket) return;
+
+    this.socket = io(BACKEND_URL, {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+      timeout: 10000,
+    });
+
+    this.socket.on('connect', () => {
+      this._isConnected = true;
+      console.log('[MSA] Socket.IO connected to backend on port 5000');
+      this.onConnectCallbacks.forEach(cb => cb());
+    });
+
+    this.socket.on('disconnect', (reason) => {
+      this._isConnected = false;
+      console.log('[MSA] Disconnected:', reason);
+      this.onDisconnectCallbacks.forEach(cb => cb(reason));
+    });
+
+    // Token-by-token streaming (real-time response)
+    this.socket.on('token', (data) => {
+      this.onTokenCallbacks.forEach(cb => cb(data));
+    });
+
+    // Status updates (thinking, searching, etc.)
+    this.socket.on('status', (data) => {
+      this.onStatusCallbacks.forEach(cb => cb(data));
+    });
+
+    // Complete response event
+    this.socket.on('response', (data) => {
+      this.onMessageCallbacks.forEach(cb => cb(data));
+    });
+
+    // Agent thinking / tool use notifications
+    this.socket.on('agent_event', (data) => {
+      this.onMessageCallbacks.forEach(cb => cb({ agent_event: true, ...data }));
+    });
+
+    this.socket.on('connect_error', (err) => {
+      console.error('[MSA] Connection error:', err.message);
+    });
+  }
+
+  disconnect() {
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+      this._isConnected = false;
     }
   }
 
-  send(data) {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(data));
-    } else {
-      console.warn("WebSocket not open. Queueing or dropping message.");
+  sendCommand(text) {
+    if (!this.socket || !this._isConnected) {
+      console.error('[MSA] Cannot send — not connected to backend');
+      return;
     }
+    // Use the real event name from backend/server.py handle_text_command
+    this.socket.emit('text_command', { command: text });
   }
 
-  onMessage(callback) {
-    this.onMessageCallbacks.push(callback);
-  }
+  onConnect(cb)     { this.onConnectCallbacks.push(cb); }
+  onDisconnect(cb)  { this.onDisconnectCallbacks.push(cb); }
+  onMessage(cb)     { this.onMessageCallbacks.push(cb); }
+  onToken(cb)       { this.onTokenCallbacks.push(cb); }
+  onStatus(cb)      { this.onStatusCallbacks.push(cb); }
 
-  onConnect(callback) {
-    this.onConnectCallbacks.push(callback);
-  }
+  get connected()   { return this._isConnected; }
+}
 
-  onDisconnect(callback) {
-    this.onDisconnectCallbacks.push(callback);
-  }
+// Singleton
+let _client = null;
+export function getMSAClient() {
+  if (!_client) _client = new MSASocketClient();
+  return _client;
 }

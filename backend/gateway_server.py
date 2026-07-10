@@ -84,12 +84,21 @@ app = FastAPI(
     redoc_url="/api/v5/redoc",
 )
 
+# ── CORS ────────────────────────────────────────────────────────────────
+# SECURITY: Wildcard CORS + credentials is rejected by browsers (CORS spec).
+# Read allowed origins from env var (comma-separated) for Docker flexibility.
+_raw_origins = os.environ.get(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:3000,http://localhost:10080,http://localhost:10090,http://localhost:5173"
+)
+_allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allowed_origins,   # Never use ["*"] with allow_credentials=True
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
 )
 
 # ── Request/Response Models ───────────────────────────────────────────────────

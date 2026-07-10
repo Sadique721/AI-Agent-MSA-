@@ -25,7 +25,7 @@ Risk Levels
 
 import logging
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger("msa.agent.reasoning")
 
@@ -146,6 +146,7 @@ class ReasoningEngine:
         context: Optional[List] = None,
         failure_hint: Optional[Dict] = None,
         replan_attempt: int = 0,
+        mode: str = "balanced",
     ) -> Dict[str, Any]:
         """
         Analyse user input and produce a reasoning packet.
@@ -155,6 +156,7 @@ class ReasoningEngine:
             context:      Recent conversation context (list of strings).
             failure_hint: On replan, the Validator failure dict from previous attempt.
             replan_attempt: Current replan retry attempt count.
+            mode:         Cognitive mode (balanced|deep_thinking|research|architect|autonomous).
 
         Returns:
             {
@@ -174,6 +176,22 @@ class ReasoningEngine:
 
         context = context or []
         lower = user_input.lower().strip()
+
+        # Tree-of-Thought for complex decision routing
+        if mode == "tree_of_thought":
+            tot_result = self._tot_reason(user_input, str(context))
+            if tot_result.get("response"):
+                tot_result["replan_attempt"] = replan_attempt
+                tot_result["failure_hint"] = failure_hint
+                return tot_result
+
+        # Chain-of-Thought for deep thinking modes
+        if mode in ("deep_thinking", "research", "architect", "autonomous"):
+            cot_result = self._cot_reason(user_input, str(context))
+            if cot_result.get("response"):
+                cot_result["replan_attempt"] = replan_attempt
+                cot_result["failure_hint"] = failure_hint
+                return cot_result
 
         # Try LLM-assisted reasoning first
         if self._llm:
@@ -377,6 +395,85 @@ Respond ONLY with valid JSON:
         except Exception as e:
             logger.warning("LLM reasoning failed: %s", e)
         return None
+
+    def _cot_reason(self, user_input: str, context: str = "") -> Dict[str, Any]:
+        """
+        Chain-of-Thought reasoning: forces the model to think step-by-step
+        before giving a final answer. Produces Mythos-level reasoning quality.
+        """
+        cot_prompt = (
+            f"<reasoning>\n"
+            f"Problem: {user_input}\n\n"
+            f"Context: {context[:2000] if context else 'No additional context.'}\n\n"
+            f"Think step by step:\n"
+            f"Step 1: Understand what is being asked\n"
+            f"Step 2: Identify what information or tools are needed\n"
+            f"Step 3: Break the problem into sub-tasks\n"
+            f"Step 4: Solve each sub-task logically\n"
+            f"Step 5: Synthesize a clear, accurate final answer\n"
+            f"</reasoning>\n\n"
+            f"Final Answer:"
+        )
+
+        try:
+            from ai_core.llm_manager import LLMManager
+            llm_manager = LLMManager()
+            result = llm_manager.generate(
+                cot_prompt,
+                provider="ollama",
+                stream_callback=None
+            )
+            if result:
+                return {
+                    "goal": user_input[:100],
+                    "reasoning_type": "chain_of_thought",
+                    "response": result,
+                    "steps": ["understand", "identify", "decompose", "solve", "synthesize"],
+                    "confidence": 0.9,
+                    "required_tools": [],
+                    "risk_level": "low",
+                    "requires_approval": False,
+                    "dependencies": [],
+                    "reasoning_steps": ["CoT reasoning: understand -> identify -> decompose -> solve -> synthesize"],
+                }
+        except Exception as e:
+            logger.warning("CoT reasoning failed: %s", e)
+
+        return self._empty_packet()
+
+    def _tot_reason(self, user_input: str, context: str = "") -> Dict[str, Any]:
+        """
+        Tree-of-Thought: generates 3 independent solution branches, then asks
+        the model to critique and pick the strongest one. Slower than CoT but
+        higher quality for ambiguous/creative/architecture-level questions.
+        """
+        tot_prompt = (
+            f"Task: {user_input}\n"
+            f"Context: {context[:2000] if context else 'None.'}\n\n"
+            f"Generate 3 distinct approaches to solve this (label them A, B, C). "
+            f"Then critique each one's strengths/weaknesses in 1 line. "
+            f"Finally, output ONLY the best combined solution under a "
+            f"'## Final Answer' heading."
+        )
+        try:
+            from ai_core.llm_manager import LLMManager
+            llm_manager = LLMManager()
+            result = llm_manager.generate(tot_prompt, provider="ollama")
+            if result:
+                return {
+                    "goal": user_input[:100],
+                    "reasoning_type": "tree_of_thought",
+                    "response": result,
+                    "confidence": 0.95,
+                    "required_tools": [],
+                    "risk_level": "low",
+                    "requires_approval": False,
+                    "dependencies": [],
+                    "reasoning_steps": ["ToT reasoning: generate branches -> critique -> select"],
+                }
+        except Exception as e:
+            logger.warning("ToT reasoning failed: %s", e)
+        return self._empty_packet()
 
     def _adjust_for_replan(
         self, packet: Dict[str, Any], failure_hint: Dict

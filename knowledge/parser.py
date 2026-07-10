@@ -12,7 +12,7 @@ import zipfile
 import tempfile
 import shutil
 import re
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger("msa.knowledge.parser")
 

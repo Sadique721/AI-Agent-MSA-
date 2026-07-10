@@ -41,10 +41,11 @@ class CircuitBreaker:
             return False
         return True
 
-# Map backends
-backend_breaker = CircuitBreaker()
-BACKEND_URL = "http://localhost:5000"
-AUTH_SERVER_URL = "http://localhost:8081"
+# Map backends — read from env for Docker container networking
+import os
+backend_breaker  = CircuitBreaker()
+BACKEND_URL      = os.environ.get("BACKEND_URL", "http://localhost:5000")
+AUTH_SERVER_URL  = os.environ.get("AUTH_SERVER_URL", "http://localhost:8081")
 
 # Simple Rate Limiter (IP-based)
 RATE_LIMIT_MAX = 100  # requests

@@ -1,5 +1,6 @@
 import os
 import subprocess
+from typing import Set
 
 def open_app(app_name: str) -> str:
     """Opens a system app or executable"""

@@ -7,6 +7,7 @@ from backend.context_engine.context_aggregator import get_context_aggregator
 from backend.artifact_engine.artifact_service import get_artifact_service
 from backend.shared.event_bus import get_event_bus
 from backend.shared.command_router import get_command_router
+from typing import List
 
 def test_workspaces():
     ws_service = get_workspace_service()

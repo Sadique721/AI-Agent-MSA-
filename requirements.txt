@@ -1,79 +1,95 @@
-# MSA AI Agent — Python Dependencies
-# =====================================
+# MSA AI Agent — Complete Production Dependencies
 
-# Core
-numpy
-pandas
+# ── Core Web Server ───────────────────────────────────────────────────────────
+flask>=3.0.0
+flask-socketio>=5.3.6
+python-socketio>=5.11.0
+python-engineio>=4.9.0
 
-# Web Server (primary)
-flask
-flask-socketio
-python-socketio
+# ── FastAPI V5 Gateway ────────────────────────────────────────────────────────
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+pydantic>=2.7.0
+slowapi>=0.1.9
+python-jose[cryptography]>=3.3.0
+httpx>=0.27.0
+python-multipart>=0.0.9
+asgiref>=3.8.0         # WSGI→ASGI bridge (career_api.py standalone mode)
 
-# HTTP / Web search
-requests
-beautifulsoup4
+# ── HTTP / Web Search ─────────────────────────────────────────────────────────
+requests>=2.32.0
+beautifulsoup4>=4.12.3
+ddgs>=6.3.3
 
-# Speech Recognition (offline, Vosk)
-vosk
+# ── Config ────────────────────────────────────────────────────────────────────
+pyyaml>=6.0.1
 
-# Text-to-Speech
-pyttsx3
+# ── PostgreSQL ────────────────────────────────────────────────────────────────
+psycopg2-binary>=2.9.9
+asyncpg>=0.29.0
+sqlalchemy>=2.0.30
 
-# Audio I/O
-sounddevice
-soundfile
+# ── Redis ─────────────────────────────────────────────────────────────────────
+redis>=5.0.4
 
-# Computer Vision
-opencv-python
+# ── Kafka — WARNING: kafka-python is archived. Consider migrating to confluent-kafka ────
+kafka-python>=2.0.2
+# confluent-kafka>=2.4.0  # Uncomment to switch to actively maintained alternative
 
-# Encryption / Security
-cryptography
+# ── LangGraph Multi-Agent Framework ──────────────────────────────────────────
+langgraph>=0.1.0       # Used by agent/workflow.py (optional — graceful fallback exists)
 
-# System Monitoring
-psutil
+# ── Vector Databases ─────────────────────────────────────────────────────────
+qdrant-client>=1.9.0
 
-# Deep Learning (optional — Speaker Verification)
-torch
-torchaudio
-transformers
-sentencepiece
-speechbrain
+# ── Graph Database ────────────────────────────────────────────────────────────
+neo4j>=5.20.0
 
-# Whisper STT (optional, heavy)
-# openai-whisper
+# ── RAG / Vector Search ───────────────────────────────────────────────────────
+sentence-transformers>=3.0.0
+faiss-cpu>=1.8.0
+numpy>=1.26.0
 
-# Local LLM via GGUF (optional — needs model file)
-# llama-cpp-python
+# ── Encryption / Security ─────────────────────────────────────────────────────
+cryptography>=42.0.0
+passlib[bcrypt]>=1.7.4
 
-# Android Device Control (optional)
-adb-shell
-pure-python-adb
+# ── System / Monitoring ───────────────────────────────────────────────────────
+psutil>=6.0.0
 
-# System Automation (optional)
-pyautogui
-pynput
+# ── Language Detection ───────────────────────────────────────────────────────
+langdetect>=1.0.9
 
-# Web scraping
-selenium
+# ── Speech (STT/TTS) — graceful optional in Docker ───────────────────────────
+vosk>=0.3.45
+pyttsx3>=2.90
+SpeechRecognition>=3.10.0
+sounddevice>=0.4.7
+soundfile>=0.12.1
 
-# ── NEW: Upgrade 1 — Language Engine ─────────────────────────────────────────
-# Statistical language detection (English / Hindi / Hinglish)
-langdetect
+# ── Vision ────────────────────────────────────────────────────────────────────
+opencv-python-headless>=4.10.0
 
-# ── NEW: Upgrade 3 — RAG Memory ──────────────────────────────────────────────
-# Offline semantic embeddings (~80 MB model, downloaded once)
-sentence-transformers
-# CPU-only FAISS vector index (no GPU required)
-faiss-cpu
+# ── Browser Automation ───────────────────────────────────────────────────────
+playwright>=1.44.0
 
-# ── NEW: Upgrade 4 — Browser Agent ───────────────────────────────────────────
-# Reliable browser automation (Chromium/Firefox/WebKit)
-playwright
+# ── PDF / Document Parsing ────────────────────────────────────────────────────
+PyMuPDF>=1.24.0
+python-docx>=1.1.2
 
-# Speech recognition (wake-word + listen loop)
-SpeechRecognition
+# ── Telegram Integration ──────────────────────────────────────────────────────
+python-telegram-bot>=21.0.0
 
-# Cloud LLM Support
-google-generativeai
+# ── Optional: Android Control ────────────────────────────────────────────────
+adb-shell>=0.4.4
+pure-python-adb>=0.3.0.dev0
 
+# ── Optional: Desktop Automation ─────────────────────────────────────────────
+pyautogui>=0.9.54
+pynput>=1.7.7
+
+# ── Optional: Deep Learning (for speaker verification) ───────────────────────
+# torch
+# torchaudio
+# transformers
+# speechbrain

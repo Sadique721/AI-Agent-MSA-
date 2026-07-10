@@ -6,7 +6,7 @@ loop structures, variable declarations, and returns optimized modifications.
 """
 
 import logging
-from typing import Dict, Any
+from typing import Any, Dict, List
 
 logger = logging.getLogger("msa.coding.refactor_engine")
 

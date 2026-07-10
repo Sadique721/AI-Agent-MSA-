@@ -52,5 +52,35 @@ export const useStore = create((set) => ({
     conversations: state.conversations.map((card) =>
       card.id === id ? { ...card, ...updates } : card
     )
-  }))
+  })),
+
+  addStreamToken: (token) => set((state) => {
+    const conv = [...state.conversations];
+    const last = conv[conv.length - 1];
+    if (last && last.role === 'assistant' && last.streaming) {
+      conv[conv.length - 1] = { ...last, content: last.content + token };
+    }
+    return { conversations: conv };
+  }),
+
+  startStreamMessage: () => set((state) => ({
+    conversations: [...state.conversations, {
+      id: `stream_${Date.now()}`,
+      role: 'assistant',
+      content: '',
+      streaming: true,
+      timestamp: new Date().toISOString(),
+      x: 200 + (state.conversations.length * 30),
+      y: 200 + (state.conversations.length * 20),
+    }]
+  })),
+
+  finalizeStreamMessage: (fullText) => set((state) => {
+    const conv = [...state.conversations];
+    const idx = conv.findLastIndex(m => m.role === 'assistant' && m.streaming);
+    if (idx >= 0) {
+      conv[idx] = { ...conv[idx], content: fullText || conv[idx].content, streaming: false };
+    }
+    return { conversations: conv };
+  })
 }));

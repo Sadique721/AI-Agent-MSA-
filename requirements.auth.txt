@@ -1,0 +1,20 @@
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  MSA Auth Service — Slim Requirements                                    ║
+# ║  Used by: infrastructure/docker/Dockerfile.auth                          ║
+# ║                                                                           ║
+# ║  auth/auth_server.py imports:                                             ║
+# ║    flask, infrastructure.service_registry (BaseService only)             ║
+# ║    stdlib only: base64, hashlib, hmac, json, os, time, logging           ║
+# ║                                                                           ║
+# ║  Build time: ~30s  (vs full requirements.txt ~30min with CUDA)           ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+# ── Core Web Server ───────────────────────────────────────────────────────────
+flask>=3.0.0
+
+# ── Security / Hashing (extra safety layer) ──────────────────────────────────
+cryptography>=42.0.0
+passlib[bcrypt]>=1.7.4
+
+# ── Monitoring ────────────────────────────────────────────────────────────────
+psutil>=6.0.0

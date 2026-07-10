@@ -1,7 +1,7 @@
 {
   "name": "msa-agent-desktop-client",
-  "version": "5.0.0",
-  "description": "MSA AI Agent V5.0 — Anti-Gravity Desktop AI Operating System",
+  "version": "6.0.0",
+  "description": "MSA AI Agent V6.0 — Ultimate Career OS Desktop Application",
   "main": "src/main/main.js",
   "scripts": {
     "dev": "concurrently \"vite --port 3000\" \"electron .\"",
@@ -9,21 +9,37 @@
     "electron:dev": "electron .",
     "build": "vite build",
     "build:electron": "npm run build && electron-builder",
+    "build:exe": "npm run build && electron-builder --win portable",
     "preview": "vite preview",
     "start": "npm run dev"
   },
-  "keywords": ["ai", "desktop", "electron", "agent", "msa"],
+  "keywords": [
+    "ai",
+    "desktop",
+    "electron",
+    "agent",
+    "msa"
+  ],
   "author": "Md Sadique Amin",
   "license": "MIT",
   "dependencies": {
+    "@monaco-editor/react": "^4.6.0",
+    "@radix-ui/react-dialog": "^1.1.1",
+    "@radix-ui/react-scroll-area": "^1.1.0",
+    "@radix-ui/react-tooltip": "^1.1.2",
+    "dompurify": "^3.1.0",
     "framer-motion": "^11.0.0",
+    "highlight.js": "^11.9.0",
+    "lucide-react": "^0.400.0",
     "marked": "^12.0.0",
+    "mermaid": "^11.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "zustand": "^4.5.0",
-    "mermaid": "^11.0.0",
-    "highlight.js": "^11.9.0",
-    "dompurify": "^3.1.0"
+    "react-markdown": "^9.0.1",
+    "react-syntax-highlighter": "^15.5.0",
+    "react-textarea-autosize": "^8.5.3",
+    "socket.io-client": "^4.7.5",
+    "zustand": "^4.5.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
@@ -50,7 +66,9 @@
       "package.json"
     ],
     "win": {
-      "target": ["dir"],
+      "target": [
+        "dir"
+      ],
       "icon": "assets/icon.ico"
     },
     "mac": {

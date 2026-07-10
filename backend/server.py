@@ -28,6 +28,7 @@ import json
 import logging
 import os
 import sys
+from typing import Any, List
 
 from flask import Flask, request, jsonify, send_from_directory
 from flask_socketio import SocketIO, emit
@@ -55,6 +56,34 @@ from backend.security import Security                # noqa: E402
 from backend.system_monitor import SystemMonitor     # noqa: E402
 from agent.AgentService import AgentService          # noqa: E402
 
+# V10 Production Readiness Imports
+from scripts.db_migrator import DBMigrator
+from scripts.config_validator import ConfigValidator
+from backend.error_reporter import ErrorReporter
+from backend.health_monitor import HealthMonitor
+from backend.crash_recovery import CrashRecovery
+
+# Run migrations and pre-flight config validation
+ConfigValidator().validate_all()
+DBMigrator().run_all()
+
+# Global error/crash logging setup
+error_reporter = ErrorReporter()
+crash_recovery = CrashRecovery()
+
+# Check for unclean shutdown at startup
+crashed_state = crash_recovery.check_for_crash()
+if crashed_state:
+    logger.critical("System restarted after suspected unclean shutdown: %s", crashed_state)
+    crash_recovery.clear_checkpoint()
+
+def msa_excepthook(type_, value, tb):
+    crash_recovery.log_crash(type_, value, tb)
+    error_reporter.report_error(value, context={"global_crash": True}, notify=False)
+    sys.__excepthook__(type_, value, tb)
+
+sys.excepthook = msa_excepthook
+
 # ---------------------------------------------------------------------------
 # Flask App & SocketIO
 # ---------------------------------------------------------------------------
@@ -77,6 +106,159 @@ try:
     logger.info("mobile_bp Blueprint registered at /mobile/*")
 except Exception as e:
     logger.warning("mobile_bp registration failed: %s", e)
+
+# ---------------------------------------------------------------------------
+# Register Career OS Blueprint (V7-V10: job discovery, CRM, analytics)
+# ---------------------------------------------------------------------------
+try:
+    from backend.career_api import career_bp
+    app.register_blueprint(career_bp, url_prefix="/api/career")
+    logger.info("career_bp Blueprint registered at /api/career/*")
+except Exception as e:
+    logger.warning("career_bp registration failed (non-fatal): %s", e)
+
+# ---------------------------------------------------------------------------
+# Parallel Model Status endpoint  (/api/models)
+# ---------------------------------------------------------------------------
+@app.route("/api/models", methods=["GET"])
+def api_models():
+    """Returns live status of all 4 Ollama parallel models."""
+    import urllib.request as _ur
+    import json as _json
+    import time as _time
+
+    try:
+        from config import (
+            OLLAMA_BASE_URL, OLLAMA_DEFAULT_MODEL, OLLAMA_FAST_MODEL,
+            OLLAMA_REASON_MODEL, OLLAMA_EMBED_MODEL,
+        )
+    except Exception:
+        OLLAMA_BASE_URL      = "http://localhost:11434"
+        OLLAMA_DEFAULT_MODEL = "qwen2.5:7b-instruct"
+        OLLAMA_FAST_MODEL    = "qwen2.5:0.5b"
+        OLLAMA_REASON_MODEL  = "deepseek-r1:7b"
+        OLLAMA_EMBED_MODEL   = "nomic-embed-text:latest"
+
+    defined_models = {
+        "fast":  OLLAMA_FAST_MODEL,
+        "main":  OLLAMA_DEFAULT_MODEL,
+        "deep":  OLLAMA_REASON_MODEL,
+        "embed": OLLAMA_EMBED_MODEL,
+    }
+
+    installed = []
+    ollama_ok  = False
+    try:
+        req = _ur.Request(f"{OLLAMA_BASE_URL}/api/tags")
+        with _ur.urlopen(req, timeout=3) as resp:
+            data = _json.loads(resp.read())
+            installed = [m["name"] for m in data.get("models", [])]
+            ollama_ok = True
+    except Exception as e:
+        logger.warning("api/models ollama check failed: %s", e)
+
+    def _is_ready(model_name):
+        return any(
+            model_name == n or model_name.split(":")[0] == n.split(":")[0]
+            for n in installed
+        )
+
+    model_status = {
+        lane: {
+            "model":  model_name,
+            "ready":  _is_ready(model_name) if ollama_ok else False,
+            "role":   {"fast": "Intent/Classification", "main": "Primary Reasoning",
+                       "deep": "Deep Analysis", "embed": "Semantic Embeddings"}[lane],
+        }
+        for lane, model_name in defined_models.items()
+    }
+
+    return jsonify({
+        "ollama_running": ollama_ok,
+        "ollama_url":     OLLAMA_BASE_URL,
+        "models":         model_status,
+        "installed":      installed,
+        "parallel_router": "active",
+    })
+
+
+# ---------------------------------------------------------------------------
+# File System API — /api/files/tree  and  /api/files/read
+# Powers the IDE File Explorer in the frontend
+# ---------------------------------------------------------------------------
+_ALLOWED_ROOT = PROJECT_ROOT  # restrict browsing to project directory
+
+def _build_tree(path: str, depth: int, max_depth: int) -> dict:
+    """Recursively build directory tree dict."""
+    import os
+    name = os.path.basename(path)
+    if os.path.isfile(path):
+        return {"name": name, "type": "file", "path": path}
+    if depth > max_depth:
+        return {"name": name, "type": "dir", "path": path, "children": []}
+    try:
+        entries = sorted(os.listdir(path), key=lambda e: (not os.path.isdir(os.path.join(path, e)), e.lower()))
+    except PermissionError:
+        return {"name": name, "type": "dir", "path": path, "children": []}
+    # Filter noisy directories
+    _SKIP = {'.git', '__pycache__', 'node_modules', '.venv', 'venv', 'dist', 'dist-electron',
+             'build', '.mypy_cache', '.pytest_cache', '.tox', 'htmlcov'}
+    children = []
+    for e in entries:
+        if e.startswith('.') and e not in ('.env', '.gitignore'):
+            continue
+        if e in _SKIP:
+            continue
+        children.append(_build_tree(os.path.join(path, e), depth + 1, max_depth))
+    return {"name": name, "type": "dir", "path": path, "children": children}
+
+
+@app.route("/api/files/tree", methods=["GET"])
+def api_files_tree():
+    """Return a recursive file/folder tree for the given path."""
+    import os
+    req_path = request.args.get("path", PROJECT_ROOT)
+    max_depth = min(int(request.args.get("depth", 3)), 6)
+    # Security: restrict to project root
+    try:
+        real = os.path.realpath(req_path)
+        root = os.path.realpath(_ALLOWED_ROOT)
+        if not real.startswith(root):
+            return jsonify({"error": "Access denied"}), 403
+    except Exception:
+        return jsonify({"error": "Invalid path"}), 400
+    if not os.path.exists(real):
+        return jsonify({"error": "Path not found"}), 404
+    tree = _build_tree(real, 0, max_depth)
+    return jsonify(tree)
+
+
+@app.route("/api/files/read", methods=["GET"])
+def api_files_read():
+    """Read and return file contents (text files only, max 512 KB)."""
+    import os
+    req_path = request.args.get("path", "")
+    if not req_path:
+        return jsonify({"error": "path required"}), 400
+    try:
+        real = os.path.realpath(req_path)
+        root = os.path.realpath(_ALLOWED_ROOT)
+        if not real.startswith(root):
+            return jsonify({"error": "Access denied"}), 403
+    except Exception:
+        return jsonify({"error": "Invalid path"}), 400
+    if not os.path.isfile(real):
+        return jsonify({"error": "Not a file"}), 404
+    size = os.path.getsize(real)
+    if size > 512 * 1024:
+        return jsonify({"content": f"(file too large: {size//1024} KB)", "truncated": True})
+    try:
+        with open(real, "r", encoding="utf-8", errors="replace") as f:
+            content = f.read()
+        return jsonify({"content": content, "path": real, "size": size})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 # ---------------------------------------------------------------------------
 # Lazy-initialised singletons
@@ -447,6 +629,21 @@ def api_system_info():
         return jsonify({"status": "ok", "data": snapshot})
     except Exception as e:
         logger.exception("Error in /api/system_info")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# GET /api/health  [NEW]
+# ---------------------------------------------------------------------------
+@app.route("/api/health", methods=["GET"])
+def api_health():
+    """Returns detailed subsystem availability, active DBs, RAM, and OOM checks."""
+    try:
+        monitor = HealthMonitor()
+        status_data = monitor.check_health()
+        return jsonify(status_data)
+    except Exception as e:
+        logger.exception("Error in /api/health")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 

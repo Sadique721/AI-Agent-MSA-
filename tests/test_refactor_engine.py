@@ -8,6 +8,7 @@ Covers all 4 refactoring rules, no-match fallback, LLM fallback, output schema.
 import pytest
 import sys
 import os
+from typing import List
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

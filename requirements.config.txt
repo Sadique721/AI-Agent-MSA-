@@ -1,0 +1,16 @@
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  MSA Config & Feature Flag Service — Slim Requirements                   ║
+# ║  Used by: infrastructure/docker/Dockerfile.config                        ║
+# ║                                                                           ║
+# ║  config-service/config_service.py imports:                               ║
+# ║    flask, infrastructure.service_registry (BaseService only)             ║
+# ║    stdlib only: logging, json, os                                        ║
+# ║                                                                           ║
+# ║  Build time: ~15s  (vs full requirements.txt ~30min with CUDA)           ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+# ── Core Web Server ───────────────────────────────────────────────────────────
+flask>=3.0.0
+
+# ── Monitoring ────────────────────────────────────────────────────────────────
+psutil>=6.0.0

@@ -39,7 +39,7 @@ Usage:
 """
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from language.language_detector import LanguageDetector
 from language.intent_normalizer import IntentNormalizer

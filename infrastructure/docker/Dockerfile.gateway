@@ -1,25 +1,43 @@
+# ╔════════════════════════════════════════════════════════════════════════════╗
+# ║  MSA API Gateway — Slim Dockerfile                                         ║
+# ║  Uses requirements.gateway.txt (Flask only, ~20s build)                    ║
+# ║  vs requirements.txt (full CUDA stack, ~30min build)                       ║
+# ║                                                                              ║
+# ║  FIX: --prefix=/usr/local so packages are accessible by non-root user      ║
+# ╚════════════════════════════════════════════════════════════════════════════╝
+
 # Stage 1: Builder stage
-FROM python:3.11-slim-bullseye AS builder
+FROM python:3.11-slim-bookworm AS builder
 
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+# Slim requirements: only Flask (no torch/CUDA/ML packages)
+COPY requirements.gateway.txt .
+# FIX: Install to /usr/local (system-wide) instead of /root/.local (user-home)
+# so the non-root gwuser can access packages at runtime
+RUN pip install --no-cache-dir --prefix=/usr/local -r requirements.gateway.txt
 
-# Stage 2: Final runtime stage
-FROM python:3.11-slim-bullseye
+# Stage 2: Final runtime stage (Bookworm — Bullseye EOL Aug 2026)
+FROM python:3.11-slim-bookworm
 
 WORKDIR /app
-COPY --from=builder /root/.local /root/.local
+
+# FIX: Copy from /usr/local (accessible to all users, including non-root gwuser)
+COPY --from=builder /usr/local /usr/local
 COPY . .
 
-ENV PATH=/root/.local/bin:$PATH
+# SECURITY: Run as non-root user
+RUN groupadd -r gwuser && useradd -r -g gwuser gwuser \
+    && chown -R gwuser:gwuser /app
+
+USER gwuser
+
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health', timeout=2)" || exit 1
 
 ENTRYPOINT ["python", "gateway/api_gateway.py"]

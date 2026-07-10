@@ -7,7 +7,9 @@ export default defineConfig({
   base: './',
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src/renderer'),
+      // '@' maps to src/ (App.jsx, main.jsx, components/ all live under src/)
+      // Previously pointed to './src/renderer' which is a subdirectory — was incorrect
+      '@': path.resolve(__dirname, './src'),
     },
   },
   build: {
