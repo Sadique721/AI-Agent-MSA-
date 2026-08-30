@@ -32,6 +32,18 @@
 </tr>
 </table>
 
+<!-- ========== NEW: SYSTEM DIAGRAM SECTION ========== -->
+## 📊 System Architecture & Workflow
+
+```mermaid
+flowchart TD
+    A[User Voice Input] --> B[Vosk Speech-to-Text]
+    B --> C[Local Llama2 LLM Engine]
+    C --> D[Command Parser]
+    D --> E[ADB Device bridge]
+    E --> F[Android Automation Control]
+```
+
 ---
 
 <!--
