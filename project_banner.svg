@@ -19,7 +19,7 @@
   <rect x="50" y="50" width="700" height="200" rx="10" fill="rgba(0, 0, 0, 0.25)" stroke="rgba(255, 255, 255, 0.15)" stroke-width="1.5" />
   
   <text x="90" y="115" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="34" font-weight="800" fill="#ffffff" letter-spacing="0.5">AI-Agent-MSA-</text>
-  <text x="90" y="145" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="400" fill="#e0f2fe" opacity="0.85">Offline Speech & Voice LLM Android Automation Agent</text>
+  <text x="90" y="145" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="400" fill="#e0f2fe" opacity="0.85">Offline Speech &amp; Voice LLM Android Automation Agent</text>
   
   <rect x="90" y="180" width="160" height="32" rx="6" fill="rgba(255, 255, 255, 0.1)" stroke="rgba(255, 255, 255, 0.2)" stroke-width="1" />
   <text x="170" y="201" font-family="monospace" font-size="12" font-weight="bold" fill="#38bdf8" text-anchor="middle">LOCAL LLM</text>

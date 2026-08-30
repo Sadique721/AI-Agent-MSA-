@@ -5,9 +5,7 @@
 </p>
 
 <!-- ========== NEW: HIGH QUALITY PROJECT BANNER ========== -->
-<p align="center">
-  <img src="project_banner.svg" width="100%">
-</p>
+![Project Banner](project_banner.svg)
 
 
 <!-- ========== NEW: AUTHOR & ARCHITECT SECTION ========== -->
